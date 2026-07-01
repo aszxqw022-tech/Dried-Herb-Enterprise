@@ -13,6 +13,7 @@ export const InventoryComponent = {
     const plots = appState.getPlots();
     const members = appState.getMembers();
     const sales = appState.getSales();
+    const crops = appState.getCrops(); // Added to fix ReferenceError
     const financialReport = appState.getFinancialReport();
 
     // 1. Filtered report for members tab
