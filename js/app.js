@@ -5,6 +5,8 @@ import { MembersComponent } from './components/members.js';
 import { PlotsComponent } from './components/plots.js';
 import { CropsComponent } from './components/crops.js';
 import { SettingsComponent } from './components/settings.js';
+import { InventoryComponent } from './components/inventory.js'; // Phase 2
+import { TraceabilityComponent } from './components/traceability.js'; // Phase 2
 
 class AppController {
   constructor() {
@@ -14,7 +16,9 @@ class AppController {
       members: MembersComponent,
       plots: PlotsComponent,
       crops: CropsComponent,
-      settings: SettingsComponent
+      settings: SettingsComponent,
+      inventory: InventoryComponent,  // Phase 2
+      trace: TraceabilityComponent    // Phase 2
     };
   }
 
@@ -25,7 +29,7 @@ class AppController {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const targetView = link.getAttribute('data-view');
-        this.switchView(targetView);
+        window.location.hash = `#${targetView}`; // Update hash for router
       });
     });
 
@@ -43,7 +47,6 @@ class AppController {
       toggleBtn.addEventListener('click', toggleSidebar);
       overlay.addEventListener('click', toggleSidebar);
       
-      // Close sidebar when clicking sidebar links on mobile
       navLinks.forEach(link => {
         link.addEventListener('click', () => {
           if (!sidebar.classList.contains('-translate-x-full')) {
@@ -58,12 +61,45 @@ class AppController {
       this.updateHeaderAndTitles(profile);
     };
 
-    // 4. Initial layout updates
+    // 4. Listen for hash changes to route dynamically (Phase 2)
+    window.addEventListener('hashchange', () => {
+      this.handleRouting();
+    });
+
+    // 5. Initial layout updates
     const initialProfile = appState.getEnterprise();
     this.updateHeaderAndTitles(initialProfile);
 
-    // 5. Render default view
-    this.switchView('dashboard');
+    // 6. Run router on initial load
+    this.handleRouting();
+  }
+
+  handleRouting() {
+    const hash = window.location.hash || '#dashboard';
+    const sidebar = document.getElementById('sidebar');
+    const header = document.querySelector('header');
+
+    if (hash.startsWith('#trace/')) {
+      const cropId = hash.split('/')[1];
+      TraceabilityComponent.currentCropId = cropId;
+
+      // HIDE admin panels for consumer traceability view
+      if (sidebar) sidebar.style.display = 'none';
+      if (header) header.style.display = 'none';
+      
+      this.switchView('trace');
+    } else {
+      // RESTORE admin panels
+      if (sidebar) sidebar.style.display = '';
+      if (header) header.style.display = '';
+
+      const viewKey = hash.substring(1);
+      if (this.views[viewKey]) {
+        this.switchView(viewKey);
+      } else {
+        window.location.hash = '#dashboard';
+      }
+    }
   }
 
   switchView(viewKey) {
@@ -80,7 +116,6 @@ class AppController {
       const linkView = link.getAttribute('data-view');
       if (linkView === viewKey) {
         link.classList.add('active');
-        // Highlight icon
         const icon = link.querySelector('i');
         if (icon) icon.className = icon.className.replace('text-emerald-700', 'text-white');
       } else {

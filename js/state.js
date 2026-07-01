@@ -5,7 +5,9 @@ const STORAGE_KEYS = {
   ENTERPRISE: 'herb_enterprise_profile',
   MEMBERS: 'herb_enterprise_members',
   PLOTS: 'herb_enterprise_plots',
-  CROPS: 'herb_enterprise_crops'
+  CROPS: 'herb_enterprise_crops',
+  INVENTORY: 'herb_enterprise_inventory',
+  SALES: 'herb_enterprise_sales'
 };
 
 // Initial Profile setup
@@ -109,8 +111,9 @@ const MOCK_CROPS = [
     harvestDateEst: '2026-03-01',
     harvestDateActual: '2026-03-05',
     cost: 5000,
-    yield: 185.5, // kg
+    yield: 185.5, // kg fresh
     status: 'harvested',
+    isProcessed: true, // Already processed
     fertilizingLog: [
       { date: '2025-11-01', type: 'ปุ๋ยอินทรีย์พื้นฐาน', amount: '30 กิโลกรัม' },
       { date: '2025-12-15', type: 'น้ำหมักสะเดาไล่แมลง', amount: '2 ลิตร' },
@@ -124,13 +127,26 @@ const MOCK_CROPS = [
     harvestDateEst: '2026-03-15',
     harvestDateActual: '2026-03-12',
     cost: 2500,
-    yield: 75.2, // kg
+    yield: 75.2, // kg fresh
     status: 'harvested',
+    isProcessed: true, // Already processed
     fertilizingLog: [
       { date: '2025-11-15', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '10 กิโลกรัม' },
       { date: '2026-01-05', type: 'ปุ๋ยคอกมูลไก่แห้ง', amount: '10 กิโลกรัม' }
     ]
   }
+];
+
+// Mock inventory split by cropId (Phase 2 core feature)
+const MOCK_INVENTORY = [
+  { cropId: 'CROP-003', herbType: 'เก๊กฮวย', dryStockKg: 13.18, processedDate: '2026-03-06' }, // 185.5 / 8 = 23.18 kg. Sold 10, remaining 13.18
+  { cropId: 'CROP-004', herbType: 'คาโมมายล์', dryStockKg: 7.53, processedDate: '2026-03-13' }  // 75.2 / 6 = 12.53 kg. Sold 5, remaining 7.53
+];
+
+// Mock sales transactions linked to specific cropIds
+const MOCK_SALES = [
+  { id: 'SALE-001', cropId: 'CROP-003', amountKg: 10.0, pricePerKg: 450, totalPrice: 4500, customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-03-20' },
+  { id: 'SALE-002', cropId: 'CROP-004', amountKg: 5.0, pricePerKg: 600, totalPrice: 3000, customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-04-05' }
 ];
 
 export class AppState {
@@ -158,6 +174,16 @@ export class AppState {
     if (!localStorage.getItem(STORAGE_KEYS.CROPS)) {
       localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
     }
+
+    // 5. Inventory (Phase 2)
+    if (!localStorage.getItem(STORAGE_KEYS.INVENTORY)) {
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
+    }
+
+    // 6. Sales (Phase 2)
+    if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
+    }
   }
 
   // --- Enterprise Profile Methods ---
@@ -167,7 +193,6 @@ export class AppState {
 
   saveEnterprise(data) {
     localStorage.setItem(STORAGE_KEYS.ENTERPRISE, JSON.stringify(data));
-    // Trigger callback if defined to update ui elements
     if (this.onEnterpriseChange) {
       this.onEnterpriseChange(data);
     }
@@ -185,7 +210,6 @@ export class AppState {
 
   addMember(member) {
     const members = this.getMembers();
-    // Generate new ID
     const maxIdNum = members.reduce((max, m) => {
       const num = parseInt(m.id.split('-')[1]);
       return num > max ? num : max;
@@ -217,7 +241,6 @@ export class AppState {
 
   deleteMember(id) {
     let members = this.getMembers();
-    // Check if member has plots
     const plots = this.getPlots().filter(p => p.memberId === id);
     if (plots.length > 0) {
       throw new Error(`ไม่สามารถลบสมาชิกได้เนื่องจากสมาชิกมีแปลงปลูกอยู่ในระบบ (${plots.length} แปลง)`);
@@ -249,7 +272,6 @@ export class AppState {
     }, 0);
     const newId = `PLOT-${String(maxIdNum + 1).padStart(3, '0')}`;
     
-    // Default location variance around Chiang Mai if map wasn't clicked
     let finalLat = parseFloat(plot.lat);
     let finalLng = parseFloat(plot.lng);
     if (!finalLat || !finalLng) {
@@ -295,7 +317,6 @@ export class AppState {
 
   deletePlot(id) {
     let plots = this.getPlots();
-    // Check if plot has crop seasons
     const crops = this.getCrops().filter(c => c.plotId === id);
     if (crops.length > 0) {
       throw new Error(`ไม่สามารถลบแปลงปลูกได้เนื่องจากมีข้อมูลรอบการเพาะปลูกผูกอยู่ (${crops.length} รอบ)`);
@@ -327,7 +348,6 @@ export class AppState {
     }, 0);
     const newId = `CROP-${String(maxIdNum + 1).padStart(3, '0')}`;
     
-    // Auto-calc harvest estimate date (about 100 days for Chrysanthemum/Chamomile)
     let estHarvest = crop.harvestDateEst;
     if (!estHarvest && crop.plantDate) {
       const pDate = new Date(crop.plantDate);
@@ -342,7 +362,8 @@ export class AppState {
       yield: crop.yield ? parseFloat(crop.yield) : null,
       status: crop.status || 'growing',
       harvestDateEst: estHarvest,
-      fertilizingLog: crop.fertilizingLog || []
+      fertilizingLog: crop.fertilizingLog || [],
+      isProcessed: false
     };
     
     crops.push(newCrop);
@@ -387,20 +408,184 @@ export class AppState {
     const crops = this.getCrops();
     const filtered = crops.filter(c => c.id !== id);
     localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(filtered));
+
+    // Also delete inventory associated with it
+    let inventory = this.getInventory();
+    inventory = inventory.filter(inv => inv.cropId !== id);
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+
+    // Also delete sales associated with it
+    let sales = this.getSales();
+    sales = sales.filter(s => s.cropId !== id);
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+
     return true;
   }
 
-  // Helper for overall statistics
+  // --- Inventory Methods (Phase 2) ---
+  getInventory() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY)) || [];
+  }
+
+  getInventoryByCropId(cropId) {
+    return this.getInventory().find(inv => inv.cropId === cropId);
+  }
+
+  // --- Sales Methods (Phase 2) ---
+  getSales() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || [];
+  }
+
+  getSalesByCropId(cropId) {
+    return this.getSales().filter(s => s.cropId === cropId);
+  }
+
+  /**
+   * Process fresh harvested flowers into dry herb stock
+   * Ratio: Chrysanthemum 8:1, Chamomile 6:1
+   */
+  processDryHerbStock(cropId, freshYieldKg) {
+    const crop = this.getCropById(cropId);
+    if (!crop) throw new Error('ไม่พบรหัสรอบการปลูกนี้ในระบบ');
+    if (crop.isProcessed) throw new Error('ล็อตเพาะปลูกนี้ผ่านกระบวนการแปรรูปอบแห้งแล้ว');
+
+    const plot = this.getPlotById(crop.plotId);
+    if (!plot) throw new Error('ไม่พบแปลงปลูกที่ผูกกับรอบปลูกนี้');
+
+    const yieldAmount = parseFloat(freshYieldKg) || crop.yield || 0;
+    if (yieldAmount <= 0) throw new Error('น้ำหนักผลผลิตสดต้องมากกว่า 0 กิโลกรัมเพื่อเข้าอบแห้ง');
+
+    // Calculate dried yield
+    const ratio = plot.plantType === 'เก๊กฮวย' ? 8 : 6;
+    const dryWeight = yieldAmount / ratio;
+    const finalDryWeight = parseFloat(dryWeight.toFixed(2));
+
+    // 1. Add to Inventory
+    const inventory = this.getInventory();
+    const existingIndex = inventory.findIndex(inv => inv.cropId === cropId);
+    if (existingIndex !== -1) {
+      inventory[existingIndex].dryStockKg = parseFloat((inventory[existingIndex].dryStockKg + finalDryWeight).toFixed(2));
+    } else {
+      inventory.push({
+        cropId: cropId,
+        herbType: plot.plantType,
+        dryStockKg: finalDryWeight,
+        processedDate: new Date().toISOString().split('T')[0]
+      });
+    }
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+
+    // 2. Mark Crop as processed and save yield if changed
+    this.updateCrop(cropId, { 
+      status: 'harvested',
+      yield: yieldAmount,
+      harvestDateActual: crop.harvestDateActual || new Date().toISOString().split('T')[0],
+      isProcessed: true 
+    });
+
+    return finalDryWeight;
+  }
+
+  /**
+   * Record a sale of dry herbs from a specific Crop lot.
+   * Decrements stock and logs transaction.
+   */
+  recordSale(cropId, amountKg, pricePerKg, customer, date) {
+    const amt = parseFloat(amountKg) || 0;
+    const price = parseFloat(pricePerKg) || 0;
+    if (amt <= 0) throw new Error('ปริมาณสมุนไพรอบแห้งที่ขายต้องมากกว่า 0 กก.');
+    if (price <= 0) throw new Error('ราคาต่อกิโลกรัมต้องมากกว่า 0 บาท');
+
+    // 1. Check Inventory
+    const inventory = this.getInventory();
+    const invIndex = inventory.findIndex(inv => inv.cropId === cropId);
+    if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
+    
+    if (inventory[invIndex].dryStockKg < amt) {
+      throw new Error(`จำนวนสินค้าล็อตนี้ไม่เพียงพอในคลัง (คงเหลือ ${inventory[invIndex].dryStockKg} กก., ต้องการขาย ${amt} กก.)`);
+    }
+
+    // 2. Deduct inventory
+    inventory[invIndex].dryStockKg = parseFloat((inventory[invIndex].dryStockKg - amt).toFixed(2));
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+
+    // 3. Log sale transaction
+    const sales = this.getSales();
+    const maxIdNum = sales.reduce((max, s) => {
+      const num = parseInt(s.id.split('-')[1]);
+      return num > max ? num : max;
+    }, 0);
+    const newSaleId = `SALE-${String(maxIdNum + 1).padStart(3, '0')}`;
+
+    const newSale = {
+      id: newSaleId,
+      cropId,
+      amountKg: amt,
+      pricePerKg: price,
+      totalPrice: parseFloat((amt * price).toFixed(2)),
+      customer: customer || 'ทั่วไป/ไม่ระบุชื่อ',
+      date: date || new Date().toISOString().split('T')[0]
+    };
+    sales.push(newSale);
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+
+    return newSale;
+  }
+
+  /**
+   * Generates a complete financial statement per member (Cost, Sales, Net Profit)
+   */
+  getFinancialReport() {
+    const members = this.getMembers();
+    const plots = this.getPlots();
+    const crops = this.getCrops();
+    const sales = this.getSales();
+
+    return members.map(m => {
+      // Find plots owned by this member
+      const memberPlots = plots.filter(p => p.memberId === m.id);
+      const plotIds = memberPlots.map(p => p.id);
+
+      // Find crops on those plots
+      const memberCrops = crops.filter(c => plotIds.includes(c.plotId));
+      const cropIds = memberCrops.map(c => c.id);
+
+      // Total Cost = Sum of crop season costs
+      const totalCost = memberCrops.reduce((sum, c) => sum + (c.cost || 0), 0);
+
+      // Total Revenue = Sum of sales of this member's crop lots
+      const memberSales = sales.filter(s => cropIds.includes(s.cropId));
+      const totalRevenue = memberSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+
+      const netProfit = totalRevenue - totalCost;
+
+      return {
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        villageNumber: m.villageNumber,
+        totalPlots: memberPlots.length,
+        totalCrops: memberCrops.length,
+        totalCost,
+        totalRevenue,
+        netProfit,
+        status: netProfit > 0 ? 'profit' : netProfit < 0 ? 'loss' : 'breakeven'
+      };
+    });
+  }
+
+  // Helper for overall statistics (Overridden with Phase 2 data)
   getStats() {
     const members = this.getMembers();
     const plots = this.getPlots();
     const crops = this.getCrops();
+    const inventory = this.getInventory();
+    const sales = this.getSales();
 
     const activeMembersCount = members.filter(m => m.status === 'active').length;
     
     let totalSqMeters = 0;
     plots.forEach(p => {
-      // Convert Rai-Ngan-Wah to sq meters
       const r = p.sizeRai || 0;
       const n = p.sizeNgan || 0;
       const w = p.sizeSqWah || 0;
@@ -411,8 +596,14 @@ export class AppState {
     const chrysanthemumPlots = plots.filter(p => p.plantType === 'เก๊กฮวย').length;
     const chamomilePlots = plots.filter(p => p.plantType === 'คาโมมายล์').length;
 
-    // Total yield collected
+    // Total fresh yield collected
     const totalYield = crops.filter(c => c.status === 'harvested' && c.yield).reduce((sum, c) => sum + c.yield, 0);
+
+    // Total processed dry herbs currently in stock
+    const totalDryStock = inventory.reduce((sum, i) => sum + i.dryStockKg, 0);
+
+    // Total sales revenue
+    const totalSalesRev = sales.reduce((sum, s) => sum + s.totalPrice, 0);
 
     return {
       totalMembers: members.length,
@@ -423,7 +614,9 @@ export class AppState {
       activeCrops: activeCrops.length,
       chrysanthemumPlots,
       chamomilePlots,
-      totalYield: totalYield.toFixed(1)
+      totalYield: totalYield.toFixed(1),
+      totalDryStock: totalDryStock.toFixed(2),
+      totalSalesRevenue: totalSalesRev
     };
   }
 }

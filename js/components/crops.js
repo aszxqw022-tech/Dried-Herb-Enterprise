@@ -1,4 +1,4 @@
-// Crops Component for Crop Season Log and Timeline
+// Crops Component for Crop Season Log, Timeline, and Traceability QR Code
 import { appState } from '../state.js';
 import { formatThaiDate, formatBaht, showToast } from '../helpers.js';
 
@@ -89,7 +89,7 @@ export const CropsComponent = {
         ? `<div class="text-center py-6 text-xs text-gray-400">ยังไม่มีบันทึกประวัติการใส่ปุ๋ยและบำรุงแปลง</div>`
         : `<div class="space-y-1 mt-3">${fertilizingTimeline}</div>`;
 
-      // Harvest action box or result
+      // Harvest action box or result (Enhanced for Phase 2: Processing and QR)
       let harvestBoxHtml = '';
       if (selectedCrop.status === 'growing') {
         harvestBoxHtml = `
@@ -112,19 +112,79 @@ export const CropsComponent = {
           </div>
         `;
       } else {
-        harvestBoxHtml = `
-          <div class="p-5 bg-gray-50 border border-gray-100 rounded-2xl space-y-2.5">
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide block">สรุปข้อมูลการเก็บเกี่ยว</span>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <span class="text-[10px] text-gray-400 block">วันที่เก็บเกี่ยวจริง</span>
-                <span class="text-sm font-bold text-gray-800">${formatThaiDate(selectedCrop.harvestDateActual)}</span>
+        // Harvested - Check if dried processed
+        let processingActionHtml = '';
+        let qrCodeHtml = '';
+
+        if (!selectedCrop.isProcessed) {
+          processingActionHtml = `
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+              <div class="text-xs font-bold text-amber-800 flex items-center gap-1">
+                <i class="fas fa-fire-alt text-amber-600"></i> รอการแปรรูปอบแห้ง
               </div>
-              <div>
-                <span class="text-[10px] text-gray-400 block">ปริมาณผลผลิตที่เก็บได้</span>
-                <span class="text-lg font-black text-emerald-700">${selectedCrop.yield} <span class="text-xs text-gray-500 font-normal">กิโลกรัม</span></span>
+              <p class="text-[10px] text-gray-500 leading-relaxed">
+                เก็บเกี่ยวดอกสดได้ <b>${selectedCrop.yield} กก.</b> รอส่งเข้าเตาอบแปรรูปเพื่อหักยอดน้ำหนักเป็นดอกแห้งเข้าสต็อก
+              </p>
+              <button id="dry-process-btn" data-id="${selectedCrop.id}" class="w-full mt-2 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-lg transition-colors flex items-center justify-center gap-1 font-bold">
+                <i class="fas fa-arrow-right"></i> ส่งไปอบแห้งและตัดสต็อกเข้าคลัง
+              </button>
+            </div>
+          `;
+        } else {
+          const ratio = selectedPlot ? (selectedPlot.plantType === 'เก๊กฮวย' ? 8 : 6) : 8;
+          const dryWeight = (selectedCrop.yield / ratio).toFixed(2);
+          
+          // Generate real QR code image source using free public qr API
+          const traceUrl = `${window.location.origin}${window.location.pathname}#trace/${selectedCrop.id}`;
+          const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(traceUrl)}`;
+
+          processingActionHtml = `
+            <div class="p-4 bg-green-50 border border-green-200 rounded-xl space-y-2 flex justify-between items-center gap-4">
+              <div class="space-y-1 flex-1">
+                <div class="text-xs font-bold text-green-800 flex items-center gap-1">
+                  <i class="fas fa-check-circle text-green-600"></i> แปรรูปและนำเข้าคลังแล้ว
+                </div>
+                <p class="text-[10px] text-gray-500 leading-relaxed">
+                  อบแห้งอัตราส่วน <b>${ratio}:1</b> ได้น้ำหนักสินค้าอบแห้งสำเร็จรูป:
+                </p>
+                <div class="text-base font-black text-green-800 mt-1">${dryWeight} กิโลกรัม</div>
+              </div>
+              <div class="text-center bg-white p-2 rounded-xl border border-gray-100 flex flex-col items-center">
+                <img src="${qrCodeApiUrl}" alt="Traceability QR Code" class="w-20 h-20">
+                <span class="text-[8px] text-gray-400 font-semibold mt-1">สแกนตรวจสอบที่มา</span>
               </div>
             </div>
+          `;
+
+          qrCodeHtml = `
+            <div class="mt-4 p-4 border border-dashed border-emerald-300 rounded-2xl bg-emerald-50/50 flex flex-col items-center text-center space-y-2">
+              <span class="text-xs font-bold text-emerald-800">ฉลากติดบรรจุภัณฑ์ล็อตตรวจสอบย้อนกลับ</span>
+              <img src="${qrCodeApiUrl}" alt="Traceability QR Code" class="w-24 h-24 shadow-sm rounded-lg bg-white p-1">
+              <button data-id="${selectedCrop.id}" class="test-trace-link-btn text-xs font-bold text-emerald-700 hover:text-emerald-950 hover:underline">
+                <i class="fas fa-external-link-alt"></i> เปิดหน้าจอลูกค้าเพื่อตรวจสอบที่มา (จำลองการสแกน)
+              </button>
+            </div>
+          `;
+        }
+
+        harvestBoxHtml = `
+          <div class="space-y-4">
+            <div class="p-5 bg-gray-50 border border-gray-100 rounded-2xl space-y-2.5">
+              <span class="text-xs font-bold text-gray-400 uppercase tracking-wide block">สรุปข้อมูลการเก็บเกี่ยว</span>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <span class="text-[10px] text-gray-400 block">วันที่เก็บเกี่ยวจริง</span>
+                  <span class="text-sm font-bold text-gray-800">${formatThaiDate(selectedCrop.harvestDateActual)}</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-gray-400 block">ปริมาณผลผลิตสด</span>
+                  <span class="text-lg font-black text-emerald-700">${selectedCrop.yield} <span class="text-xs text-gray-500 font-normal">กิโลกรัม</span></span>
+                </div>
+              </div>
+            </div>
+            
+            ${processingActionHtml}
+            ${qrCodeHtml}
           </div>
         `;
       }
@@ -184,11 +244,21 @@ export const CropsComponent = {
 
             <!-- Actual Harvest Event in timeline if harvested -->
             ${selectedCrop.status === 'harvested' ? `
-              <div class="pl-6 relative border-l-2 border-gray-200">
+              <div class="pl-6 relative border-l-2 border-gray-200 pb-4">
                 <div class="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-amber-500 border border-white"></div>
                 <div class="text-xs text-gray-400 font-medium">${formatThaiDate(selectedCrop.harvestDateActual)}</div>
                 <div class="text-sm font-bold text-gray-800 mt-0.5">ดำเนินการเก็บเกี่ยวผลผลิตสำเร็จ</div>
                 <div class="text-xs text-emerald-600 font-bold mt-0.5">ผลผลิตเก็บเกี่ยว: +${selectedCrop.yield} กิโลกรัม (น้ำหนักดอกสด)</div>
+              </div>
+            ` : ''}
+
+            <!-- Drying Process event in timeline -->
+            ${selectedCrop.isProcessed ? `
+              <div class="pl-6 relative border-l-2 border-gray-200">
+                <div class="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-green-600 border border-white"></div>
+                <div class="text-xs text-gray-400 font-medium">${formatThaiDate(selectedCrop.harvestDateActual)}</div>
+                <div class="text-sm font-bold text-gray-800 mt-0.5">ผ่านการอบแห้งแปรรูปและนำส่งสต็อกคลังสินค้าแล้ว</div>
+                <div class="text-[10px] text-gray-500 mt-0.5">บันทึกอัตราส่วนความชื้น ดอกแห้งพร้อมสแกนตรวจสอบที่มา</div>
               </div>
             ` : ''}
           </div>
@@ -394,7 +464,7 @@ export const CropsComponent = {
                 <button type="button" class="close-harvest-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
                   ยกเลิก
                 </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-xl transition-colors shadow-sm font-bold">
+                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
                   <i class="fas fa-check"></i> บันทึกเก็บเกี่ยวสำเร็จ
                 </button>
               </div>
@@ -411,6 +481,7 @@ export const CropsComponent = {
     this.bindSelection();
     this.bindModals();
     this.bindOperations();
+    this.bindPhase2Actions();
   },
 
   bindFilter() {
@@ -418,8 +489,6 @@ export const CropsComponent = {
     if (filter) {
       filter.addEventListener('change', (e) => {
         this.statusFilter = e.target.value;
-        
-        // Reset selected ID when filters change to avoid showing empty details
         const crops = appState.getCrops();
         const filtered = crops.filter(c => this.statusFilter ? c.status === this.statusFilter : true);
         if (filtered.length > 0) {
@@ -427,7 +496,6 @@ export const CropsComponent = {
         } else {
           this.selectedCropId = null;
         }
-        
         this.refreshView();
       });
     }
@@ -582,7 +650,6 @@ export const CropsComponent = {
   },
 
   bindOperations() {
-    // Delete crop season
     const deleteBtn = document.getElementById('delete-crop-btn');
     if (deleteBtn) {
       deleteBtn.addEventListener('click', () => {
@@ -597,6 +664,36 @@ export const CropsComponent = {
             showToast('ไม่สามารถลบรายการได้', 'error');
           }
         }
+      });
+    }
+  },
+
+  bindPhase2Actions() {
+    // 1. Process to dry stock action
+    const dryBtn = document.getElementById('dry-process-btn');
+    if (dryBtn) {
+      dryBtn.addEventListener('click', () => {
+        const id = dryBtn.getAttribute('data-id');
+        const crop = appState.getCropById(id);
+        
+        if (crop) {
+          try {
+            const dryWeight = appState.processDryHerbStock(id, crop.yield);
+            showToast(`แปรรูปอบแห้งสำเร็จ! นำเข้าคลังสินค้าแล้วจำนวน ${dryWeight} กก. (หักตามอัตราส่วนความชื้น)`);
+            this.refreshView();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+      });
+    }
+
+    // 2. Test trace link simulation (open consumer trace view)
+    const traceBtn = document.querySelector('.test-trace-link-btn');
+    if (traceBtn) {
+      traceBtn.addEventListener('click', () => {
+        const id = traceBtn.getAttribute('data-id');
+        window.location.hash = `#trace/${id}`; // Trigger routing update
       });
     }
   },
