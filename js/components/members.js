@@ -20,9 +20,8 @@ export const MembersComponent = {
                           m.phone.includes(this.searchQuery);
       
       const matchRole = this.roleFilter ? m.role === this.roleFilter : true;
-      const matchStatus = this.statusFilter ? m.status === this.statusFilter : true;
 
-      return matchSearch && matchRole && matchStatus;
+      return matchSearch && matchRole;
     });
 
     // Pagination calculations
@@ -42,7 +41,7 @@ export const MembersComponent = {
 
     // Table rows
     const rowsHtml = paginated.length === 0 
-      ? `<tr><td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลสมาชิกตามที่ระบุ</td></tr>`
+      ? `<tr><td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลสมาชิกตามที่ระบุ</td></tr>`
       : paginated.map(m => `
           <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
             <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${m.id}</td>
@@ -53,15 +52,6 @@ export const MembersComponent = {
             <td class="px-6 py-4 text-sm text-gray-600">${m.phone}</td>
             <td class="px-6 py-4 text-sm text-gray-600">${m.villageNumber || '-'}</td>
             <td class="px-6 py-4 text-sm text-gray-500">${formatThaiDate(m.joinDate)}</td>
-            <td class="px-6 py-4">
-              <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
-                m.status === 'active' 
-                  ? 'bg-green-100 text-green-800 border border-green-200' 
-                  : 'bg-gray-100 text-gray-800 border border-gray-200'
-              }">
-                ${m.status === 'active' ? 'กำลังดำเนินงาน' : 'ระงับชั่วคราว'}
-              </span>
-            </td>
             <td class="px-6 py-4 text-sm font-medium text-right space-x-1">
               <button data-id="${m.id}" class="edit-member-btn text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors" title="แก้ไขข้อมูล">
                 <i class="fas fa-edit"></i>
@@ -95,7 +85,7 @@ export const MembersComponent = {
         </div>
 
         <!-- Filters & Search Card -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Search input -->
           <div class="md:col-span-2 relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
@@ -112,15 +102,6 @@ export const MembersComponent = {
               ${roleOptions}
             </select>
           </div>
-
-          <!-- Status Filter -->
-          <div>
-            <select id="member-status-filter" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="">ทุกสถานะ</option>
-              <option value="active" ${this.statusFilter === 'active' ? 'selected' : ''}>กำลังดำเนินงาน (Active)</option>
-              <option value="inactive" ${this.statusFilter === 'inactive' ? 'selected' : ''}>ระงับชั่วคราว (Inactive)</option>
-            </select>
-          </div>
         </div>
 
         <!-- Table Card -->
@@ -134,7 +115,6 @@ export const MembersComponent = {
                   <th class="px-6 py-4">เบอร์โทรศัพท์</th>
                   <th class="px-6 py-4">หมู่บ้าน</th>
                   <th class="px-6 py-4">วันที่ลงทะเบียน</th>
-                  <th class="px-6 py-4">สถานะ</th>
                   <th class="px-6 py-4 text-right">จัดการ</th>
                 </tr>
               </thead>
@@ -211,23 +191,10 @@ export const MembersComponent = {
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <!-- Village Number -->
-                <div>
-                  <label for="mem-village" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่หมู่บ้าน/หมู่ที่ *</label>
-                  <input type="text" id="mem-village" name="villageNumber" required placeholder="เช่น หมู่ 4"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-
-                <!-- Status -->
-                <div>
-                  <label for="mem-status" class="block text-xs font-semibold text-gray-500 uppercase mb-1">สถานะสมาชิก *</label>
-                  <select id="mem-status" name="status" required 
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    <option value="active">กำลังดำเนินงาน (Active)</option>
-                    <option value="inactive">ระงับชั่วคราว (Inactive)</option>
-                  </select>
-                </div>
+              <div>
+                <label for="mem-village" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่หมู่บ้าน/หมู่ที่ *</label>
+                <input type="text" id="mem-village" name="villageNumber" required placeholder="เช่น หมู่ 4"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
               </div>
 
               <!-- Join Date -->
@@ -264,7 +231,6 @@ export const MembersComponent = {
   bindSearchAndFilters() {
     const searchInput = document.getElementById('member-search');
     const roleFilter = document.getElementById('member-role-filter');
-    const statusFilter = document.getElementById('member-status-filter');
 
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -277,14 +243,6 @@ export const MembersComponent = {
     if (roleFilter) {
       roleFilter.addEventListener('change', (e) => {
         this.roleFilter = e.target.value;
-        this.currentPage = 1;
-        this.refreshView();
-      });
-    }
-
-    if (statusFilter) {
-      statusFilter.addEventListener('change', (e) => {
-        this.statusFilter = e.target.value;
         this.currentPage = 1;
         this.refreshView();
       });
@@ -346,7 +304,7 @@ export const MembersComponent = {
           role: formData.get('role'),
           phone: formData.get('phone'),
           villageNumber: formData.get('villageNumber'),
-          status: formData.get('status'),
+          status: 'active',
           joinDate: formData.get('joinDate')
         };
 
@@ -386,7 +344,6 @@ export const MembersComponent = {
           document.getElementById('mem-role').value = member.role;
           document.getElementById('mem-phone').value = member.phone;
           document.getElementById('mem-village').value = member.villageNumber;
-          document.getElementById('mem-status').value = member.status;
           document.getElementById('mem-joindate').value = member.joinDate;
 
           modal.classList.remove('hidden');

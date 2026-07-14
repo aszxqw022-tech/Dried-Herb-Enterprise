@@ -84,10 +84,11 @@ const MOCK_CROPS = [
     cost: 4500,
     yield: null,
     status: 'growing',
+    cropYear: 2569,
     fertilizingLog: [
-      { date: '2026-03-10', type: 'ปุ๋ยหมักชีวภาพสูตรใบ', amount: '20 กิโลกรัม' },
-      { date: '2026-04-15', type: 'น้ำหมักมูลค้างคาวบำรุงต้น', amount: '5 ลิตร (เจือจาง)' },
-      { date: '2026-06-01', type: 'ปุ๋ยอินทรีย์บำรุงดอก', amount: '15 กิโลกรัม' }
+      { date: '2026-03-10', type: 'ปุ๋ยหมักชีวภาพสูตรใบ', amount: '20 กิโลกรัม', cost: 350 },
+      { date: '2026-04-15', type: 'น้ำหมักมูลค้างคาวบำรุงต้น', amount: '5 ลิตร (เจือจาง)', cost: 200 },
+      { date: '2026-06-01', type: 'ปุ๋ยอินทรีย์บำรุงดอก', amount: '15 กิโลกรัม', cost: 300 }
     ]
   },
   {
@@ -99,9 +100,10 @@ const MOCK_CROPS = [
     cost: 3200,
     yield: null,
     status: 'growing',
+    cropYear: 2569,
     fertilizingLog: [
-      { date: '2026-04-01', type: 'ปุ๋ยคอกเตรียมดิน', amount: '50 กิโลกรัม' },
-      { date: '2026-05-10', type: 'ปุ๋ยหมักแห้งเศษสมุนไพร', amount: '15 กิโลกรัม' }
+      { date: '2026-04-01', type: 'ปุ๋ยคอกเตรียมดิน', amount: '50 กิโลกรัม', cost: 400 },
+      { date: '2026-05-10', type: 'ปุ๋ยหมักแห้งเศษสมุนไพร', amount: '15 กิโลกรัม', cost: 250 }
     ]
   },
   {
@@ -114,10 +116,11 @@ const MOCK_CROPS = [
     yield: 185.5, // kg fresh
     status: 'harvested',
     isProcessed: true, // Already processed
+    cropYear: 2568,
     fertilizingLog: [
-      { date: '2025-11-01', type: 'ปุ๋ยอินทรีย์พื้นฐาน', amount: '30 กิโลกรัม' },
-      { date: '2025-12-15', type: 'น้ำหมักสะเดาไล่แมลง', amount: '2 ลิตร' },
-      { date: '2026-01-20', type: 'ปุ๋ยอินทรีย์เร่งดอก', amount: '20 กิโลกรัม' }
+      { date: '2025-11-01', type: 'ปุ๋ยอินทรีย์พื้นฐาน', amount: '30 กิโลกรัม', cost: 500 },
+      { date: '2025-12-15', type: 'น้ำหมักสะเดาไล่แมลง', amount: '2 ลิตร', cost: 150 },
+      { date: '2026-01-20', type: 'ปุ๋ยอินทรีย์เร่งดอก', amount: '20 กิโลกรัม', cost: 400 }
     ]
   },
   {
@@ -130,17 +133,18 @@ const MOCK_CROPS = [
     yield: 75.2, // kg fresh
     status: 'harvested',
     isProcessed: true, // Already processed
+    cropYear: 2568,
     fertilizingLog: [
-      { date: '2025-11-15', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '10 กิโลกรัม' },
-      { date: '2026-01-05', type: 'ปุ๋ยคอกมูลไก่แห้ง', amount: '10 กิโลกรัม' }
+      { date: '2025-11-15', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '10 กิโลกรัม', cost: 200 },
+      { date: '2026-01-05', type: 'ปุ๋ยคอกมูลไก่แห้ง', amount: '10 กิโลกรัม', cost: 200 }
     ]
   }
 ];
 
 // Mock inventory split by cropId (Phase 2 core feature)
 const MOCK_INVENTORY = [
-  { cropId: 'CROP-003', herbType: 'เก๊กฮวย', dryStockKg: 13.18, processedDate: '2026-03-06' }, // 185.5 / 8 = 23.18 kg. Sold 10, remaining 13.18
-  { cropId: 'CROP-004', herbType: 'คาโมมายล์', dryStockKg: 7.53, processedDate: '2026-03-13' }  // 75.2 / 6 = 12.53 kg. Sold 5, remaining 7.53
+  { cropId: 'CROP-003', herbType: 'เก๊กฮวย', dryStockKg: 8.18, jarsStock: 50, processedDate: '2026-03-06' }, // 185.5 / 8 = 23.18 kg. Sold 10 kg. Packed 50 jars * 0.1kg = 5kg. Remaining bulk = 8.18 kg
+  { cropId: 'CROP-004', herbType: 'คาโมมายล์', dryStockKg: 5.03, jarsStock: 50, processedDate: '2026-03-13' }  // 75.2 / 6 = 12.53 kg. Sold 5 kg. Packed 50 jars * 0.05kg = 2.5kg. Remaining bulk = 5.03 kg
 ];
 
 // Mock sales transactions linked to specific cropIds
@@ -362,6 +366,7 @@ export class AppState {
       yield: crop.yield ? parseFloat(crop.yield) : null,
       status: crop.status || 'growing',
       harvestDateEst: estHarvest,
+      cropYear: parseInt(crop.cropYear) || (new Date(crop.plantDate || new Date()).getFullYear() + 543),
       fertilizingLog: crop.fertilizingLog || [],
       isProcessed: false
     };
@@ -395,7 +400,8 @@ export class AppState {
       log.push({
         date: logEntry.date || new Date().toISOString().split('T')[0],
         type: logEntry.type,
-        amount: logEntry.amount
+        amount: logEntry.amount,
+        cost: parseFloat(logEntry.cost) || 0
       });
       crops[index].fertilizingLog = log;
       localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(crops));
@@ -490,26 +496,35 @@ export class AppState {
    * Record a sale of dry herbs from a specific Crop lot.
    * Decrements stock and logs transaction.
    */
-  recordSale(cropId, amountKg, pricePerKg, customer, date) {
-    const amt = parseFloat(amountKg) || 0;
-    const price = parseFloat(pricePerKg) || 0;
-    if (amt <= 0) throw new Error('ปริมาณสมุนไพรอบแห้งที่ขายต้องมากกว่า 0 กก.');
-    if (price <= 0) throw new Error('ราคาต่อกิโลกรัมต้องมากกว่า 0 บาท');
+  recordSale(cropId, amount, price, customer, date, saleType = 'bulk') {
+    const amt = parseFloat(amount) || 0;
+    const prc = parseFloat(price) || 0;
+    if (amt <= 0) throw new Error(saleType === 'bulk' ? 'ปริมาณสมุนไพรอบแห้งที่ขายต้องมากกว่า 0 กก.' : 'จำนวนกระปุกที่ขายต้องมากกว่า 0 กระปุก');
+    if (prc <= 0) throw new Error('ราคาต่อหน่วยต้องมากกว่า 0 บาท');
 
     // 1. Check Inventory
     const inventory = this.getInventory();
     const invIndex = inventory.findIndex(inv => inv.cropId === cropId);
     if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
     
-    if (inventory[invIndex].dryStockKg < amt) {
-      throw new Error(`จำนวนสินค้าล็อตนี้ไม่เพียงพอในคลัง (คงเหลือ ${inventory[invIndex].dryStockKg} กก., ต้องการขาย ${amt} กก.)`);
+    const inv = inventory[invIndex];
+    if (saleType === 'bulk') {
+      if (inv.dryStockKg < amt) {
+        throw new Error(`จำนวนสินค้าล็อตนี้ไม่เพียงพอในคลัง (คงเหลือ ${inv.dryStockKg} กก., ต้องการขาย ${amt} กก.)`);
+      }
+      inv.dryStockKg = parseFloat((inv.dryStockKg - amt).toFixed(2));
+    } else {
+      const currentJars = inv.jarsStock || 0;
+      if (currentJars < amt) {
+        throw new Error(`จำนวนกระปุกอบแห้งไม่เพียงพอในคลัง (คงเหลือ ${currentJars} กระปุก, ต้องการขาย ${amt} กระปุก)`);
+      }
+      inv.jarsStock = currentJars - amt;
     }
 
-    // 2. Deduct inventory
-    inventory[invIndex].dryStockKg = parseFloat((inventory[invIndex].dryStockKg - amt).toFixed(2));
+    // Deduct inventory
     localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 
-    // 3. Log sale transaction
+    // Log sale transaction
     const sales = this.getSales();
     const maxIdNum = sales.reduce((max, s) => {
       const num = parseInt(s.id.split('-')[1]);
@@ -520,16 +535,40 @@ export class AppState {
     const newSale = {
       id: newSaleId,
       cropId,
-      amountKg: amt,
-      pricePerKg: price,
-      totalPrice: parseFloat((amt * price).toFixed(2)),
+      amount: amt,
+      price: prc,
+      amountKg: amt, // for legacy code compatibility
+      pricePerKg: prc, // for legacy code compatibility
+      totalPrice: parseFloat((amt * prc).toFixed(2)),
       customer: customer || 'ทั่วไป/ไม่ระบุชื่อ',
-      date: date || new Date().toISOString().split('T')[0]
+      date: date || new Date().toISOString().split('T')[0],
+      saleType // 'bulk' or 'jar'
     };
     sales.push(newSale);
     localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
 
     return newSale;
+  }
+
+  packJars(cropId, numJars) {
+    const inventory = this.getInventory();
+    const invIndex = inventory.findIndex(inv => inv.cropId === cropId);
+    if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
+
+    const inv = inventory[invIndex];
+    const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
+    const jarCapacity = isChrys ? 0.10 : 0.05; // 100g for Chrysanthemum, 50g for Chamomile
+
+    const totalWeightNeeded = parseFloat((numJars * jarCapacity).toFixed(2));
+    if (inv.dryStockKg < totalWeightNeeded) {
+      throw new Error(`วัตถุดิบอบแห้งสะสมแบบกิโลกรัมมีไม่เพียงพอ (ต้องการ ${totalWeightNeeded} กก. สำหรับบรรจุ ${numJars} กระปุก, คงเหลือในคลัง ${inv.dryStockKg} กก.)`);
+    }
+
+    inv.dryStockKg = parseFloat((inv.dryStockKg - totalWeightNeeded).toFixed(2));
+    inv.jarsStock = (inv.jarsStock || 0) + numJars;
+
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+    return inv;
   }
 
   /**
@@ -550,8 +589,12 @@ export class AppState {
       const memberCrops = crops.filter(c => plotIds.includes(c.plotId));
       const cropIds = memberCrops.map(c => c.id);
 
-      // Total Cost = Sum of crop season costs
-      const totalCost = memberCrops.reduce((sum, c) => sum + (c.cost || 0), 0);
+      // Total Cost = Sum of crop season costs (initial cost + fertilizing/maintenance logs cost)
+      const totalCost = memberCrops.reduce((sum, c) => {
+        const initialCost = parseFloat(c.cost) || 0;
+        const fertCost = (c.fertilizingLog || []).reduce((s, f) => s + (parseFloat(f.cost) || 0), 0);
+        return sum + initialCost + fertCost;
+      }, 0);
 
       // Total Revenue = Sum of sales of this member's crop lots
       const memberSales = sales.filter(s => cropIds.includes(s.cropId));

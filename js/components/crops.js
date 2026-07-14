@@ -64,7 +64,7 @@ export const CropsComponent = {
               <h4 class="text-sm font-bold text-gray-800">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
               <div class="flex justify-between items-center mt-3 text-xs text-gray-500">
                 <span>เริ่มปลูก: ${formatThaiDate(c.plantDate)}</span>
-                <span class="font-bold text-gray-700">${plot ? plot.plantType : '-'}</span>
+                <span class="font-bold text-gray-700">ปี ${c.cropYear || '-'}</span>
               </div>
             </div>
           `;
@@ -73,6 +73,8 @@ export const CropsComponent = {
     // Detailed Timeline and Logs for right panel
     let detailPanelHtml = '';
     if (selectedCrop) {
+      const cropTotalCost = (parseFloat(selectedCrop.cost) || 0) + (selectedCrop.fertilizingLog || []).reduce((sum, f) => sum + (parseFloat(f.cost) || 0), 0);
+
       const fertilizingTimeline = (selectedCrop.fertilizingLog || []).map(f => `
         <div class="relative pl-6 pb-4 last:pb-0 border-l-2 border-dashed border-gray-200 last:border-0">
           <!-- Dot -->
@@ -80,7 +82,7 @@ export const CropsComponent = {
           
           <div class="text-xs text-gray-400 font-medium">${formatThaiDate(f.date)}</div>
           <div class="text-sm font-semibold text-gray-800 mt-0.5">${f.type}</div>
-          <div class="text-xs text-gray-500 mt-0.5">ปริมาณ: ${f.amount}</div>
+          <div class="text-xs text-gray-500 mt-0.5">ปริมาณ: ${f.amount} | ค่าใช้จ่าย: ${formatBaht(f.cost || 0)}</div>
         </div>
       `).join('');
 
@@ -195,7 +197,7 @@ export const CropsComponent = {
           <!-- Detailed Header -->
           <div class="flex justify-between items-start border-b border-gray-100 pb-4">
             <div>
-              <span class="text-xs font-bold text-gray-400">${selectedCrop.id}</span>
+              <span class="text-xs font-bold text-gray-400">${selectedCrop.id} | ปีการเพาะปลูก พ.ศ. ${selectedCrop.cropYear || '-'}</span>
               <h2 class="text-xl font-bold text-emerald-900 mt-0.5">${selectedPlot ? selectedPlot.name : '-'}</h2>
               <p class="text-xs text-gray-500 mt-1">เกษตรกรผู้ดูแล: <b>${selectedOwner ? selectedOwner.name : '-'}</b></p>
             </div>
@@ -211,13 +213,13 @@ export const CropsComponent = {
               <span class="text-[10px] text-gray-400 block">สมุนไพร</span>
               <span class="text-sm font-bold text-gray-800">${selectedPlot ? selectedPlot.plantType : '-'}</span>
             </div>
-            <div class="p-3 bg-gray-50 rounded-2xl text-center">
-              <span class="text-[10px] text-gray-400 block">ต้นทุนเบื้องต้น</span>
-              <span class="text-sm font-bold text-gray-800">${formatBaht(selectedCrop.cost)}</span>
+            <div class="p-3 bg-gray-50 rounded-2xl text-center font-bold text-emerald-800">
+              <span class="text-[10px] text-gray-400 block">ต้นทุนสะสมรวม</span>
+              <span class="text-sm font-bold text-emerald-800">${formatBaht(cropTotalCost)}</span>
             </div>
             <div class="p-3 bg-gray-50 rounded-2xl text-center">
-              <span class="text-[10px] text-gray-400 block">ระยะเวลารอบปลูก</span>
-              <span class="text-sm font-bold text-gray-800">~ 100 วัน</span>
+              <span class="text-[10px] text-gray-400 block">ปีการเพาะปลูก</span>
+              <span class="text-sm font-bold text-gray-800">พ.ศ. ${selectedCrop.cropYear || '-'}</span>
             </div>
           </div>
 
@@ -352,12 +354,19 @@ export const CropsComponent = {
                     class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
 
-                <!-- Cost -->
+                <!-- Crop Year -->
                 <div>
-                  <label for="crop-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ต้นทุนเริ่มต้น (บาท) *</label>
-                  <input type="number" id="crop-cost" name="cost" required min="0" placeholder="เช่น 2500"
+                  <label for="crop-year" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปีการเพาะปลูก (พ.ศ.) *</label>
+                  <input type="number" id="crop-year" name="cropYear" required min="2500" max="2600" placeholder="เช่น 2569"
                     class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
+              </div>
+
+              <div>
+                <!-- Cost -->
+                <label for="crop-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ต้นทุนเริ่มต้น (บาท) *</label>
+                <input type="number" id="crop-cost" name="cost" required min="0" placeholder="เช่น 2500"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
               </div>
 
               <!-- Footer Buttons -->
@@ -409,6 +418,13 @@ export const CropsComponent = {
                   <input type="text" id="fert-amount" name="amount" required placeholder="เช่น 15 กิโลกรัม, 3 ลิตร"
                     class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
+              </div>
+
+              <!-- Cost -->
+              <div>
+                <label for="fert-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ค่าใช้จ่าย / ต้นทุนการบำรุง (บาท) *</label>
+                <input type="number" id="fert-cost" name="cost" required min="0" placeholder="เช่น 350"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
               </div>
 
               <!-- Footer Buttons -->
@@ -524,6 +540,7 @@ export const CropsComponent = {
         if (formNew) {
           formNew.reset();
           document.getElementById('crop-plantDate').value = new Date().toISOString().split('T')[0];
+          document.getElementById('crop-year').value = new Date().getFullYear() + 543;
         }
         modalNew.classList.remove('hidden');
       });
@@ -543,6 +560,7 @@ export const CropsComponent = {
           plotId: formData.get('plotId'),
           plantDate: formData.get('plantDate'),
           cost: parseFloat(formData.get('cost')) || 0,
+          cropYear: parseInt(formData.get('cropYear')) || (new Date(formData.get('plantDate')).getFullYear() + 543),
           status: 'growing'
         };
 
@@ -587,7 +605,8 @@ export const CropsComponent = {
         const logEntry = {
           date: formData.get('date'),
           type: formData.get('type'),
-          amount: formData.get('amount')
+          amount: formData.get('amount'),
+          cost: parseFloat(formData.get('cost')) || 0
         };
 
         if (this.selectedCropId) {

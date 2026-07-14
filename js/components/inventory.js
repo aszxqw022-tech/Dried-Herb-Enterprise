@@ -32,7 +32,7 @@ export const InventoryComponent = {
             const crop = appState.getCropById(inv.cropId);
             const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
             const owner = plot ? members.find(m => m.id === plot.memberId) : null;
-            const isChrys = inv.herbType === 'เก๊กฮวย';
+            const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
             
             return `
               <div class="glass-card bg-white rounded-2xl p-5 border border-gray-100 flex flex-col justify-between space-y-4">
@@ -48,18 +48,27 @@ export const InventoryComponent = {
                   <h4 class="text-base font-bold text-gray-800">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
                   <p class="text-xs text-gray-500 mt-1">เกษตรกรเจ้าของ: <b>${owner ? owner.name : '-'}</b></p>
                   
-                  <div class="mt-4 p-3 bg-gray-50 rounded-xl flex justify-between items-center">
-                    <span class="text-xs text-gray-500">สต็อกคงเหลือล็อตนี้:</span>
-                    <span class="text-2xl font-black text-emerald-800">${inv.dryStockKg.toFixed(2)} <span class="text-xs font-bold text-gray-400">กก.</span></span>
+                  <div class="mt-4 p-3 bg-gray-50 rounded-xl space-y-2">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs text-gray-500">สต็อกวัตถุดิบสะสม:</span>
+                      <span class="text-base font-black text-emerald-800">${inv.dryStockKg.toFixed(2)} <span class="text-xs font-bold text-gray-400">กก.</span></span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-200/50 pt-2">
+                      <span class="text-xs text-gray-500">สต็อกสำเร็จรูป:</span>
+                      <span class="text-base font-black text-emerald-800">${inv.jarsStock || 0} <span class="text-xs font-bold text-gray-400">กระปุก</span></span>
+                    </div>
                   </div>
                   <div class="text-[10px] text-gray-400 mt-2 text-right">
                     อบแห้งเสร็จเมื่อ: ${formatThaiDate(inv.processedDate)}
                   </div>
                 </div>
 
-                <div class="pt-2">
-                  <button data-crop-id="${inv.cropId}" class="sell-stock-btn w-full py-2.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5">
-                    <i class="fas fa-shopping-cart"></i> บันทึกขายจากล็อตนี้
+                <div class="pt-2 grid grid-cols-2 gap-2">
+                  <button data-crop-id="${inv.cropId}" class="pack-jars-btn w-full py-2.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1">
+                    <i class="fas fa-box"></i> บรรจุกระปุก
+                  </button>
+                  <button data-crop-id="${inv.cropId}" class="sell-stock-btn w-full py-2.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1">
+                    <i class="fas fa-shopping-cart"></i> บันทึกขาย
                   </button>
                 </div>
               </div>
@@ -143,6 +152,7 @@ export const InventoryComponent = {
           const crop = crops.find(c => c.id === s.cropId);
           const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
           const owner = plot ? members.find(m => m.id === plot.memberId) : null;
+          const isChrys = plot && (plot.plantType === 'เก๊กฮวย' || plot.plantType.includes('เก๊กฮวย'));
           
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
@@ -150,12 +160,16 @@ export const InventoryComponent = {
               <td class="px-6 py-3.5 text-sm font-medium text-emerald-900">${s.cropId}</td>
               <td class="px-6 py-3.5 text-sm text-gray-800">${owner ? owner.name : '-'}</td>
               <td class="px-6 py-3.5">
-                <span class="px-2 py-0.5 text-[10px] font-semibold border rounded-full ${
-                  plot && plot.plantType === 'เก๊กฮวย' ? 'badge-chrysanthemum' : 'badge-chamomile'
+                <span class="px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${
+                  isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
                 }">${plot ? plot.plantType : '-'}อบแห้ง</span>
               </td>
-              <td class="px-6 py-3.5 text-sm text-gray-700 font-bold text-center">${s.amountKg} กก.</td>
-              <td class="px-6 py-3.5 text-sm text-gray-500">${formatBaht(s.pricePerKg)}/กก.</td>
+              <td class="px-6 py-3.5 text-sm text-gray-700 font-bold text-center">
+                ${s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`}
+              </td>
+              <td class="px-6 py-3.5 text-sm text-gray-500">
+                ${s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระปุก` : `${formatBaht(s.pricePerKg || s.price)}/กก.`}
+              </td>
               <td class="px-6 py-3.5 text-sm text-emerald-800 font-black">${formatBaht(s.totalPrice)}</td>
               <td class="px-6 py-3.5 text-sm text-gray-600 truncate max-w-[120px]" title="${s.customer}">${s.customer}</td>
               <td class="px-6 py-3.5 text-xs text-gray-400">${formatThaiDate(s.date)}</td>
@@ -290,7 +304,17 @@ export const InventoryComponent = {
                 <span id="sale-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
               </div>
 
-              <!-- Sale Quantity Kg -->
+              <!-- Sale Type Select -->
+              <div>
+                <label for="sale-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทสินค้าที่ขาย *</label>
+                <select id="sale-type" name="saleType" required
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="bulk">วัตถุดิบอบแห้ง (กิโลกรัม)</option>
+                  <option value="jar">กระปุกสำเร็จรูป (กระปุก)</option>
+                </select>
+              </div>
+
+              <!-- Sale Quantity -->
               <div>
                 <label for="sale-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ขาย (กิโลกรัม) *</label>
                 <input type="number" id="sale-amount" name="amount" required min="0.01" step="any" placeholder="เช่น 5.5"
@@ -298,7 +322,7 @@ export const InventoryComponent = {
                 <span id="sale-max-stock-display" class="block text-[10px] text-gray-400 mt-1">สต็อกล็อตนี้คงเหลือสูงสุด: - กก.</span>
               </div>
 
-              <!-- Price per kg -->
+              <!-- Price per Unit -->
               <div>
                 <label for="sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาต่อกิโลกรัม (บาท) *</label>
                 <input type="number" id="sale-price" name="price" required min="1" placeholder="เช่น 450"
@@ -332,6 +356,54 @@ export const InventoryComponent = {
                 </button>
                 <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
                   <i class="fas fa-check"></i> บันทึกขายและหักยอด
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Pack Jars Modal (Hidden by default) -->
+        <div id="pack-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+            <!-- Modal Header -->
+            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+              <h3 class="font-bold text-sm flex items-center gap-1.5">
+                <i class="fas fa-box"></i> บรรจุกระปุกสมุนไพร
+              </h3>
+              <button type="button" class="close-pack-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <!-- Modal Body Form -->
+            <form id="pack-form" class="p-6 space-y-4">
+              <!-- Lot Code Display -->
+              <div>
+                <span class="block text-xs font-semibold text-gray-400 uppercase">บรรจุจากรหัสล็อตสินค้า</span>
+                <span id="pack-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
+              </div>
+
+              <!-- Jars Count -->
+              <div>
+                <label for="pack-jars-count" class="block text-xs font-semibold text-gray-500 uppercase mb-1">จำนวนกระปุกที่ต้องการบรรจุ *</label>
+                <input type="number" id="pack-jars-count" name="jarsCount" required min="1" step="1" placeholder="เช่น 20"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <span id="pack-max-weight-display" class="block text-[10px] text-gray-400 mt-1">สต็อกวัตถุดิบอบแห้งคงเหลือ: - กก.</span>
+              </div>
+
+              <!-- Info hint -->
+              <div id="pack-hint-display" class="p-3 bg-emerald-50 text-emerald-950 border border-emerald-100 rounded-xl text-[10px] leading-relaxed">
+                <i class="fas fa-info-circle mr-1 text-emerald-700"></i>
+                เก๊กฮวย: บรรจุกระปุกละ 100 กรัม (0.10 กิโลกรัม)
+              </div>
+
+              <!-- Footer Buttons -->
+              <div class="flex justify-end pt-4 gap-2.5">
+                <button type="button" class="close-pack-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                  ยกเลิก
+                </button>
+                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
+                  <i class="fas fa-box-open"></i> บรรจุลงกระปุก
                 </button>
               </div>
             </form>
@@ -381,51 +453,149 @@ export const InventoryComponent = {
 
   bindStockEvents() {
     const sellBtns = document.querySelectorAll('.sell-stock-btn');
-    const modal = document.getElementById('sale-record-modal');
-    const closeBtns = document.querySelectorAll('.close-sale-modal-btn');
-    const form = document.getElementById('sale-form');
+    const saleModal = document.getElementById('sale-record-modal');
+    const closeSaleBtns = document.querySelectorAll('.close-sale-modal-btn');
+    const saleForm = document.getElementById('sale-form');
+    const saleTypeSelect = document.getElementById('sale-type');
 
     sellBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const cropId = btn.getAttribute('data-crop-id');
         const invItem = appState.getInventoryByCropId(cropId);
         
-        if (invItem && modal) {
+        if (invItem && saleModal) {
           this.sellingCropId = cropId;
           document.getElementById('sale-crop-display').textContent = `${cropId} (${invItem.herbType}อบแห้ง)`;
-          document.getElementById('sale-max-stock-display').textContent = `สต็อกล็อตนี้คงเหลือสูงสุด: ${invItem.dryStockKg} กก.`;
           
-          if (form) {
-            form.reset();
-            document.getElementById('sale-amount').max = invItem.dryStockKg;
+          if (saleForm) {
+            saleForm.reset();
             document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
+            
+            if (saleTypeSelect) {
+              saleTypeSelect.value = 'bulk';
+              updateSaleFormUI(invItem);
+            }
           }
 
-          modal.classList.remove('hidden');
+          saleModal.classList.remove('hidden');
         }
       });
     });
 
-    closeBtns.forEach(btn => {
+    const updateSaleFormUI = (invItem) => {
+      if (!invItem) return;
+      const type = saleTypeSelect ? saleTypeSelect.value : 'bulk';
+      const amountInput = document.getElementById('sale-amount');
+      const amountLabel = amountInput.previousElementSibling;
+      const priceInput = document.getElementById('sale-price');
+      const priceLabel = priceInput.previousElementSibling;
+      const maxDisplay = document.getElementById('sale-max-stock-display');
+
+      if (type === 'bulk') {
+        amountLabel.textContent = 'ปริมาณที่ขาย (กิโลกรัม) *';
+        amountInput.placeholder = 'เช่น 5.5';
+        amountInput.step = 'any';
+        amountInput.min = '0.01';
+        amountInput.max = invItem.dryStockKg;
+        priceLabel.textContent = 'ราคาต่อกิโลกรัม (บาท) *';
+        priceInput.placeholder = 'เช่น 450';
+        maxDisplay.textContent = `สต็อกล็อตนี้คงเหลือสูงสุด: ${invItem.dryStockKg} กก.`;
+      } else {
+        const jars = invItem.jarsStock || 0;
+        amountLabel.textContent = 'จำนวนกระปุกที่ขาย (กระปุก) *';
+        amountInput.placeholder = 'เช่น 10';
+        amountInput.step = '1';
+        amountInput.min = '1';
+        amountInput.max = jars;
+        priceLabel.textContent = 'ราคาต่อกระปุก (บาท) *';
+        priceInput.placeholder = 'เช่น 80';
+        maxDisplay.textContent = `สต็อกล็อตนี้คงเหลือสูงสุด: ${jars} กระปุก`;
+      }
+    };
+
+    if (saleTypeSelect) {
+      saleTypeSelect.addEventListener('change', () => {
+        if (this.sellingCropId) {
+          const invItem = appState.getInventoryByCropId(this.sellingCropId);
+          updateSaleFormUI(invItem);
+        }
+      });
+    }
+
+    closeSaleBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        if (modal) modal.classList.add('hidden');
+        if (saleModal) saleModal.classList.add('hidden');
       });
     });
 
-    if (form) {
-      form.addEventListener('submit', (e) => {
+    if (saleForm) {
+      saleForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const formData = new FormData(form);
+        const formData = new FormData(saleForm);
         const amount = parseFloat(formData.get('amount'));
         const price = parseFloat(formData.get('price'));
         const customer = formData.get('customer');
         const date = formData.get('date');
+        const saleType = formData.get('saleType') || 'bulk';
 
         if (this.sellingCropId) {
           try {
-            appState.recordSale(this.sellingCropId, amount, price, customer, date);
+            appState.recordSale(this.sellingCropId, amount, price, customer, date, saleType);
             showToast(`หักยอดสต็อกล็อต ${this.sellingCropId} และบันทึกขายสำเร็จ`);
-            if (modal) modal.classList.add('hidden');
+            if (saleModal) saleModal.classList.add('hidden');
+            this.refreshView();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+      });
+    }
+
+    // --- Pack Jars Modal Events ---
+    const packModal = document.getElementById('pack-modal');
+    const packBtns = document.querySelectorAll('.pack-jars-btn');
+    const closePackBtns = document.querySelectorAll('.close-pack-modal-btn');
+    const packForm = document.getElementById('pack-form');
+
+    packBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cropId = btn.getAttribute('data-crop-id');
+        const invItem = appState.getInventoryByCropId(cropId);
+        
+        if (invItem && packModal) {
+          this.packingCropId = cropId;
+          document.getElementById('pack-crop-display').textContent = `${cropId} (${invItem.herbType}อบแห้ง)`;
+          document.getElementById('pack-max-weight-display').textContent = `สต็อกวัตถุดิบอบแห้งคงเหลือ: ${invItem.dryStockKg} กก.`;
+          
+          const isChrys = invItem.herbType === 'เก๊กฮวย' || invItem.herbType.includes('เก๊กฮวย');
+          const hint = isChrys 
+            ? 'เก๊กฮวย: บรรจุกระปุกละ 100 กรัม (0.10 กิโลกรัม)' 
+            : 'คาโมมายล์: บรรจุกระปุกละ 50 กรัม (0.05 กิโลกรัม)';
+          document.getElementById('pack-hint-display').innerHTML = `<i class="fas fa-info-circle mr-1 text-emerald-700"></i> ${hint}`;
+          
+          if (packForm) packForm.reset();
+          packModal.classList.remove('hidden');
+        }
+      });
+    });
+
+    closePackBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (packModal) packModal.classList.add('hidden');
+      });
+    });
+
+    if (packForm) {
+      packForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(packForm);
+        const count = parseInt(formData.get('jarsCount')) || 0;
+
+        if (this.packingCropId) {
+          try {
+            appState.packJars(this.packingCropId, count);
+            showToast(`บรรจุล็อต ${this.packingCropId} ลงกระปุกจำนวน ${count} กระปุกสำเร็จ`);
+            if (packModal) packModal.classList.add('hidden');
             this.refreshView();
           } catch (err) {
             showToast(err.message, 'error');

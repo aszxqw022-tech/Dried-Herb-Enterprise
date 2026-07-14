@@ -67,7 +67,7 @@ export const TraceabilityComponent = {
         <!-- Product Lot details card -->
         <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-            <span class="text-xs font-mono font-bold text-gray-400">รหัสตรวจสอบ: ${crop.id}</span>
+            <span class="text-xs font-mono font-bold text-gray-400">รหัสตรวจสอบ: ${crop.id} | ปีการเพาะปลูก พ.ศ. ${crop.cropYear || '-'}</span>
             <span class="px-2.5 py-1 text-xs font-bold rounded-full ${
               isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
             }">
