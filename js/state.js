@@ -571,6 +571,29 @@ export class AppState {
     return inv;
   }
 
+  updateLotWeights(cropId, yieldFresh, dryStock) {
+    const fresh = parseFloat(yieldFresh) || 0;
+    const dry = parseFloat(dryStock) || 0;
+    if (fresh < 0 || dry < 0) throw new Error('น้ำหนักดอกสดและอบแห้งต้องไม่ติดลบ');
+
+    // 1. Update Inventory
+    let inventory = this.getInventory();
+    const invIndex = inventory.findIndex(inv => inv.cropId === cropId);
+    if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
+    inventory[invIndex].dryStockKg = dry;
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+
+    // 2. Update Crop record
+    let crops = this.getCrops();
+    const cropIndex = crops.findIndex(c => c.id === cropId);
+    if (cropIndex !== -1) {
+      crops[cropIndex].yield = fresh;
+      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(crops));
+    }
+
+    return { fresh, dry };
+  }
+
   /**
    * Generates a complete financial statement per member (Cost, Sales, Net Profit)
    */

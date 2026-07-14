@@ -9,6 +9,7 @@ export const MembersComponent = {
   roleFilter: '',
   statusFilter: '',
   editingMemberId: null,
+  currentPhotoBase64: '',
 
   render() {
     const allMembers = appState.getMembers();
@@ -42,26 +43,35 @@ export const MembersComponent = {
     // Table rows
     const rowsHtml = paginated.length === 0 
       ? `<tr><td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลสมาชิกตามที่ระบุ</td></tr>`
-      : paginated.map(m => `
-          <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-            <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${m.id}</td>
-            <td class="px-6 py-4">
-              <div class="text-sm font-medium text-gray-900">${m.name}</div>
-              <div class="text-xs text-gray-400">บทบาท: ${m.role}</div>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600">${m.phone}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">${m.villageNumber || '-'}</td>
-            <td class="px-6 py-4 text-sm text-gray-500">${formatThaiDate(m.joinDate)}</td>
-            <td class="px-6 py-4 text-sm font-medium text-right space-x-1">
-              <button data-id="${m.id}" class="edit-member-btn text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors" title="แก้ไขข้อมูล">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button data-id="${m.id}" class="delete-member-btn text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="ลบสมาชิก">
-                <i class="fas fa-trash-alt"></i>
-              </button>
-            </td>
-          </tr>
-        `).join('');
+      : paginated.map(m => {
+          const avatarHtml = m.photo 
+            ? `<img src="${m.photo}" class="w-10 h-10 rounded-full object-cover border border-emerald-100 shadow-sm flex-shrink-0">`
+            : `<div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">${m.name.charAt(0) || 'M'}</div>`;
+
+          return `
+            <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+              <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${m.id}</td>
+              <td class="px-6 py-4 flex items-center gap-3">
+                ${avatarHtml}
+                <div>
+                  <div class="text-sm font-bold text-gray-900">${m.name}</div>
+                  <div class="text-xs text-gray-400">บทบาท: ${m.role}</div>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">${m.phone}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">${m.villageNumber || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${formatThaiDate(m.joinDate)}</td>
+              <td class="px-6 py-4 text-sm font-medium text-right space-x-1">
+                <button data-id="${m.id}" class="edit-member-btn text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors" title="แก้ไขข้อมูล">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button data-id="${m.id}" class="delete-member-btn text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="ลบสมาชิก">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
 
     return `
       <div class="fade-in space-y-6">
@@ -161,6 +171,22 @@ export const MembersComponent = {
             
             <!-- Modal Body Form -->
             <form id="member-modal-form" class="p-6 space-y-4">
+              <!-- Photo Upload Field -->
+              <div class="flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-dashed border-emerald-200">
+                <div id="mem-photo-preview" class="w-16 h-16 rounded-full bg-emerald-100 border border-emerald-250 flex items-center justify-center text-emerald-800 text-xl font-bold overflow-hidden flex-shrink-0">
+                  <i class="fas fa-user-circle text-emerald-500 text-4xl"></i>
+                </div>
+                <div class="space-y-1">
+                  <label for="mem-photo" class="px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg cursor-pointer transition-colors shadow-sm inline-block">
+                    <i class="fas fa-camera mr-1"></i> เลือกรูปถ่ายสมาชิก
+                  </label>
+                  <input type="file" id="mem-photo" accept="image/*" class="hidden">
+                  <p class="text-[10px] text-gray-400">แนะนำรูปจัตุรัส ขนาดไม่เกิน 1MB</p>
+                  <button type="button" id="remove-mem-photo-btn" class="hidden text-[10px] text-red-500 hover:underline font-semibold block">
+                    <i class="fas fa-trash-alt mr-0.5"></i> ลบรูปถ่าย
+                  </button>
+                </div>
+              </div>
               <!-- Name -->
               <div>
                 <label for="mem-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
@@ -279,11 +305,21 @@ export const MembersComponent = {
     if (addBtn && modal) {
       addBtn.addEventListener('click', () => {
         this.editingMemberId = null;
+        this.currentPhotoBase64 = '';
         document.getElementById('modal-title').innerHTML = '<i class="fas fa-user-plus"></i> เพิ่มสมาชิกใหม่';
         if (form) {
           form.reset();
           // Pre-fill today's date
           document.getElementById('mem-joindate').value = new Date().toISOString().split('T')[0];
+          
+          const preview = document.getElementById('mem-photo-preview');
+          const removeBtn = document.getElementById('remove-mem-photo-btn');
+          if (preview) {
+            preview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
+          }
+          if (removeBtn) {
+            removeBtn.classList.add('hidden');
+          }
         }
         modal.classList.remove('hidden');
       });
@@ -295,6 +331,46 @@ export const MembersComponent = {
       });
     });
 
+    // Handle photo select event
+    const photoInput = document.getElementById('mem-photo');
+    const photoPreview = document.getElementById('mem-photo-preview');
+    const removePhotoBtn = document.getElementById('remove-mem-photo-btn');
+
+    if (photoInput) {
+      photoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          if (file.size > 1.2 * 1024 * 1024) {
+            showToast('ไฟล์รูปภาพมีขนาดใหญ่เกินไป (แนะนำไม่เกิน 1MB)', 'warning');
+            photoInput.value = '';
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            this.currentPhotoBase64 = event.target.result;
+            if (photoPreview) {
+              photoPreview.innerHTML = `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`;
+            }
+            if (removePhotoBtn) {
+              removePhotoBtn.classList.remove('hidden');
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    if (removePhotoBtn) {
+      removePhotoBtn.addEventListener('click', () => {
+        this.currentPhotoBase64 = '';
+        if (photoInput) photoInput.value = '';
+        if (photoPreview) {
+          photoPreview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
+        }
+        removePhotoBtn.classList.add('hidden');
+      });
+    }
+
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -305,7 +381,8 @@ export const MembersComponent = {
           phone: formData.get('phone'),
           villageNumber: formData.get('villageNumber'),
           status: 'active',
-          joinDate: formData.get('joinDate')
+          joinDate: formData.get('joinDate'),
+          photo: this.currentPhotoBase64 || null
         };
 
         try {
@@ -345,6 +422,19 @@ export const MembersComponent = {
           document.getElementById('mem-phone').value = member.phone;
           document.getElementById('mem-village').value = member.villageNumber;
           document.getElementById('mem-joindate').value = member.joinDate;
+
+          this.currentPhotoBase64 = member.photo || '';
+          const preview = document.getElementById('mem-photo-preview');
+          const removeBtn = document.getElementById('remove-mem-photo-btn');
+          if (preview) {
+            if (member.photo) {
+              preview.innerHTML = `<img src="${member.photo}" class="w-full h-full object-cover">`;
+              if (removeBtn) removeBtn.classList.remove('hidden');
+            } else {
+              preview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
+              if (removeBtn) removeBtn.classList.add('hidden');
+            }
+          }
 
           modal.classList.remove('hidden');
         }

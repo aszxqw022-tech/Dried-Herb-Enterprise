@@ -38,7 +38,12 @@ export const InventoryComponent = {
               <div class="glass-card bg-white rounded-2xl p-5 border border-gray-100 flex flex-col justify-between space-y-4">
                 <div>
                   <div class="flex justify-between items-start mb-2">
-                    <span class="text-xs font-bold text-gray-400">ล็อต: ${inv.cropId}</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-xs font-bold text-gray-400">ล็อต: ${inv.cropId}</span>
+                      <button data-crop-id="${inv.cropId}" class="edit-lot-weights-btn text-emerald-600 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition-colors text-[10px] font-bold flex items-center gap-0.5 border border-emerald-100 shadow-sm" title="แก้ไขข้อมูลน้ำหนักสด/แห้ง">
+                        <i class="fas fa-weight-hanging"></i> แก้ไขน้ำหนัก
+                      </button>
+                    </div>
                     <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
                       isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
                     }">
@@ -410,6 +415,54 @@ export const InventoryComponent = {
           </div>
         </div>
 
+        <!-- Edit Lot Weights Modal (Hidden by default) -->
+        <div id="edit-weights-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+            <!-- Modal Header -->
+            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+              <h3 class="font-bold text-sm flex items-center gap-1.5">
+                <i class="fas fa-weight-hanging"></i> แก้ไขน้ำหนักผลผลิตสดและแห้ง
+              </h3>
+              <button type="button" class="close-weights-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <!-- Modal Body Form -->
+            <form id="edit-weights-form" class="p-6 space-y-4">
+              <!-- Lot Code Display -->
+              <div>
+                <span class="block text-xs font-semibold text-gray-400 uppercase">แก้ไขข้อมูลของล็อตสินค้า</span>
+                <span id="weights-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
+              </div>
+
+              <!-- Fresh weight input -->
+              <div>
+                <label for="weights-fresh" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักดอกสดที่เก็บเกี่ยวได้ (กิโลกรัม) *</label>
+                <input type="number" id="weights-fresh" name="yieldFresh" required min="0.01" step="any" placeholder="เช่น 150.5"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <!-- Dried weight input -->
+              <div>
+                <label for="weights-dry" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักอบแห้งที่บรรจุเข้าคลัง (กิโลกรัม) *</label>
+                <input type="number" id="weights-dry" name="dryStock" required min="0.01" step="any" placeholder="เช่น 20.0"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <!-- Footer Buttons -->
+              <div class="flex justify-end pt-4 gap-2.5">
+                <button type="button" class="close-weights-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                  ยกเลิก
+                </button>
+                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
+                  <i class="fas fa-save"></i> บันทึกข้อมูลน้ำหนัก
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
       </div>
     `;
   },
@@ -596,6 +649,54 @@ export const InventoryComponent = {
             appState.packJars(this.packingCropId, count);
             showToast(`บรรจุล็อต ${this.packingCropId} ลงกระปุกจำนวน ${count} กระปุกสำเร็จ`);
             if (packModal) packModal.classList.add('hidden');
+            this.refreshView();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+      });
+    }
+
+    // --- Edit Weights Modal Events ---
+    const weightsModal = document.getElementById('edit-weights-modal');
+    const editWeightsBtns = document.querySelectorAll('.edit-lot-weights-btn');
+    const closeWeightsBtns = document.querySelectorAll('.close-weights-modal-btn');
+    const weightsForm = document.getElementById('edit-weights-form');
+
+    editWeightsBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cropId = btn.getAttribute('data-crop-id');
+        const invItem = appState.getInventoryByCropId(cropId);
+        const crop = appState.getCropById(cropId);
+        
+        if (invItem && weightsModal) {
+          this.editingWeightsCropId = cropId;
+          document.getElementById('weights-crop-display').textContent = `${cropId} (${invItem.herbType}อบแห้ง)`;
+          document.getElementById('weights-fresh').value = crop ? (crop.yield || 0) : 0;
+          document.getElementById('weights-dry').value = invItem.dryStockKg || 0;
+          weightsModal.classList.remove('hidden');
+        }
+      });
+    });
+
+    closeWeightsBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (weightsModal) weightsModal.classList.add('hidden');
+      });
+    });
+
+    if (weightsForm) {
+      weightsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(weightsForm);
+        const yieldFresh = parseFloat(formData.get('yieldFresh')) || 0;
+        const dryStock = parseFloat(formData.get('dryStock')) || 0;
+
+        if (this.editingWeightsCropId) {
+          try {
+            appState.updateLotWeights(this.editingWeightsCropId, yieldFresh, dryStock);
+            showToast(`อัปเดตน้ำหนักล็อต ${this.editingWeightsCropId} เรียบร้อยแล้ว`);
+            if (weightsModal) weightsModal.classList.add('hidden');
             this.refreshView();
           } catch (err) {
             showToast(err.message, 'error');
