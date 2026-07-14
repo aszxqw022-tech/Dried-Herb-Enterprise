@@ -143,8 +143,8 @@ const MOCK_CROPS = [
 
 // Mock inventory split by cropId (Phase 2 core feature)
 const MOCK_INVENTORY = [
-  { cropId: 'CROP-003', herbType: 'เก๊กฮวย', dryStockKg: 8.18, jarsStock: 50, processedDate: '2026-03-06' }, // 185.5 / 8 = 23.18 kg. Sold 10 kg. Packed 50 jars * 0.1kg = 5kg. Remaining bulk = 8.18 kg
-  { cropId: 'CROP-004', herbType: 'คาโมมายล์', dryStockKg: 5.03, jarsStock: 50, processedDate: '2026-03-13' }  // 75.2 / 6 = 12.53 kg. Sold 5 kg. Packed 50 jars * 0.05kg = 2.5kg. Remaining bulk = 5.03 kg
+  { cropId: 'CROP-003', herbType: 'เก๊กฮวย', dryStockKg: 13.18, processedDate: '2026-03-06' }, // 185.5 / 8 = 23.18 kg. Sold 10, remaining 13.18
+  { cropId: 'CROP-004', herbType: 'คาโมมายล์', dryStockKg: 7.53, processedDate: '2026-03-13' }  // 75.2 / 6 = 12.53 kg. Sold 5, remaining 7.53
 ];
 
 // Mock sales transactions linked to specific cropIds
@@ -508,20 +508,24 @@ export class AppState {
     if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
     
     const inv = inventory[invIndex];
-    if (saleType === 'bulk') {
-      if (inv.dryStockKg < amt) {
-        throw new Error(`จำนวนสินค้าล็อตนี้ไม่เพียงพอในคลัง (คงเหลือ ${inv.dryStockKg} กก., ต้องการขาย ${amt} กก.)`);
-      }
-      inv.dryStockKg = parseFloat((inv.dryStockKg - amt).toFixed(2));
-    } else {
-      const currentJars = inv.jarsStock || 0;
-      if (currentJars < amt) {
-        throw new Error(`จำนวนกระปุกอบแห้งไม่เพียงพอในคลัง (คงเหลือ ${currentJars} กระปุก, ต้องการขาย ${amt} กระปุก)`);
-      }
-      inv.jarsStock = currentJars - amt;
+    const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
+    const jarCapacity = isChrys ? 0.10 : 0.05; // 100g for Chrysanthemum, 50g for Chamomile
+
+    let weightToDeduct = amt;
+    if (saleType === 'jar') {
+      weightToDeduct = parseFloat((amt * jarCapacity).toFixed(2));
     }
 
-    // Deduct inventory
+    if (inv.dryStockKg < weightToDeduct) {
+      if (saleType === 'bulk') {
+        throw new Error(`จำนวนสินค้าล็อตนี้ไม่เพียงพอในคลัง (คงเหลือ ${inv.dryStockKg} กก., ต้องการขาย ${amt} กก.)`);
+      } else {
+        const maxJarsAvailable = Math.floor(inv.dryStockKg / jarCapacity);
+        throw new Error(`วัตถุดิบอบแห้งในคลังไม่เพียงพอสำหรับบรรจุขาย (คงเหลือ ${inv.dryStockKg} กก., เทียบเท่าสูงสุด ${maxJarsAvailable} กระปุก, ต้องการขาย ${amt} กระปุก)`);
+      }
+    }
+
+    inv.dryStockKg = parseFloat((inv.dryStockKg - weightToDeduct).toFixed(2));
     localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 
     // Log sale transaction
@@ -548,27 +552,6 @@ export class AppState {
     localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
 
     return newSale;
-  }
-
-  packJars(cropId, numJars) {
-    const inventory = this.getInventory();
-    const invIndex = inventory.findIndex(inv => inv.cropId === cropId);
-    if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
-
-    const inv = inventory[invIndex];
-    const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
-    const jarCapacity = isChrys ? 0.10 : 0.05; // 100g for Chrysanthemum, 50g for Chamomile
-
-    const totalWeightNeeded = parseFloat((numJars * jarCapacity).toFixed(2));
-    if (inv.dryStockKg < totalWeightNeeded) {
-      throw new Error(`วัตถุดิบอบแห้งสะสมแบบกิโลกรัมมีไม่เพียงพอ (ต้องการ ${totalWeightNeeded} กก. สำหรับบรรจุ ${numJars} กระปุก, คงเหลือในคลัง ${inv.dryStockKg} กก.)`);
-    }
-
-    inv.dryStockKg = parseFloat((inv.dryStockKg - totalWeightNeeded).toFixed(2));
-    inv.jarsStock = (inv.jarsStock || 0) + numJars;
-
-    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-    return inv;
   }
 
   updateLotWeights(cropId, yieldFresh, dryStock) {

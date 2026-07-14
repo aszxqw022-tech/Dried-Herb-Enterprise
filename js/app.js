@@ -5,7 +5,7 @@ import { MembersComponent } from './components/members.js?v=2';
 import { PlotsComponent } from './components/plots.js';
 import { CropsComponent } from './components/crops.js?v=2';
 import { SettingsComponent } from './components/settings.js';
-import { InventoryComponent } from './components/inventory.js?v=2'; // Phase 2
+import { InventoryComponent } from './components/inventory.js?v=3'; // Phase 2
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 
 class AppController {
