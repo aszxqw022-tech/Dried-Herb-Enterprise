@@ -22,22 +22,13 @@ export const PlotsComponent = {
     const rowsHtml = plots.length === 0 
       ? `<tr><td colspan="7" class="px-6 py-6 text-center text-sm text-gray-500">ยังไม่มีการบันทึกแปลงปลูกในระบบ</td></tr>`
       : plots.map(p => {
-          let ownersText = 'ไม่พบชื่อเจ้าของ';
-          if (p.memberIds && Array.isArray(p.memberIds)) {
-            const owners = p.memberIds.map(mId => members.find(m => m.id === mId)).filter(Boolean);
-            if (owners.length > 0) {
-              ownersText = owners.map(o => o.name).join(', ');
-            }
-          } else if (p.memberId) {
-            const owner = members.find(m => m.id === p.memberId);
-            if (owner) ownersText = owner.name;
-          }
+          const owner = members.find(m => m.id === p.memberId);
           const areaFormatted = formatThaiArea(p.sizeRai, p.sizeNgan, p.sizeSqWah);
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
               <td class="px-6 py-3.5 text-sm font-semibold text-emerald-800">${p.id}</td>
               <td class="px-6 py-3.5 text-sm font-medium text-gray-900">${p.name}</td>
-              <td class="px-6 py-3.5 text-sm text-gray-600">${ownersText}</td>
+              <td class="px-6 py-3.5 text-sm text-gray-600">${owner ? owner.name : 'ไม่พบชื่อเจ้าของ'}</td>
               <td class="px-6 py-3.5 text-sm text-gray-600">${areaFormatted}</td>
               <td class="px-6 py-3.5">
                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
@@ -130,24 +121,14 @@ export const PlotsComponent = {
             </div>
 
             <form id="plot-form" class="space-y-4">
-              <!-- Owner Members Selection (Multi-select Checklist) -->
+              <!-- Owner Member Selection -->
               <div>
-                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1 font-bold text-gray-700">เกษตรกรผู้ถือครองร่วม * (เลือกได้มากกว่า 1 คน)</label>
-                <div class="border border-gray-200 rounded-xl p-3 bg-white space-y-2 max-h-40 overflow-y-auto" id="members-checkboxes-container">
-                  ${members.filter(m => m.status === 'active').map(m => {
-                    const avatar = m.currentPhotoBase64 
-                      ? `<img src="${m.currentPhotoBase64}" class="w-6 h-6 rounded-full object-cover border border-gray-100 flex-shrink-0">`
-                      : `<div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-800 border border-emerald-200 flex-shrink-0">${m.name.charAt(0)}</div>`;
-                    return `
-                      <label class="flex items-center gap-3 p-1.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors text-xs text-gray-700">
-                        <input type="checkbox" name="memberIds" value="${m.id}" class="plot-member-checkbox rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4">
-                        ${avatar}
-                        <span class="font-medium">${m.name} <span class="text-[9px] text-gray-400">(${m.role})</span></span>
-                      </label>
-                    `;
-                  }).join('')}
-                </div>
-                <p class="text-[10px] text-gray-400 mt-1">ติ๊กถูกหน้าชื่อสมาชิกที่เป็นผู้ดูแลหรือเจ้าของร่วมแปลงนี้</p>
+                <label for="plot-memberId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เกษตรกรผู้ถือครอง *</label>
+                <select id="plot-memberId" name="memberId" required
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="" disabled selected>-- เลือกสมาชิกเจ้าของแปลง --</option>
+                  ${membersDropdown}
+                </select>
               </div>
 
               <!-- Plot Name -->
@@ -281,16 +262,7 @@ export const PlotsComponent = {
 
     // Add markers for existing plots
     plots.forEach(p => {
-      let ownersText = 'ไม่พบชื่อเจ้าของ';
-      if (p.memberIds && Array.isArray(p.memberIds)) {
-        const owners = p.memberIds.map(mId => members.find(m => m.id === mId)).filter(Boolean);
-        if (owners.length > 0) {
-          ownersText = owners.map(o => o.name).join(', ');
-        }
-      } else if (p.memberId) {
-        const owner = members.find(m => m.id === p.memberId);
-        if (owner) ownersText = owner.name;
-      }
+      const owner = members.find(m => m.id === p.memberId);
       const icon = p.plantType === 'เก๊กฮวย' ? chrysanthemumIcon : chamomileIcon;
       const marker = L.marker([p.lat, p.lng], { icon: icon }).addTo(mapInstance);
       
@@ -298,7 +270,7 @@ export const PlotsComponent = {
         <div class="p-1 leading-normal font-sans">
           <span class="text-xs font-bold text-gray-500">${p.id}</span>
           <h4 class="text-sm font-bold text-gray-900 mt-0.5">${p.name}</h4>
-          <p class="text-xs text-gray-600 mt-1"><b>เกษตรกร:</b> ${ownersText}</p>
+          <p class="text-xs text-gray-600 mt-1"><b>เกษตรกร:</b> ${owner ? owner.name : '-'}</p>
           <p class="text-xs text-gray-600"><b>พืชสมุนไพร:</b> <span class="px-1.5 py-0.5 rounded text-[10px] ${
             p.plantType === 'เก๊กฮวย' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
           }">${p.plantType}</span></p>
@@ -339,20 +311,9 @@ export const PlotsComponent = {
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        
-        // Collect checked memberIds
-        const checkedCheckboxes = document.querySelectorAll('.plot-member-checkbox:checked');
-        const memberIds = Array.from(checkedCheckboxes).map(cb => cb.value);
-        
-        if (memberIds.length === 0) {
-          showToast('กรุณาเลือกสมาชิกผู้ถือครองอย่างน้อย 1 คน', 'error');
-          return;
-        }
-
         const formData = new FormData(form);
         const data = {
-          memberIds: memberIds,
-          memberId: memberIds[0], // fallback for legacy logic compatibility
+          memberId: formData.get('memberId'),
           name: formData.get('name'),
           plantType: formData.get('plantType'),
           sizeRai: parseInt(formData.get('sizeRai')) || 0,
@@ -425,17 +386,7 @@ export const PlotsComponent = {
           this.editingPlotId = id;
           document.getElementById('plot-form-title').innerHTML = `<i class="fas fa-edit text-emerald-700"></i> แก้ไขข้อมูลแปลง (${id})`;
           
-          // Clear all checked boxes first
-          const checkboxes = document.querySelectorAll('.plot-member-checkbox');
-          checkboxes.forEach(cb => cb.checked = false);
-
-          // Check the ones corresponding to this plot
-          const currentMemberIds = plot.memberIds || (plot.memberId ? [plot.memberId] : []);
-          currentMemberIds.forEach(mId => {
-            const cb = document.querySelector(`.plot-member-checkbox[value="${mId}"]`);
-            if (cb) cb.checked = true;
-          });
-
+          document.getElementById('plot-memberId').value = plot.memberId;
           document.getElementById('plot-name').value = plot.name;
           document.getElementById('plot-plantType').value = plot.plantType;
           document.getElementById('plot-rai').value = plot.sizeRai;
@@ -479,11 +430,6 @@ export const PlotsComponent = {
     document.getElementById('plot-form-title').innerHTML = `<i class="fas fa-plus-circle text-emerald-700"></i> ลงทะเบียนแปลงปลูกใหม่`;
     const form = document.getElementById('plot-form');
     if (form) form.reset();
-    
-    // Uncheck all member checkboxes
-    const checkboxes = document.querySelectorAll('.plot-member-checkbox');
-    checkboxes.forEach(cb => cb.checked = false);
-
     if (tempMarker !== null && mapInstance) {
       mapInstance.removeLayer(tempMarker);
       tempMarker = null;

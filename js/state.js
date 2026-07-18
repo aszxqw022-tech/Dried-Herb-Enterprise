@@ -63,14 +63,14 @@ const MOCK_MEMBERS = [
 
 // Mock plots for some members to display initially
 const MOCK_PLOTS = [
-  { id: 'PLOT-001', memberIds: ['MEM-001'], memberId: 'MEM-001', name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, plantType: 'เก๊กฮวย', lat: 18.9142, lng: 98.9442, status: 'active' },
-  { id: 'PLOT-002', memberIds: ['MEM-002'], memberId: 'MEM-002', name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9158, lng: 98.9415, status: 'active' },
-  { id: 'PLOT-003', memberIds: ['MEM-003'], memberId: 'MEM-003', name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, plantType: 'เก๊กฮวย', lat: 18.9121, lng: 98.9495, status: 'active' },
-  { id: 'PLOT-004', memberIds: ['MEM-004'], memberId: 'MEM-004', name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, plantType: 'คาโมมายล์', lat: 18.9172, lng: 98.9455, status: 'active' },
-  { id: 'PLOT-005', memberIds: ['MEM-006'], memberId: 'MEM-006', name: 'แปลงไร่นิเวศน์', sizeRai: 4, sizeNgan: 0, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9095, lng: 98.9421, status: 'active' },
-  { id: 'PLOT-006', memberIds: ['MEM-008'], memberId: 'MEM-008', name: 'แปลงสวนหลังบ้านป้าสมปอง', sizeRai: 1, sizeNgan: 0, sizeSqWah: 20, plantType: 'คาโมมายล์', lat: 18.9135, lng: 98.9392, status: 'active' },
-  { id: 'PLOT-007', memberIds: ['MEM-011'], memberId: 'MEM-011', name: 'แปลงดอยวิวสวนหอม', sizeRai: 5, sizeNgan: 2, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9192, lng: 98.9481, status: 'active' },
-  { id: 'PLOT-008', memberIds: ['MEM-015'], memberId: 'MEM-015', name: 'แปลงผักหลังสวนทวีลาภ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9102, lng: 98.9463, status: 'active' }
+  { id: 'PLOT-001', memberId: 'MEM-001', name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, plantType: 'เก๊กฮวย', lat: 18.9142, lng: 98.9442, status: 'active' },
+  { id: 'PLOT-002', memberId: 'MEM-002', name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9158, lng: 98.9415, status: 'active' },
+  { id: 'PLOT-003', memberId: 'MEM-003', name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, plantType: 'เก๊กฮวย', lat: 18.9121, lng: 98.9495, status: 'active' },
+  { id: 'PLOT-004', memberId: 'MEM-004', name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, plantType: 'คาโมมายล์', lat: 18.9172, lng: 98.9455, status: 'active' },
+  { id: 'PLOT-005', memberId: 'MEM-006', name: 'แปลงไร่นิเวศน์', sizeRai: 4, sizeNgan: 0, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9095, lng: 98.9421, status: 'active' },
+  { id: 'PLOT-006', memberId: 'MEM-008', name: 'แปลงสวนหลังบ้านป้าสมปอง', sizeRai: 1, sizeNgan: 0, sizeSqWah: 20, plantType: 'คาโมมายล์', lat: 18.9135, lng: 98.9392, status: 'active' },
+  { id: 'PLOT-007', memberId: 'MEM-011', name: 'แปลงดอยวิวสวนหอม', sizeRai: 5, sizeNgan: 2, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9192, lng: 98.9481, status: 'active' },
+  { id: 'PLOT-008', memberId: 'MEM-015', name: 'แปลงผักหลังสวนทวีลาภ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9102, lng: 98.9463, status: 'active' }
 ];
 
 // Mock crop seasons for initial plots
@@ -287,7 +287,6 @@ export class AppState {
     const newPlot = {
       ...plot,
       id: newId,
-      memberIds: plot.memberIds || (plot.memberId ? [plot.memberId] : []),
       sizeRai: parseInt(plot.sizeRai) || 0,
       sizeNgan: parseInt(plot.sizeNgan) || 0,
       sizeSqWah: parseInt(plot.sizeSqWah) || 0,
@@ -295,8 +294,6 @@ export class AppState {
       lng: finalLng,
       status: plot.status || 'active'
     };
-    
-    newPlot.memberId = newPlot.memberIds[0] || '';
     
     plots.push(newPlot);
     localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(plots));
@@ -307,12 +304,9 @@ export class AppState {
     let plots = this.getPlots();
     const index = plots.findIndex(p => p.id === id);
     if (index !== -1) {
-      const mergedMemberIds = updatedData.memberIds || (updatedData.memberId ? [updatedData.memberId] : plots[index].memberIds || [plots[index].memberId]);
       plots[index] = { 
         ...plots[index], 
         ...updatedData,
-        memberIds: mergedMemberIds,
-        memberId: mergedMemberIds[0] || '',
         sizeRai: parseInt(updatedData.sizeRai) || 0,
         sizeNgan: parseInt(updatedData.sizeNgan) || 0,
         sizeSqWah: parseInt(updatedData.sizeSqWah) || 0,
@@ -583,6 +577,9 @@ export class AppState {
     return { fresh, dry };
   }
 
+  /**
+   * Generates a complete financial statement per member (Cost, Sales, Net Profit)
+   */
   getFinancialReport() {
     const members = this.getMembers();
     const plots = this.getPlots();
@@ -590,45 +587,24 @@ export class AppState {
     const sales = this.getSales();
 
     return members.map(m => {
-      // Find plots owned by this member (supporting both array memberIds and legacy memberId)
-      const memberPlots = plots.filter(p => {
-        if (p.memberIds && Array.isArray(p.memberIds)) {
-          return p.memberIds.includes(m.id);
-        }
-        return p.memberId === m.id;
-      });
+      // Find plots owned by this member
+      const memberPlots = plots.filter(p => p.memberId === m.id);
+      const plotIds = memberPlots.map(p => p.id);
 
-      let totalCost = 0;
-      let totalRevenue = 0;
-      let totalCrops = 0;
+      // Find crops on those plots
+      const memberCrops = crops.filter(c => plotIds.includes(c.plotId));
+      const cropIds = memberCrops.map(c => c.id);
 
-      // Loop through all crops to sum this member's share
-      crops.forEach(c => {
-        const plot = plots.find(p => p.id === c.plotId);
-        if (!plot) return;
+      // Total Cost = Sum of crop season costs (initial cost + fertilizing/maintenance logs cost)
+      const totalCost = memberCrops.reduce((sum, c) => {
+        const initialCost = parseFloat(c.cost) || 0;
+        const fertCost = (c.fertilizingLog || []).reduce((s, f) => s + (parseFloat(f.cost) || 0), 0);
+        return sum + initialCost + fertCost;
+      }, 0);
 
-        // Check if member is one of the owners
-        const isOwner = (plot.memberIds && Array.isArray(plot.memberIds))
-          ? plot.memberIds.includes(m.id)
-          : plot.memberId === m.id;
-
-        if (isOwner) {
-          totalCrops++;
-          const numOwners = (plot.memberIds && Array.isArray(plot.memberIds))
-            ? plot.memberIds.length
-            : 1;
-
-          // Cost share
-          const initialCost = parseFloat(c.cost) || 0;
-          const fertCost = (c.fertilizingLog || []).reduce((s, f) => s + (parseFloat(f.cost) || 0), 0);
-          totalCost += (initialCost + fertCost) / numOwners;
-
-          // Revenue share
-          const cropSales = sales.filter(s => s.cropId === c.id);
-          const cropRevenue = cropSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
-          totalRevenue += cropRevenue / numOwners;
-        }
-      });
+      // Total Revenue = Sum of sales of this member's crop lots
+      const memberSales = sales.filter(s => cropIds.includes(s.cropId));
+      const totalRevenue = memberSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
 
       const netProfit = totalRevenue - totalCost;
 
@@ -638,10 +614,10 @@ export class AppState {
         role: m.role,
         villageNumber: m.villageNumber,
         totalPlots: memberPlots.length,
-        totalCrops: totalCrops,
-        totalCost: parseFloat(totalCost.toFixed(2)),
-        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
-        netProfit: parseFloat(netProfit.toFixed(2)),
+        totalCrops: memberCrops.length,
+        totalCost,
+        totalRevenue,
+        netProfit,
         status: netProfit > 0 ? 'profit' : netProfit < 0 ? 'loss' : 'breakeven'
       };
     });

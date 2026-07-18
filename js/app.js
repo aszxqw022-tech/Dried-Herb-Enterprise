@@ -1,12 +1,12 @@
 // Main App Controller and Router for Single Page Application
 import { appState } from './state.js';
 import { DashboardComponent } from './components/dashboard.js';
-import { MembersComponent } from './components/members.js?v=4';
-import { PlotsComponent } from './components/plots.js?v=4';
-import { CropsComponent } from './components/crops.js?v=4';
+import { MembersComponent } from './components/members.js?v=2';
+import { PlotsComponent } from './components/plots.js';
+import { CropsComponent } from './components/crops.js?v=2';
 import { SettingsComponent } from './components/settings.js';
-import { InventoryComponent } from './components/inventory.js?v=5'; // Phase 2
-import { TraceabilityComponent } from './components/traceability.js?v=4'; // Phase 2
+import { InventoryComponent } from './components/inventory.js?v=3'; // Phase 2
+import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 
 class AppController {
   constructor() {
