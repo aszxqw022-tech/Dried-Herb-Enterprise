@@ -281,7 +281,7 @@ export const InventoryComponent = {
 
         <!-- Record Sale Modal -->
         <div id="sale-record-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
             <!-- Modal Header -->
             <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
               <h3 class="font-bold text-sm flex items-center gap-1.5">
@@ -362,7 +362,7 @@ export const InventoryComponent = {
 
         <!-- Edit Lot Weights Modal (Hidden by default) -->
         <div id="edit-weights-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
             <!-- Modal Header -->
             <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
               <h3 class="font-bold text-sm flex items-center gap-1.5">

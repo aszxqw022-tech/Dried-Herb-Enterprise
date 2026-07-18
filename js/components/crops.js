@@ -23,11 +23,17 @@ export const CropsComponent = {
 
     const selectedCrop = crops.find(c => c.id === this.selectedCropId);
     let selectedPlot = null;
-    let selectedOwner = null;
+    let selectedOwnersText = '-';
     if (selectedCrop) {
       selectedPlot = plots.find(p => p.id === selectedCrop.plotId);
       if (selectedPlot) {
-        selectedOwner = members.find(m => m.id === selectedPlot.memberId);
+        if (selectedPlot.memberIds && Array.isArray(selectedPlot.memberIds)) {
+          const owners = selectedPlot.memberIds.map(mId => members.find(m => m.id === mId)).filter(Boolean);
+          selectedOwnersText = owners.map(o => o.name).join(', ');
+        } else if (selectedPlot.memberId) {
+          const owner = members.find(m => m.id === selectedPlot.memberId);
+          if (owner) selectedOwnersText = owner.name;
+        }
       }
     }
 
@@ -35,8 +41,15 @@ export const CropsComponent = {
     const plotsDropdown = plots
       .filter(p => p.status === 'active')
       .map(p => {
-        const owner = members.find(m => m.id === p.memberId);
-        return `<option value="${p.id}">${p.name} - ${p.plantType} (${owner ? owner.name : '-'})</option>`;
+        let ownersText = '-';
+        if (p.memberIds && Array.isArray(p.memberIds)) {
+          const owners = p.memberIds.map(mId => members.find(m => m.id === mId)).filter(Boolean);
+          ownersText = owners.map(o => o.name).join(', ');
+        } else if (p.memberId) {
+          const owner = members.find(m => m.id === p.memberId);
+          if (owner) ownersText = owner.name;
+        }
+        return `<option value="${p.id}">${p.name} - ${p.plantType} (${ownersText})</option>`;
       })
       .join('');
 
@@ -199,7 +212,7 @@ export const CropsComponent = {
             <div>
               <span class="text-xs font-bold text-gray-400">${selectedCrop.id} | ปีการเพาะปลูก พ.ศ. ${selectedCrop.cropYear || '-'}</span>
               <h2 class="text-xl font-bold text-emerald-900 mt-0.5">${selectedPlot ? selectedPlot.name : '-'}</h2>
-              <p class="text-xs text-gray-500 mt-1">เกษตรกรผู้ดูแล: <b>${selectedOwner ? selectedOwner.name : '-'}</b></p>
+              <p class="text-xs text-gray-500 mt-1">เกษตรกรผู้ดูแล: <b>${selectedOwnersText}</b></p>
             </div>
             
             <button id="delete-crop-btn" data-id="${selectedCrop.id}" class="text-red-500 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm" title="ลบรอบการปลูกนี้">
