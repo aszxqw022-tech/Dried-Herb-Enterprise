@@ -152,95 +152,94 @@ export const MembersComponent = {
                 class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors">
                 ถัดไป <i class="fas fa-chevron-right ml-1"></i>
               </button>
-            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Add/Edit Member Modal (Hidden by default) -->
-        <div id="member-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl transform transition-all border border-gray-100">
-            <!-- Modal Header -->
-            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-              <h3 id="modal-title" class="font-bold text-lg flex items-center gap-2">
-                <i class="fas fa-user-edit"></i> เพิ่มสมาชิกใหม่
-              </h3>
-              <button type="button" class="close-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-                <i class="fas fa-times"></i>
+      <!-- Add/Edit Member Modal (Hidden by default) -->
+      <div id="member-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl transform transition-all border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+            <h3 id="modal-title" class="font-bold text-lg flex items-center gap-2">
+              <i class="fas fa-user-edit"></i> เพิ่มสมาชิกใหม่
+            </h3>
+            <button type="button" class="close-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body Form -->
+          <form id="member-modal-form" class="p-6 space-y-4">
+            <!-- Photo Upload Field -->
+            <div class="flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-dashed border-emerald-200">
+              <div id="mem-photo-preview" class="w-16 h-16 rounded-full bg-emerald-100 border border-emerald-250 flex items-center justify-center text-emerald-800 text-xl font-bold overflow-hidden flex-shrink-0">
+                <i class="fas fa-user-circle text-emerald-500 text-4xl"></i>
+              </div>
+              <div class="space-y-1">
+                <label for="mem-photo" class="px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg cursor-pointer transition-colors shadow-sm inline-block">
+                  <i class="fas fa-camera mr-1"></i> เลือกรูปถ่ายสมาชิก
+                </label>
+                <input type="file" id="mem-photo" accept="image/*" class="hidden">
+                <p class="text-[10px] text-gray-400">แนะนำรูปจัตุรัส ขนาดไม่เกิน 1MB</p>
+                <button type="button" id="remove-mem-photo-btn" class="hidden text-[10px] text-red-500 hover:underline font-semibold block">
+                  <i class="fas fa-trash-alt mr-0.5"></i> ลบรูปถ่าย
+                </button>
+              </div>
+            </div>
+            <!-- Name -->
+            <div>
+              <label for="mem-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
+              <input type="text" id="mem-name" name="name" required placeholder="เช่น นายเกษตร มั่นคง"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Role -->
+              <div>
+                <label for="mem-role" class="block text-xs font-semibold text-gray-500 uppercase mb-1">บทบาทหน้าที่ *</label>
+                <select id="mem-role" name="role" required 
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="สมาชิกทั่วไป">สมาชิกทั่วไป</option>
+                  <option value="กรรมการ">กรรมการ</option>
+                  <option value="เลขานุการ">เลขานุการ</option>
+                  <option value="เหรัญญิก">เหรัญญิก</option>
+                  <option value="รองประธาน">รองประธาน</option>
+                  <option value="ประธานกลุ่ม">ประธานกลุ่ม</option>
+                </select>
+              </div>
+
+              <!-- Phone -->
+              <div>
+                <label for="mem-phone" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
+                <input type="text" id="mem-phone" name="phone" required placeholder="08X-XXX-XXXX"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+
+            <div>
+              <label for="mem-village" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่หมู่บ้าน/หมู่ที่ *</label>
+              <input type="text" id="mem-village" name="villageNumber" required placeholder="เช่น หมู่ 4"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Join Date -->
+            <div>
+              <label for="mem-joindate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เข้าร่วมเป็นสมาชิก *</label>
+              <input type="date" id="mem-joindate" name="joinDate" required
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1">
+                <i class="fas fa-save"></i> บันทึกข้อมูล
               </button>
             </div>
-            
-            <!-- Modal Body Form -->
-            <form id="member-modal-form" class="p-6 space-y-4">
-              <!-- Photo Upload Field -->
-              <div class="flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-dashed border-emerald-200">
-                <div id="mem-photo-preview" class="w-16 h-16 rounded-full bg-emerald-100 border border-emerald-250 flex items-center justify-center text-emerald-800 text-xl font-bold overflow-hidden flex-shrink-0">
-                  <i class="fas fa-user-circle text-emerald-500 text-4xl"></i>
-                </div>
-                <div class="space-y-1">
-                  <label for="mem-photo" class="px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg cursor-pointer transition-colors shadow-sm inline-block">
-                    <i class="fas fa-camera mr-1"></i> เลือกรูปถ่ายสมาชิก
-                  </label>
-                  <input type="file" id="mem-photo" accept="image/*" class="hidden">
-                  <p class="text-[10px] text-gray-400">แนะนำรูปจัตุรัส ขนาดไม่เกิน 1MB</p>
-                  <button type="button" id="remove-mem-photo-btn" class="hidden text-[10px] text-red-500 hover:underline font-semibold block">
-                    <i class="fas fa-trash-alt mr-0.5"></i> ลบรูปถ่าย
-                  </button>
-                </div>
-              </div>
-              <!-- Name -->
-              <div>
-                <label for="mem-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
-                <input type="text" id="mem-name" name="name" required placeholder="เช่น นายเกษตร มั่นคง"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <!-- Role -->
-                <div>
-                  <label for="mem-role" class="block text-xs font-semibold text-gray-500 uppercase mb-1">บทบาทหน้าที่ *</label>
-                  <select id="mem-role" name="role" required 
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    <option value="สมาชิกทั่วไป">สมาชิกทั่วไป</option>
-                    <option value="กรรมการ">กรรมการ</option>
-                    <option value="เลขานุการ">เลขานุการ</option>
-                    <option value="เหรัญญิก">เหรัญญิก</option>
-                    <option value="รองประธาน">รองประธาน</option>
-                    <option value="ประธานกลุ่ม">ประธานกลุ่ม</option>
-                  </select>
-                </div>
-
-                <!-- Phone -->
-                <div>
-                  <label for="mem-phone" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
-                  <input type="text" id="mem-phone" name="phone" required placeholder="08X-XXX-XXXX"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-              </div>
-
-              <div>
-                <label for="mem-village" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่หมู่บ้าน/หมู่ที่ *</label>
-                <input type="text" id="mem-village" name="villageNumber" required placeholder="เช่น หมู่ 4"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Join Date -->
-              <div>
-                <label for="mem-joindate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เข้าร่วมเป็นสมาชิก *</label>
-                <input type="date" id="mem-joindate" name="joinDate" required
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Footer Buttons -->
-              <div class="flex justify-end pt-4 gap-2.5">
-                <button type="button" class="close-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1">
-                  <i class="fas fa-save"></i> บันทึกข้อมูล
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
       </div>
     `;

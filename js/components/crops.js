@@ -320,174 +320,173 @@ export const CropsComponent = {
             ${detailPanelHtml}
           </div>
         </div>
+      </div>
 
-        <!-- Start New Season Modal -->
-        <div id="new-crop-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
-            <!-- Modal Header -->
-            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-              <h3 class="font-bold text-lg flex items-center gap-2">
-                <i class="fas fa-leaf"></i> ลงทะเบียนรอบการปลูกใหม่
-              </h3>
-              <button type="button" class="close-crop-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-            
-            <!-- Modal Body Form -->
-            <form id="new-crop-form" class="p-6 space-y-4">
-              <!-- Plot Select -->
-              <div>
-                <label for="crop-plotId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลือกแปลงปลูกเป้าหมาย *</label>
-                <select id="crop-plotId" name="plotId" required
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  <option value="" disabled selected>-- เลือกแปลงของสมาชิก --</option>
-                  ${plotsDropdown}
-                </select>
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <!-- Plant Date -->
-                <div>
-                  <label for="crop-plantDate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เริ่มปลูก *</label>
-                  <input type="date" id="crop-plantDate" name="plantDate" required
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-
-                <!-- Crop Year -->
-                <div>
-                  <label for="crop-year" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปีการเพาะปลูก (พ.ศ.) *</label>
-                  <input type="number" id="crop-year" name="cropYear" required min="2500" max="2600" placeholder="เช่น 2569"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-              </div>
-
-              <div>
-                <!-- Cost -->
-                <label for="crop-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ต้นทุนเริ่มต้น (บาท) *</label>
-                <input type="number" id="crop-cost" name="cost" required min="0" placeholder="เช่น 2500"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Footer Buttons -->
-              <div class="flex justify-end pt-4 gap-2.5">
-                <button type="button" class="close-crop-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm">
-                  <i class="fas fa-plus"></i> เริ่มเพาะปลูก
-                </button>
-              </div>
-            </form>
+      <!-- Start New Season Modal -->
+      <div id="new-crop-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+              <i class="fas fa-leaf"></i> ลงทะเบียนรอบการปลูกใหม่
+            </h3>
+            <button type="button" class="close-crop-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-        </div>
-
-        <!-- Add Fertilizer Log Modal -->
-        <div id="fert-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-            <!-- Modal Header -->
-            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-              <h3 class="font-bold text-sm flex items-center gap-1.5">
-                <i class="fas fa-hand-holding-seedling"></i> บันทึกกิจกรรมใส่ปุ๋ยและดูแลแปลง
-              </h3>
-              <button type="button" class="close-fert-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-                <i class="fas fa-times"></i>
-              </button>
+          
+          <!-- Modal Body Form -->
+          <form id="new-crop-form" class="p-6 space-y-4">
+            <!-- Plot Select -->
+            <div>
+              <label for="crop-plotId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลือกแปลงปลูกเป้าหมาย *</label>
+              <select id="crop-plotId" name="plotId" required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="" disabled selected>-- เลือกแปลงของสมาชิก --</option>
+                ${plotsDropdown}
+              </select>
             </div>
-            
-            <!-- Modal Body Form -->
-            <form id="fert-form" class="p-6 space-y-4">
-              <!-- Fertilizer Type -->
+
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Plant Date -->
               <div>
-                <label for="fert-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">กิจกรรม / ประเภทปุ๋ยที่ใส่ *</label>
-                <input type="text" id="fert-type" name="type" required placeholder="เช่น ปุ๋ยหมักชีวภาพ, ฉีดพ่นน้ำสะเดา"
+                <label for="crop-plantDate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เริ่มปลูก *</label>
+                <input type="date" id="crop-plantDate" name="plantDate" required
                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <!-- Date -->
-                <div>
-                  <label for="fert-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่ใส่ *</label>
-                  <input type="date" id="fert-date" name="date" required
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-
-                <!-- Amount -->
-                <div>
-                  <label for="fert-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ใช้ *</label>
-                  <input type="text" id="fert-amount" name="amount" required placeholder="เช่น 15 กิโลกรัม, 3 ลิตร"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
+              <!-- Crop Year -->
+              <div>
+                <label for="crop-year" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปีการเพาะปลูก (พ.ศ.) *</label>
+                <input type="number" id="crop-year" name="cropYear" required min="2500" max="2600" placeholder="เช่น 2569"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
               </div>
+            </div>
 
+            <div>
               <!-- Cost -->
-              <div>
-                <label for="fert-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ค่าใช้จ่าย / ต้นทุนการบำรุง (บาท) *</label>
-                <input type="number" id="fert-cost" name="cost" required min="0" placeholder="เช่น 350"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
+              <label for="crop-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ต้นทุนเริ่มต้น (บาท) *</label>
+              <input type="number" id="crop-cost" name="cost" required min="0" placeholder="เช่น 2500"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
 
-              <!-- Footer Buttons -->
-              <div class="flex justify-end pt-4 gap-2.5">
-                <button type="button" class="close-fert-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm">
-                  <i class="fas fa-save"></i> บันทึกกิจกรรม
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <!-- Record Harvest Modal -->
-        <div id="harvest-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-            <!-- Modal Header -->
-            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-              <h3 class="font-bold text-sm flex items-center gap-1.5">
-                <i class="fas fa-box-open"></i> บันทึกการเก็บเกี่ยวสมุนไพร
-              </h3>
-              <button type="button" class="close-harvest-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-                <i class="fas fa-times"></i>
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-crop-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm">
+                <i class="fas fa-plus"></i> เริ่มเพาะปลูก
               </button>
             </div>
-            
-            <!-- Modal Body Form -->
-            <form id="harvest-form" class="p-6 space-y-4">
-              <!-- Actual Harvest Date -->
-              <div>
-                <label for="harvest-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เก็บเกี่ยวจริง *</label>
-                <input type="date" id="harvest-date" name="harvestDateActual" required
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Yield Amount -->
-              <div>
-                <label for="harvest-yield" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณน้ำหนักดอกสด (กิโลกรัม) *</label>
-                <input type="number" id="harvest-yield" name="yield" required min="0" step="any" placeholder="เช่น 150.5"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Info hint -->
-              <div class="p-3 bg-blue-50 text-blue-900 border border-blue-100 rounded-xl text-[10px] leading-relaxed">
-                <i class="fas fa-info-circle mr-1 text-blue-600"></i>
-                เมื่อบันทึกการเก็บเกี่ยว ระบบจะปรับเปลี่ยนสถานะของรอบการเพาะปลูกนี้เป็น "เก็บเกี่ยวเสร็จสิ้น" อัตโนมัติ
-              </div>
-
-              <!-- Footer Buttons -->
-              <div class="flex justify-end pt-4 gap-2.5">
-                <button type="button" class="close-harvest-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
-                  <i class="fas fa-check"></i> บันทึกเก็บเกี่ยวสำเร็จ
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
+      </div>
 
+      <!-- Add Fertilizer Log Modal -->
+      <div id="fert-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-hand-holding-seedling"></i> บันทึกกิจกรรมใส่ปุ๋ยและดูแลแปลง
+            </h3>
+            <button type="button" class="close-fert-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body Form -->
+          <form id="fert-form" class="p-6 space-y-4">
+            <!-- Fertilizer Type -->
+            <div>
+              <label for="fert-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">กิจกรรม / ประเภทปุ๋ยที่ใส่ *</label>
+              <input type="text" id="fert-type" name="type" required placeholder="เช่น ปุ๋ยหมักชีวภาพ, ฉีดพ่นน้ำสะเดา"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Date -->
+              <div>
+                <label for="fert-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่ใส่ *</label>
+                <input type="date" id="fert-date" name="date" required
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <!-- Amount -->
+              <div>
+                <label for="fert-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ใช้ *</label>
+                <input type="text" id="fert-amount" name="amount" required placeholder="เช่น 15 กิโลกรัม, 3 ลิตร"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+
+            <!-- Cost -->
+            <div>
+              <label for="fert-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ค่าใช้จ่าย / ต้นทุนการบำรุง (บาท) *</label>
+              <input type="number" id="fert-cost" name="cost" required min="0" placeholder="เช่น 350"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-fert-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm">
+                <i class="fas fa-save"></i> บันทึกกิจกรรม
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Record Harvest Modal -->
+      <div id="harvest-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-box-open"></i> บันทึกการเก็บเกี่ยวสมุนไพร
+            </h3>
+            <button type="button" class="close-harvest-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body Form -->
+          <form id="harvest-form" class="p-6 space-y-4">
+            <!-- Actual Harvest Date -->
+            <div>
+              <label for="harvest-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เก็บเกี่ยวจริง *</label>
+              <input type="date" id="harvest-date" name="harvestDateActual" required
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Yield Amount -->
+            <div>
+              <label for="harvest-yield" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณน้ำหนักดอกสด (กิโลกรัม) *</label>
+              <input type="number" id="harvest-yield" name="yield" required min="0" step="any" placeholder="เช่น 150.5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Info hint -->
+            <div class="p-3 bg-blue-50 text-blue-900 border border-blue-100 rounded-xl text-[10px] leading-relaxed">
+              <i class="fas fa-info-circle mr-1 text-blue-600"></i>
+              เมื่อบันทึกการเก็บเกี่ยว ระบบจะปรับเปลี่ยนสถานะของรอบการเพาะปลูกนี้เป็น "เก็บเกี่ยวเสร็จสิ้น" อัตโนมัติ
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-harvest-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
+                <i class="fas fa-check"></i> บันทึกเก็บเกี่ยวสำเร็จ
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     `;
   },

@@ -276,138 +276,136 @@ export const InventoryComponent = {
           </button>
         </div>
 
-        <!-- Rendered tab view -->
         ${tabContentHtml}
+      </div>
 
-        <!-- Record Sale Modal -->
-        <div id="sale-record-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-            <!-- Modal Header -->
-            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-              <h3 class="font-bold text-sm flex items-center gap-1.5">
-                <i class="fas fa-cash-register"></i> บันทึกรายการขายสินค้าแปรรูป
-              </h3>
-              <button type="button" class="close-sale-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-                <i class="fas fa-times"></i>
+      <!-- Record Sale Modal -->
+      <div id="sale-record-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-cash-register"></i> บันทึกรายการขายสินค้าแปรรูป
+            </h3>
+            <button type="button" class="close-sale-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body Form -->
+          <form id="sale-form" class="p-6 space-y-4">
+            <!-- Lot Code Display -->
+            <div>
+              <span class="block text-xs font-semibold text-gray-400 uppercase">จำหน่ายจากรหัสล็อตสินค้า</span>
+              <span id="sale-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
+            </div>
+
+            <!-- Sale Type Select -->
+            <div>
+              <label for="sale-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทสินค้าที่ขาย *</label>
+              <select id="sale-type" name="saleType" required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="bulk">วัตถุดิบอบแห้ง (กิโลกรัม)</option>
+                <option value="jar">กระปุกสำเร็จรูป (กระปุก)</option>
+              </select>
+            </div>
+
+            <!-- Sale Quantity -->
+            <div>
+              <label for="sale-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ขาย (กิโลกรัม) *</label>
+              <input type="number" id="sale-amount" name="amount" required min="0.01" step="any" placeholder="เช่น 5.5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <span id="sale-max-stock-display" class="block text-[10px] text-gray-400 mt-1">สต็อกล็อตนี้คงเหลือสูงสุด: - กก.</span>
+            </div>
+
+            <!-- Price per Unit -->
+            <div>
+              <label for="sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาต่อกิโลกรัม (บาท) *</label>
+              <input type="number" id="sale-price" name="price" required min="1" placeholder="เช่น 450"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Customer Info -->
+            <div>
+              <label for="sale-customer" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ลูกค้า / ช่องทางจัดจำหน่าย *</label>
+              <input type="text" id="sale-customer" name="customer" required placeholder="เช่น ร้านกาแฟสวนร่มรื่น, แฟนเพจกลุ่ม"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Date -->
+            <div>
+              <label for="sale-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่จำหน่าย *</label>
+              <input type="date" id="sale-date" name="date" required
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Info hint -->
+            <div class="p-3 bg-green-50 text-green-900 border border-green-100 rounded-xl text-[10px] leading-relaxed">
+              <i class="fas fa-info-circle mr-1 text-green-600"></i>
+              การบันทึกขายจะหักยอดคลังสินค้าล็อตนี้ และคำนวณบวกรายรับคืนเข้ากับเกษตรกรเจ้าของสิทธิ์ของล็อตโดยอัตโนมัติ
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-sale-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
+                <i class="fas fa-check"></i> บันทึกขายและหักยอด
               </button>
             </div>
-            
-            <!-- Modal Body Form -->
-            <form id="sale-form" class="p-6 space-y-4">
-              <!-- Lot Code Display -->
-              <div>
-                <span class="block text-xs font-semibold text-gray-400 uppercase">จำหน่ายจากรหัสล็อตสินค้า</span>
-                <span id="sale-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
-              </div>
-
-              <!-- Sale Type Select -->
-              <div>
-                <label for="sale-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทสินค้าที่ขาย *</label>
-                <select id="sale-type" name="saleType" required
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  <option value="bulk">วัตถุดิบอบแห้ง (กิโลกรัม)</option>
-                  <option value="jar">กระปุกสำเร็จรูป (กระปุก)</option>
-                </select>
-              </div>
-
-              <!-- Sale Quantity -->
-              <div>
-                <label for="sale-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ขาย (กิโลกรัม) *</label>
-                <input type="number" id="sale-amount" name="amount" required min="0.01" step="any" placeholder="เช่น 5.5"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <span id="sale-max-stock-display" class="block text-[10px] text-gray-400 mt-1">สต็อกล็อตนี้คงเหลือสูงสุด: - กก.</span>
-              </div>
-
-              <!-- Price per Unit -->
-              <div>
-                <label for="sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาต่อกิโลกรัม (บาท) *</label>
-                <input type="number" id="sale-price" name="price" required min="1" placeholder="เช่น 450"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Customer Info -->
-              <div>
-                <label for="sale-customer" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ลูกค้า / ช่องทางจัดจำหน่าย *</label>
-                <input type="text" id="sale-customer" name="customer" required placeholder="เช่น ร้านกาแฟสวนร่มรื่น, แฟนเพจกลุ่ม"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Date -->
-              <div>
-                <label for="sale-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่จำหน่าย *</label>
-                <input type="date" id="sale-date" name="date" required
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Info hint -->
-              <div class="p-3 bg-green-50 text-green-900 border border-green-100 rounded-xl text-[10px] leading-relaxed">
-                <i class="fas fa-info-circle mr-1 text-green-600"></i>
-                การบันทึกขายจะหักยอดคลังสินค้าล็อตนี้ และคำนวณบวกรายรับคืนเข้ากับเกษตรกรเจ้าของสิทธิ์ของล็อตโดยอัตโนมัติ
-              </div>
-
-              <!-- Footer Buttons -->
-              <div class="flex justify-end pt-4 gap-2.5">
-                <button type="button" class="close-sale-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
-                  <i class="fas fa-check"></i> บันทึกขายและหักยอด
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
+      </div>
 
 
 
-        <!-- Edit Lot Weights Modal (Hidden by default) -->
-        <div id="edit-weights-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-          <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-            <!-- Modal Header -->
-            <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-              <h3 class="font-bold text-sm flex items-center gap-1.5">
-                <i class="fas fa-weight-hanging"></i> แก้ไขน้ำหนักผลผลิตสดและแห้ง
-              </h3>
-              <button type="button" class="close-weights-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-                <i class="fas fa-times"></i>
+      <!-- Edit Lot Weights Modal (Hidden by default) -->
+      <div id="edit-weights-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-weight-hanging"></i> แก้ไขน้ำหนักผลผลิตสดและแห้ง
+            </h3>
+            <button type="button" class="close-weights-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body Form -->
+          <form id="edit-weights-form" class="p-6 space-y-4">
+            <!-- Lot Code Display -->
+            <div>
+              <span class="block text-xs font-semibold text-gray-400 uppercase">แก้ไขข้อมูลของล็อตสินค้า</span>
+              <span id="weights-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
+            </div>
+
+            <!-- Fresh weight input -->
+            <div>
+              <label for="weights-fresh" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักดอกสดที่เก็บเกี่ยวได้ (กิโลกรัม) *</label>
+              <input type="number" id="weights-fresh" name="yieldFresh" required min="0.01" step="any" placeholder="เช่น 150.5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Dried weight input -->
+            <div>
+              <label for="weights-dry" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักอบแห้งที่บรรจุเข้าคลัง (กิโลกรัม) *</label>
+              <input type="number" id="weights-dry" name="dryStock" required min="0.01" step="any" placeholder="เช่น 20.0"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-weights-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
+                <i class="fas fa-save"></i> บันทึกข้อมูลน้ำหนัก
               </button>
             </div>
-            
-            <!-- Modal Body Form -->
-            <form id="edit-weights-form" class="p-6 space-y-4">
-              <!-- Lot Code Display -->
-              <div>
-                <span class="block text-xs font-semibold text-gray-400 uppercase">แก้ไขข้อมูลของล็อตสินค้า</span>
-                <span id="weights-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
-              </div>
-
-              <!-- Fresh weight input -->
-              <div>
-                <label for="weights-fresh" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักดอกสดที่เก็บเกี่ยวได้ (กิโลกรัม) *</label>
-                <input type="number" id="weights-fresh" name="yieldFresh" required min="0.01" step="any" placeholder="เช่น 150.5"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Dried weight input -->
-              <div>
-                <label for="weights-dry" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักอบแห้งที่บรรจุเข้าคลัง (กิโลกรัม) *</label>
-                <input type="number" id="weights-dry" name="dryStock" required min="0.01" step="any" placeholder="เช่น 20.0"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-
-              <!-- Footer Buttons -->
-              <div class="flex justify-end pt-4 gap-2.5">
-                <button type="button" class="close-weights-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
-                  <i class="fas fa-save"></i> บันทึกข้อมูลน้ำหนัก
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
-
       </div>
     `;
   },
