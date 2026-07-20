@@ -7,8 +7,40 @@ const STORAGE_KEYS = {
   PLOTS: 'herb_enterprise_plots',
   CROPS: 'herb_enterprise_crops',
   INVENTORY: 'herb_enterprise_inventory',
-  SALES: 'herb_enterprise_sales'
+  SALES: 'herb_enterprise_sales',
+  AUTH: 'herb_enterprise_auth'
 };
+
+// Mock User Accounts for Login & Roles
+const MOCK_USERS = [
+  {
+    username: 'admin',
+    password: 'password124',
+    name: 'นายสมเกียรติ พึ่งตน',
+    role: 'ประธานกลุ่ม / ผู้ดูแลระบบ',
+    memberId: 'MEM-001',
+    avatarText: 'SK',
+    color: 'emerald'
+  },
+  {
+    username: 'officer',
+    password: 'password124',
+    name: 'นายมานะ รักเกษตร',
+    role: 'เหรัญญิก / เจ้าหน้าที่คลัง',
+    memberId: 'MEM-003',
+    avatarText: 'MN',
+    color: 'amber'
+  },
+  {
+    username: 'member',
+    password: 'password124',
+    name: 'นางใจดี ศรีสมุนไพร',
+    role: 'สมาชิกวิสาหกิจ',
+    memberId: 'MEM-002',
+    avatarText: 'JD',
+    color: 'blue'
+  }
+];
 
 // Initial Profile setup
 const DEFAULT_ENTERPRISE = {
@@ -155,7 +187,57 @@ const MOCK_SALES = [
 
 export class AppState {
   constructor() {
+    this.onAuthChange = null;
+    this.onEnterpriseChange = null;
     this.init();
+  }
+
+  // --- Auth & Session Methods ---
+  getCurrentUser() {
+    const data = localStorage.getItem(STORAGE_KEYS.AUTH);
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  isLoggedIn() {
+    return this.getCurrentUser() !== null;
+  }
+
+  login(username, password) {
+    const user = MOCK_USERS.find(
+      u => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
+    );
+
+    if (!user) {
+      throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+    }
+
+    const sessionData = {
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      memberId: user.memberId,
+      avatarText: user.avatarText,
+      color: user.color,
+      loginTime: new Date().toISOString()
+    };
+
+    localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(sessionData));
+    if (this.onAuthChange) this.onAuthChange(sessionData);
+    return sessionData;
+  }
+
+  logout() {
+    localStorage.removeItem(STORAGE_KEYS.AUTH);
+    if (this.onAuthChange) this.onAuthChange(null);
+  }
+
+  getDemoUsers() {
+    return MOCK_USERS;
   }
 
   init() {

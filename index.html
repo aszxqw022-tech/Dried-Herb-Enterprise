@@ -105,12 +105,12 @@
     <!-- Sidebar Footer -->
     <div class="p-6 border-t border-emerald-900/60 bg-[#122c13]">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-emerald-800 flex items-center justify-center text-xs font-bold border border-emerald-700">
+        <div id="user-avatar-display" class="w-8 h-8 rounded-full bg-emerald-800 flex items-center justify-center text-xs font-bold border border-emerald-700">
           BE
         </div>
         <div class="flex-1 overflow-hidden">
-          <span class="text-xs font-bold text-gray-300 block truncate enterprise-name-display">วิสาหกิจชุมชนแม่ริม</span>
-          <span class="text-[10px] text-green-400 block truncate enterprise-village-display">หมู่ 4 ต.แม่แรม</span>
+          <span id="user-name-display" class="text-xs font-bold text-gray-300 block truncate">ผู้ใช้งานระบบ</span>
+          <span id="user-role-display" class="text-[10px] text-green-400 block truncate">ผู้เยี่ยมชม</span>
         </div>
       </div>
     </div>
@@ -132,9 +132,10 @@
         </div>
       </div>
 
-      <!-- Quick stats summary on top header -->
-      <div class="flex items-center gap-6">
-        <div class="hidden md:flex items-center gap-4 text-xs font-semibold">
+      <!-- User Auth Status & Action buttons in top header -->
+      <div class="flex items-center gap-4">
+        <!-- Stats widget on larger screens -->
+        <div class="hidden xl:flex items-center gap-4 text-xs font-semibold pr-4 border-r border-gray-200">
           <span class="flex items-center gap-1.5 text-gray-500">
             <i class="fas fa-users text-emerald-600"></i>
             สมาชิก: <span class="text-gray-900 font-bold enterprise-village-display">หมู่ 4</span>
@@ -144,6 +145,11 @@
             <i class="fas fa-seedling text-amber-500"></i>
             พืชเด่น: <span class="text-gray-900 font-bold">เก๊กฮวย/คาโมมายล์</span>
           </span>
+        </div>
+
+        <!-- Dynamic User Status Area -->
+        <div id="header-user-container" class="flex items-center gap-3">
+          <!-- Rendered dynamically by app.js -->
         </div>
       </div>
     </header>
