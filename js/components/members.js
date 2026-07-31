@@ -9,9 +9,13 @@ export const MembersComponent = {
   roleFilter: '',
   statusFilter: '',
   editingMemberId: null,
+  activeDetailMemberId: null,
   currentPhotoBase64: '',
+  citizenIdMasked: true,
 
   render() {
+    const currentUser = appState.getCurrentUser();
+    const isOfficer = currentUser && currentUser.role === 'Officer';
     const allMembers = appState.getMembers();
     
     // Apply filters and search
@@ -50,11 +54,15 @@ export const MembersComponent = {
 
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-              <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${m.id}</td>
+              <td class="px-6 py-4 text-sm font-semibold text-emerald-850">
+                <button data-id="${m.id}" class="view-member-detail-btn font-extrabold text-emerald-800 hover:text-emerald-600 hover:underline transition-colors focus:outline-none">
+                  ${m.id}
+                </button>
+              </td>
               <td class="px-6 py-4 flex items-center gap-3">
                 ${avatarHtml}
-                <div>
-                  <div class="text-sm font-bold text-gray-900">${m.name}</div>
+                <div class="view-member-detail-btn cursor-pointer group" data-id="${m.id}">
+                  <div class="text-sm font-bold text-gray-900 group-hover:text-emerald-700 group-hover:underline transition-colors">${m.name}</div>
                   <div class="text-xs text-gray-400">บทบาท: ${m.role}</div>
                 </div>
               </td>
@@ -62,12 +70,16 @@ export const MembersComponent = {
               <td class="px-6 py-4 text-sm text-gray-600">${m.villageNumber || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${formatThaiDate(m.joinDate)}</td>
               <td class="px-6 py-4 text-sm font-medium text-right space-x-1">
-                <button data-id="${m.id}" class="edit-member-btn text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors" title="แก้ไขข้อมูล">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button data-id="${m.id}" class="delete-member-btn text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="ลบสมาชิก">
-                  <i class="fas fa-trash-alt"></i>
-                </button>
+                ${isOfficer ? `
+                  <span class="text-xs font-semibold text-gray-400 bg-gray-50 border border-gray-150 px-2.5 py-1 rounded-full">Read-Only</span>
+                ` : `
+                  <button data-id="${m.id}" class="edit-member-btn text-emerald-600 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors" title="แก้ไขข้อมูล">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button data-id="${m.id}" class="delete-member-btn text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="ลบสมาชิก">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                `}
               </td>
             </tr>
           `;
@@ -85,12 +97,14 @@ export const MembersComponent = {
             <p class="text-sm text-gray-500 mt-1">ทะเบียนประวัติเกษตรกรผู้ปลูกสมุนไพรอบแห้งจำลอง (ยอดรวมทั้งหมด ${allMembers.length} ราย)</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button id="quick-mock-member-btn" class="px-4 py-2.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-magic"></i> สุ่มจำลองสมาชิกเพิ่ม
-            </button>
-            <button id="add-member-btn" class="px-4 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-user-plus"></i> เพิ่มสมาชิกใหม่
-            </button>
+            ${isOfficer ? '' : `
+              <button id="quick-mock-member-btn" class="px-4 py-2.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fas fa-magic"></i> สุ่มจำลองสมาชิกเพิ่ม
+              </button>
+              <button id="add-member-btn" class="px-4 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fas fa-user-plus"></i> เพิ่มสมาชิกใหม่
+              </button>
+            `}
           </div>
         </div>
 
@@ -155,10 +169,12 @@ export const MembersComponent = {
           </div>
         </div>
       </div>
+      
+    </div> <!-- Close .fade-in container -->
 
-      <!-- Add/Edit Member Modal (Hidden by default) -->
-      <div id="member-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl transform transition-all border border-gray-100">
+    <!-- Add/Edit Member Modal (Hidden by default) -->
+    <div id="member-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm transition-opacity">
+      <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl transform transition-all border border-gray-100">
           <!-- Modal Header -->
           <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
             <h3 id="modal-title" class="font-bold text-lg flex items-center gap-2">
@@ -192,6 +208,14 @@ export const MembersComponent = {
               <label for="mem-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
               <input type="text" id="mem-name" name="name" required placeholder="เช่น นายเกษตร มั่นคง"
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Citizen ID (บัตรประชาชน) -->
+            <div>
+              <label for="mem-citizenId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลขบัตรประจำตัวประชาชน *</label>
+              <input type="text" id="mem-citizenId" name="citizenId" required pattern="\\d{13}" maxlength="13" placeholder="ตัวเลข 13 หลัก เช่น 1209901234567"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <span class="block text-[10px] text-gray-400 mt-1">กรอกตัวเลข 13 หลักโดยไม่ต้องใส่ขีดขวาง</span>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -240,6 +264,38 @@ export const MembersComponent = {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Member Detail Modal (Hidden by default) -->
+      <div id="member-detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl max-w-6xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
+          <!-- Modal Header -->
+          <div class="bg-emerald-850 bg-[#0f2e15] px-6 py-4 text-white flex justify-between items-center flex-shrink-0">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-address-card"></i> รายละเอียดประวัติสมาชิกวิสาหกิจชุมชน
+            </h3>
+            <button type="button" class="close-detail-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body (Scrollable) -->
+          <div class="p-6 overflow-y-auto flex-1 bg-gray-50/50 space-y-6 text-left" id="member-detail-body">
+            <!-- Rendered dynamically -->
+          </div>
+          
+          <!-- Modal Footer -->
+          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
+            ${isOfficer ? '' : `
+              <button type="button" id="detail-edit-member-btn" class="px-4 py-2 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all flex items-center gap-1 shadow-sm">
+                <i class="fas fa-edit"></i> แก้ไขข้อมูลสมาชิก
+              </button>
+            `}
+            <button type="button" class="close-detail-modal-btn px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+              ปิดหน้าต่าง
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -297,8 +353,10 @@ export const MembersComponent = {
 
   bindModalEvents() {
     const modal = document.getElementById('member-modal');
+    const detailModal = document.getElementById('member-detail-modal');
     const addBtn = document.getElementById('add-member-btn');
     const closeBtns = document.querySelectorAll('.close-modal-btn');
+    const closeDetailBtns = document.querySelectorAll('.close-detail-modal-btn');
     const form = document.getElementById('member-modal-form');
 
     if (addBtn && modal) {
@@ -327,6 +385,12 @@ export const MembersComponent = {
     closeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         if (modal) modal.classList.add('hidden');
+      });
+    });
+
+    closeDetailBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (detailModal) detailModal.classList.add('hidden');
       });
     });
 
@@ -374,8 +438,16 @@ export const MembersComponent = {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(form);
+        const citizenVal = formData.get('citizenId').trim();
+
+        if (citizenVal.length !== 13 || isNaN(citizenVal)) {
+          showToast('เลขประจำตัวประชาชนต้องเป็นตัวเลข 13 หลัก', 'warning');
+          return;
+        }
+
         const data = {
           name: formData.get('name'),
+          citizenId: citizenVal,
           role: formData.get('role'),
           phone: formData.get('phone'),
           villageNumber: formData.get('villageNumber'),
@@ -402,43 +474,41 @@ export const MembersComponent = {
   },
 
   bindMemberActions() {
+    const modal = document.getElementById('member-modal');
+    const detailModal = document.getElementById('member-detail-modal');
+
+    // Click to view member details
+    const viewDetailBtns = document.querySelectorAll('.view-member-detail-btn');
+    viewDetailBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Prevent click bubble if element is nested
+        const id = btn.getAttribute('data-id');
+        this.activeDetailMemberId = id;
+        this.citizenIdMasked = true; // reset mask to true on opening
+        this.showMemberDetail(id);
+        if (detailModal) detailModal.classList.remove('hidden');
+      });
+    });
+
     // Edit actions
     const editBtns = document.querySelectorAll('.edit-member-btn');
-    const modal = document.getElementById('member-modal');
-    const form = document.getElementById('member-modal-form');
-
     editBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        const member = appState.getMemberById(id);
-        
-        if (member && modal) {
-          this.editingMemberId = id;
-          document.getElementById('modal-title').innerHTML = `<i class="fas fa-user-edit"></i> แก้ไขข้อมูลสมาชิก (${id})`;
-          
-          document.getElementById('mem-name').value = member.name;
-          document.getElementById('mem-role').value = member.role;
-          document.getElementById('mem-phone').value = member.phone;
-          document.getElementById('mem-village').value = member.villageNumber;
-          document.getElementById('mem-joindate').value = member.joinDate;
-
-          this.currentPhotoBase64 = member.photo || '';
-          const preview = document.getElementById('mem-photo-preview');
-          const removeBtn = document.getElementById('remove-mem-photo-btn');
-          if (preview) {
-            if (member.photo) {
-              preview.innerHTML = `<img src="${member.photo}" class="w-full h-full object-cover">`;
-              if (removeBtn) removeBtn.classList.remove('hidden');
-            } else {
-              preview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
-              if (removeBtn) removeBtn.classList.add('hidden');
-            }
-          }
-
-          modal.classList.remove('hidden');
-        }
+        this.openEditModal(id);
       });
     });
+
+    // Edit member from inside detail modal
+    const detailEditBtn = document.getElementById('detail-edit-member-btn');
+    if (detailEditBtn) {
+      detailEditBtn.addEventListener('click', () => {
+        if (detailModal) detailModal.classList.add('hidden');
+        if (this.activeDetailMemberId) {
+          this.openEditModal(this.activeDetailMemberId);
+        }
+      });
+    }
 
     // Delete actions
     const deleteBtns = document.querySelectorAll('.delete-member-btn');
@@ -459,6 +529,189 @@ export const MembersComponent = {
     });
   },
 
+  openEditModal(id) {
+    const modal = document.getElementById('member-modal');
+    const member = appState.getMemberById(id);
+    
+    if (member && modal) {
+      this.editingMemberId = id;
+      document.getElementById('modal-title').innerHTML = `<i class="fas fa-user-edit"></i> แก้ไขข้อมูลสมาชิก (${id})`;
+      
+      document.getElementById('mem-name').value = member.name;
+      document.getElementById('mem-citizenId').value = member.citizenId || '';
+      document.getElementById('mem-role').value = member.role;
+      document.getElementById('mem-phone').value = member.phone;
+      document.getElementById('mem-village').value = member.villageNumber;
+      document.getElementById('mem-joindate').value = member.joinDate;
+
+      this.currentPhotoBase64 = member.photo || '';
+      const preview = document.getElementById('mem-photo-preview');
+      const removeBtn = document.getElementById('remove-mem-photo-btn');
+      if (preview) {
+        if (member.photo) {
+          preview.innerHTML = `<img src="${member.photo}" class="w-full h-full object-cover">`;
+          if (removeBtn) removeBtn.classList.remove('hidden');
+        } else {
+          preview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
+          if (removeBtn) removeBtn.classList.add('hidden');
+        }
+      }
+
+      modal.classList.remove('hidden');
+    }
+  },
+
+  showMemberDetail(id) {
+    const m = appState.getMemberById(id);
+    if (!m) return;
+
+    const mPlots = appState.getPlotsByMemberId(id);
+    const mPlotIds = mPlots.map(p => p.id);
+    const mCrops = appState.getCrops().filter(c => mPlotIds.includes(c.plotId));
+    const mCropIds = mCrops.map(c => c.id);
+    const mSales = appState.getSales().filter(s => mCropIds.includes(s.cropId));
+    const mInventory = appState.getInventory().filter(i => mCropIds.includes(i.cropId));
+
+    const totalCost = mCrops.reduce((sum, c) => {
+      const fertCost = (c.fertilizingLog || []).reduce((fSum, f) => fSum + (f.cost || 0), 0);
+      return sum + (c.cost || 0) + fertCost;
+    }, 0);
+    const totalRevenue = mSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+    const netProfit = totalRevenue - totalCost;
+    const totalDryStock = mInventory.reduce((sum, i) => sum + (i.dryStockKg || 0), 0);
+
+    const citizenId = m.citizenId || ('1509900123' + String(m.id.split('-')[1] || '001').padStart(3, '0'));
+    const formatted = `${citizenId[0]}-${citizenId.substring(1,5)}-${citizenId.substring(5,10)}-${citizenId.substring(10,12)}-${citizenId[12]}`;
+    const masked = `${citizenId[0]}-${citizenId.substring(1,5)}-${citizenId.substring(5,10)}-XX-X`;
+
+    const avatarHtml = m.photo
+      ? `<img src="${m.photo}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md mx-auto">`
+      : `<div class="w-24 h-24 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-2xl flex items-center justify-center border-4 border-white shadow-md mx-auto">${m.name.charAt(0) || 'M'}</div>`;
+
+    const bodyEl = document.getElementById('member-detail-body');
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Left Column: Personal info card (4 cols) -->
+          <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-gray-150 shadow-sm text-center space-y-5">
+            <div class="relative">
+              ${avatarHtml}
+              <span class="absolute bottom-0 right-1/2 translate-x-12 px-3 py-1 text-[10px] font-extrabold text-white bg-emerald-700 rounded-full border border-white shadow-md">
+                ${m.id}
+              </span>
+            </div>
+            <div>
+              <h4 class="text-lg font-extrabold text-gray-900 leading-snug">${m.name}</h4>
+              <span class="px-2.5 py-0.5 text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full mt-1.5 inline-block">${m.role}</span>
+            </div>
+
+            <div class="border-t border-gray-100 pt-4 text-left space-y-3.5 text-xs text-gray-600">
+              <div>
+                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เลขบัตรประจำตัวประชาชน</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span id="detail-citizen-id" class="font-bold text-gray-800 text-sm tracking-wide">${this.citizenIdMasked ? masked : formatted}</span>
+                  <button type="button" id="toggle-detail-id-btn" class="text-gray-450 hover:text-emerald-700 transition-colors focus:outline-none" title="${this.citizenIdMasked ? 'แสดงเลขบัตรประชาชน' : 'ซ่อนเลขบัตรประชาชน'}">
+                    <i class="fas ${this.citizenIdMasked ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เบอร์โทรศัพท์</span>
+                <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.phone}</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">ที่อยู่ / หมู่บ้าน</span>
+                <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.villageNumber || '-'}</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">วันที่ลงทะเบียนเข้าร่วม</span>
+                <span class="font-bold text-gray-800 text-sm mt-0.5 block">${formatThaiDate(m.joinDate)}</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-1">สถานะสมาชิก</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full ${
+                  m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'
+                }">
+                  <span class="w-2 h-2 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-gray-405'}"></span>
+                  ${m.status === 'active' ? 'กำลังมีกิจกรรม' : 'พักการปลูก'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Stats & Plots lists (8 cols) -->
+          <div class="lg:col-span-8 space-y-6 flex flex-col justify-between">
+            
+            <!-- Statistics Cards Grid (4 cols on desktop) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">แปลงปลูกทั้งหมด</span>
+                <span class="text-2xl font-extrabold text-emerald-800">${mPlots.length} <span class="text-xs text-gray-550 font-semibold">แปลง</span></span>
+              </div>
+              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">รอบการเพาะปลูก</span>
+                <span class="text-2xl font-extrabold text-emerald-800">${mCrops.length} <span class="text-xs text-gray-550 font-semibold">รอบ</span></span>
+              </div>
+              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">อบแห้งในคลัง</span>
+                <span class="text-2xl font-extrabold text-emerald-800">${totalDryStock.toFixed(2)} <span class="text-xs text-gray-550 font-semibold">กก.</span></span>
+              </div>
+              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">กำไรสุทธิสะสม</span>
+                <span class="text-2xl font-extrabold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+              </div>
+            </div>
+
+            <!-- Plot Details List -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
+              <h5 class="text-xs font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fas fa-map-marked-alt text-emerald-700"></i> รายชื่อแปลงปลูกสมุนไพรในสังกัด (${mPlots.length})
+              </h5>
+              
+              ${mPlots.length === 0 
+                ? `<p class="text-xs text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
+                : `
+                  <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
+                    ${mPlots.map(p => `
+                      <div class="py-2.5 flex justify-between items-center text-xs">
+                        <div>
+                          <span class="font-bold text-gray-800">${p.name}</span>
+                          <span class="text-gray-400 text-[10px] block mt-0.5">รหัสแปลง: ${p.id}</span>
+                        </div>
+                        <div class="text-right">
+                          <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                            p.plantType === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                          }">${p.plantType}</span>
+                          <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                `
+              }
+            </div>
+          </div>
+          
+        </div>
+      `;
+
+      // Bind eye icon toggle for citizen ID
+      const toggleBtn = document.getElementById('toggle-detail-id-btn');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          this.citizenIdMasked = !this.citizenIdMasked;
+          const idSpan = document.getElementById('detail-citizen-id');
+          if (idSpan) idSpan.textContent = this.citizenIdMasked ? masked : formatted;
+          
+          const icon = toggleBtn.querySelector('i');
+          if (icon) icon.className = this.citizenIdMasked ? 'fas fa-eye' : 'fas fa-eye-slash';
+          toggleBtn.title = this.citizenIdMasked ? 'แสดงเลขบัตรประชาชน' : 'ซ่อนเลขบัตรประชาชน';
+        });
+      }
+    }
+  },
+
   bindQuickMock() {
     const quickBtn = document.getElementById('quick-mock-member-btn');
     if (quickBtn) {
@@ -472,9 +725,11 @@ export const MembersComponent = {
         const randomPhone = `08${Math.floor(Math.random() * 9) + 1}-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`;
         const randomVillage = `หมู่ ${Math.floor(Math.random() * 5) + 1}`;
         const randomJoinDate = `2024-${String(Math.floor(Math.random() * 6) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`;
+        const randomCitizenId = '15099' + String(Math.floor(10000000 + Math.random() * 90000000));
 
         const newMember = {
           name: randomName,
+          citizenId: randomCitizenId,
           role: randomRole,
           phone: randomPhone,
           villageNumber: randomVillage,

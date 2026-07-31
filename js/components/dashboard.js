@@ -4,10 +4,18 @@ import { formatThaiArea, formatThaiDate } from '../helpers.js';
 
 export const DashboardComponent = {
   render() {
+    const currentUser = appState.getCurrentUser();
+    const isMember = currentUser && currentUser.role === 'Member';
+
     const stats = appState.getStats();
     const enterprise = appState.getEnterprise();
-    const crops = appState.getCrops().filter(c => c.status === 'growing');
-    const plots = appState.getPlots();
+
+    let plots = appState.getPlots();
+    if (isMember) {
+      plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+    }
+    const plotIds = plots.map(p => p.id);
+    const crops = appState.getCrops().filter(c => c.status === 'growing' && plotIds.includes(c.plotId));
     const members = appState.getMembers();
 
     // Calculate percentages for the styled bar charts
@@ -20,13 +28,14 @@ export const DashboardComponent = {
       ? `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีรอบการปลูกที่กำลังดำเนินการในขณะนี้</td></tr>`
       : crops.slice(0, 5).map(c => {
           const plot = plots.find(p => p.id === c.plotId);
-          const owner = plot ? members.find(m => m.id === plot.memberId) : null;
+          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+          const ownersNames = owners.map(o => o.name).join(', ') || '-';
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
               <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${c.id}</td>
               <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</div>
-                <div class="text-xs text-gray-500">เจ้าของ: ${owner ? owner.name : '-'}</div>
+                <div class="text-xs text-gray-550">เจ้าของ: ${ownersNames}</div>
               </td>
               <td class="px-6 py-4">
                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${

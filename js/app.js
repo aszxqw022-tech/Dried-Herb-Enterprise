@@ -106,6 +106,16 @@ class AppController {
       return;
     }
 
+    if (isLoggedIn) {
+      const currentUser = appState.getCurrentUser();
+      if (currentUser && currentUser.role === 'Member') {
+        if (hash === '#members' || hash === '#settings') {
+          window.location.hash = '#dashboard';
+          return;
+        }
+      }
+    }
+
     if (isLoggedIn && hash === '#login') {
       window.location.hash = '#dashboard';
       return;
@@ -182,7 +192,20 @@ class AppController {
     const nameDisplay = document.getElementById('user-name-display');
     const roleDisplay = document.getElementById('user-role-display');
 
+    // Sidebar link restrictions
+    const membersLink = document.querySelector('.sidebar-link[data-view="members"]');
+    const settingsLink = document.querySelector('.sidebar-link[data-view="settings"]');
+    
+    if (user && user.role === 'Member') {
+      if (membersLink) membersLink.style.display = 'none';
+      if (settingsLink) settingsLink.style.display = 'none';
+    } else {
+      if (membersLink) membersLink.style.display = '';
+      if (settingsLink) settingsLink.style.display = '';
+    }
+
     if (user) {
+      const displayRole = user.roleDisplay || user.role;
       // Logged in UI in Header
       if (container) {
         container.innerHTML = `
@@ -192,7 +215,7 @@ class AppController {
             </div>
             <div class="hidden sm:block text-left">
               <span class="text-xs font-bold text-gray-800 block leading-tight">${user.name}</span>
-              <span class="text-[10px] text-emerald-700 font-semibold block leading-tight">${user.role}</span>
+              <span class="text-[10px] text-emerald-700 font-semibold block leading-tight">${displayRole}</span>
             </div>
             <button id="logout-btn" title="ออกจากระบบ"
               class="ml-1 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold focus:outline-none">
@@ -216,7 +239,7 @@ class AppController {
       // Sidebar Footer
       if (avatarDisplay) avatarDisplay.textContent = user.avatarText || 'U';
       if (nameDisplay) nameDisplay.textContent = user.name;
-      if (roleDisplay) roleDisplay.textContent = user.role;
+      if (roleDisplay) roleDisplay.textContent = displayRole;
 
     } else {
       // Logged out UI in Header

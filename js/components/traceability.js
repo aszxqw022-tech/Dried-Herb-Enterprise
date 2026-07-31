@@ -26,7 +26,9 @@ export const TraceabilityComponent = {
     }
 
     const plot = plots.find(p => p.id === crop.plotId);
-    const owner = plot ? members.find(m => m.id === plot.memberId) : null;
+    const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+    const ownersNames = owners.map(o => o.name).join(', ') || '-';
+    const ownersVillages = owners.map(o => o.villageNumber).filter((v, idx, self) => self.indexOf(v) === idx).join('/') || '-';
     const isChrys = plot && plot.plantType === 'เก๊กฮวย';
 
     const ratio = isChrys ? 8 : 6;
@@ -79,8 +81,8 @@ export const TraceabilityComponent = {
             <div class="grid grid-cols-2 gap-4 border-b border-gray-100 pb-4">
               <div>
                 <span class="text-[10px] text-gray-400 block uppercase font-bold">เกษตรกรผู้ปลูก</span>
-                <span class="text-sm font-bold text-gray-800">${owner ? owner.name : '-'}</span>
-                <span class="text-xs text-gray-500 block">${owner ? owner.villageNumber : '-'} ต.${enterprise.subdistrict}</span>
+                <span class="text-sm font-bold text-gray-800">${ownersNames}</span>
+                <span class="text-xs text-gray-500 block">${ownersVillages} ต.${enterprise.subdistrict}</span>
               </div>
               <div>
                 <span class="text-[10px] text-gray-400 block uppercase font-bold">แปลงเพาะปลูก</span>

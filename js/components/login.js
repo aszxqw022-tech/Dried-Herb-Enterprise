@@ -40,7 +40,7 @@ export const LoginComponent = {
                 <i class="fas fa-user text-emerald-700"></i> ชื่อผู้ใช้งาน (Username) *
               </label>
               <div class="relative">
-                <input type="text" id="login-username" name="username" required placeholder="เช่น admin, officer, member"
+                <input type="text" id="login-username" name="username" required placeholder="เลขบัตรประชาชน 13 หลัก"
                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all bg-gray-50/50 focus:bg-white">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 pointer-events-none">
                   <i class="fas fa-user-circle text-base"></i>
@@ -54,7 +54,7 @@ export const LoginComponent = {
                 <span class="flex items-center gap-1.5"><i class="fas fa-key text-emerald-700"></i> รหัสผ่าน (Password) *</span>
               </label>
               <div class="relative">
-                <input type="password" id="login-password" name="password" required placeholder="••••••••"
+                <input type="password" id="login-password" name="password" required placeholder="เบอร์โทรศัพท์มือถือ 10 หลัก"
                   class="w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all bg-gray-50/50 focus:bg-white">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 pointer-events-none">
                   <i class="fas fa-lock text-base"></i>
@@ -85,33 +85,33 @@ export const LoginComponent = {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               
               <!-- Admin Demo Button -->
-              <button type="button" data-demo-user="admin" data-demo-pass="password124"
+              <button type="button" data-demo-user="1509900000000" data-demo-pass="0812345600"
                 class="demo-login-btn p-3 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-left transition-all group flex flex-col justify-between">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-extrabold text-emerald-900">👑 ผู้ดูแลระบบ</span>
+                  <span class="text-xs font-extrabold text-emerald-900">👑 ประธาน/Admin</span>
                   <i class="fas fa-chevron-right text-[10px] text-emerald-600 group-hover:translate-x-0.5 transition-transform"></i>
                 </div>
-                <span class="text-[10px] text-emerald-700 block mt-1">username: <b>admin</b></span>
+                <span class="text-[10px] text-emerald-700 block mt-1">13 หลัก: <b>1509900000000</b></span>
               </button>
 
               <!-- Officer Demo Button -->
-              <button type="button" data-demo-user="officer" data-demo-pass="password124"
+              <button type="button" data-demo-user="1509900000099" data-demo-pass="0812345699"
                 class="demo-login-btn p-3 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-left transition-all group flex flex-col justify-between">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-extrabold text-amber-900">💰 เหรัญญิก/คลัง</span>
+                  <span class="text-xs font-extrabold text-amber-900">💰 เหรัญญิก/Officer</span>
                   <i class="fas fa-chevron-right text-[10px] text-amber-600 group-hover:translate-x-0.5 transition-transform"></i>
                 </div>
-                <span class="text-[10px] text-amber-700 block mt-1">username: <b>officer</b></span>
+                <span class="text-[10px] text-amber-700 block mt-1">13 หลัก: <b>1509900000099</b></span>
               </button>
 
               <!-- Member Demo Button -->
-              <button type="button" data-demo-user="member" data-demo-pass="password124"
+              <button type="button" data-demo-user="1509900000002" data-demo-pass="0812345602"
                 class="demo-login-btn p-3 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100 text-left transition-all group flex flex-col justify-between">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-extrabold text-blue-900">🌾 สมาชิกกลุ่ม</span>
+                  <span class="text-xs font-extrabold text-blue-900">🌾 เกษตรกร (MEM-002)</span>
                   <i class="fas fa-chevron-right text-[10px] text-blue-600 group-hover:translate-x-0.5 transition-transform"></i>
                 </div>
-                <span class="text-[10px] text-blue-700 block mt-1">username: <b>member</b></span>
+                <span class="text-[10px] text-blue-700 block mt-1">13 หลัก: <b>1509900000002</b></span>
               </button>
 
             </div>

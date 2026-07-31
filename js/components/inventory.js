@@ -8,19 +8,32 @@ export const InventoryComponent = {
   sellingCropId: null,
 
   render() {
+    const currentUser = appState.getCurrentUser();
+    const isMember = currentUser && currentUser.role === 'Member';
+
     const stats = appState.getStats();
-    const inventory = appState.getInventory();
-    const plots = appState.getPlots();
+    
+    let plots = appState.getPlots();
+    if (isMember) {
+      plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+    }
+    const plotIds = plots.map(p => p.id);
+    const crops = appState.getCrops().filter(c => plotIds.includes(c.plotId));
+    const cropIds = crops.map(c => c.id);
+    
+    const inventory = appState.getInventory().filter(i => cropIds.includes(i.cropId));
     const members = appState.getMembers();
-    const sales = appState.getSales();
-    const crops = appState.getCrops(); // Added to fix ReferenceError
+    const sales = appState.getSales().filter(s => cropIds.includes(s.cropId));
     const financialReport = appState.getFinancialReport();
 
     // 1. Filtered report for members tab
-    const filteredReport = financialReport.filter(r => 
+    let filteredReport = financialReport.filter(r => 
       r.name.toLowerCase().includes(this.searchMemberQuery.toLowerCase()) ||
       r.id.toLowerCase().includes(this.searchMemberQuery.toLowerCase())
     );
+    if (isMember) {
+      filteredReport = filteredReport.filter(r => r.id === currentUser.memberId);
+    }
 
     // 2. Build Inventory Stock Tab HTML
     const activeInventoryLots = inventory.filter(inv => inv.dryStockKg > 0);
@@ -31,7 +44,8 @@ export const InventoryComponent = {
           ${activeInventoryLots.map(inv => {
             const crop = appState.getCropById(inv.cropId);
             const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-            const owner = plot ? members.find(m => m.id === plot.memberId) : null;
+            const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+            const ownersNames = owners.map(o => o.name).join(', ') || '-';
             const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
             
             return `
@@ -51,7 +65,7 @@ export const InventoryComponent = {
                     </span>
                   </div>
                   <h4 class="text-base font-bold text-gray-800">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
-                  <p class="text-xs text-gray-500 mt-1">เกษตรกรเจ้าของ: <b>${owner ? owner.name : '-'}</b></p>
+                  <p class="text-xs text-gray-500 mt-1">เกษตรกรเจ้าของ: <b>${ownersNames}</b></p>
                   
                   <div class="mt-4 p-3 bg-gray-50 rounded-xl flex justify-between items-center">
                     <span class="text-xs text-gray-500">สต็อกคงเหลือล็อตนี้:</span>
@@ -147,14 +161,15 @@ export const InventoryComponent = {
       : sales.map(s => {
           const crop = crops.find(c => c.id === s.cropId);
           const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-          const owner = plot ? members.find(m => m.id === plot.memberId) : null;
+          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+          const ownersNames = owners.map(o => o.name).join(', ') || '-';
           const isChrys = plot && (plot.plantType === 'เก๊กฮวย' || plot.plantType.includes('เก๊กฮวย'));
           
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
               <td class="px-6 py-3.5 text-sm font-semibold text-emerald-800">${s.id}</td>
               <td class="px-6 py-3.5 text-sm font-medium text-emerald-900">${s.cropId}</td>
-              <td class="px-6 py-3.5 text-sm text-gray-800">${owner ? owner.name : '-'}</td>
+              <td class="px-6 py-3.5 text-sm text-gray-800">${ownersNames}</td>
               <td class="px-6 py-3.5">
                 <span class="px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${
                   isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'

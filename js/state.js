@@ -14,30 +14,33 @@ const STORAGE_KEYS = {
 // Mock User Accounts for Login & Roles
 const MOCK_USERS = [
   {
-    username: 'admin',
-    password: 'password124',
+    username: '1509900000000',
+    password: '0812345600',
     name: 'นายสมเกียรติ พึ่งตน',
-    role: 'ประธานกลุ่ม / ผู้ดูแลระบบ',
+    role: 'Admin',
+    roleDisplay: 'ประธานกลุ่ม',
     memberId: 'MEM-001',
-    avatarText: 'SK',
+    avatarText: 'ส',
     color: 'emerald'
   },
   {
-    username: 'officer',
-    password: 'password124',
+    username: '1509900000099',
+    password: '0812345699',
     name: 'นายมานะ รักเกษตร',
-    role: 'เหรัญญิก / เจ้าหน้าที่คลัง',
+    role: 'Officer',
+    roleDisplay: 'เหรัญญิก',
     memberId: 'MEM-003',
-    avatarText: 'MN',
+    avatarText: 'ม',
     color: 'amber'
   },
   {
-    username: 'member',
-    password: 'password124',
+    username: '1509900000002',
+    password: '0812345602',
     name: 'นางใจดี ศรีสมุนไพร',
-    role: 'สมาชิกวิสาหกิจ',
+    role: 'Member',
+    roleDisplay: 'สมาชิกเกษตรกร',
     memberId: 'MEM-002',
-    avatarText: 'JD',
+    avatarText: 'จ',
     color: 'blue'
   }
 ];
@@ -58,51 +61,51 @@ const DEFAULT_ENTERPRISE = {
 
 // Mock 33 Members
 const MOCK_MEMBERS = [
-  { id: 'MEM-001', name: 'นายสมเกียรติ พึ่งตน', role: 'ประธานกลุ่ม', phone: '081-234-5678', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-10' },
-  { id: 'MEM-002', name: 'นางใจดี ศรีสมุนไพร', role: 'รองประธาน', phone: '082-345-6789', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-15' },
-  { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '083-456-7890', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-01-15' },
-  { id: 'MEM-004', name: 'นางสมศรี มีวิถี', role: 'เลขานุการ', phone: '084-567-8901', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-20' },
-  { id: 'MEM-005', name: 'นายวิชัย ปัญญาดี', role: 'กรรมการ', phone: '085-678-9012', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-01' },
-  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'สมาชิกทั่วไป', phone: '086-789-0123', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-05' },
-  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'สมาชิกทั่วไป', phone: '087-890-1234', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-02-10' },
-  { id: 'MEM-008', name: 'นางสมปอง สุขสำราญ', role: 'สมาชิกทั่วไป', phone: '088-901-2345', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-10' },
-  { id: 'MEM-009', name: 'นายบุญมี ทองคำ', role: 'สมาชิกทั่วไป', phone: '089-012-3456', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-12' },
-  { id: 'MEM-010', name: 'นางประกาย แสงทอง', role: 'สมาชิกทั่วไป', phone: '081-123-4567', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-15' },
-  { id: 'MEM-011', name: 'นายสุรพล เด่นดี', role: 'สมาชิกทั่วไป', phone: '082-234-5678', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-20' },
-  { id: 'MEM-012', name: 'นางวิมล รุ่งเรือง', role: 'สมาชิกทั่วไป', phone: '083-345-6789', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-22' },
-  { id: 'MEM-013', name: 'นายเกรียงไกร ใฝ่ดี', role: 'สมาชิกทั่วไป', phone: '084-456-7890', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-01' },
-  { id: 'MEM-014', name: 'นางนงนุช สุดสวย', role: 'สมาชิกทั่วไป', phone: '085-567-8901', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-05' },
-  { id: 'MEM-015', name: 'นายทวีลาภ ลาภดี', role: 'สมาชิกทั่วไป', phone: '086-678-9012', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-10' },
-  { id: 'MEM-016', name: 'นางพิศมัย ใจธรรม', role: 'สมาชิกทั่วไป', phone: '087-789-0123', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-12' },
-  { id: 'MEM-017', name: 'นายอดุลย์ อบอุ่น', role: 'สมาชิกทั่วไป', phone: '088-890-1234', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-15' },
-  { id: 'MEM-018', name: 'นางสาวสุดา ชาเขียว', role: 'สมาชิกทั่วไป', phone: '089-901-2345', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-18' },
-  { id: 'MEM-019', name: 'นายสมหมาย มั่นคง', role: 'สมาชิกทั่วไป', phone: '081-901-2345', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-20' },
-  { id: 'MEM-020', name: 'นางอรอนงค์ โฉมงาม', role: 'สมาชิกทั่วไป', phone: '082-901-2345', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-22' },
-  { id: 'MEM-021', name: 'นายประจักษ์ รักสงบ', role: 'สมาชิกทั่วไป', phone: '083-901-2345', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-25' },
-  { id: 'MEM-022', name: 'นางสาวรุ่งทิวา แสงดาว', role: 'สมาชิกทั่วไป', phone: '084-901-2345', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-01' },
-  { id: 'MEM-023', name: 'นายประเสริฐ ดีเลิศ', role: 'สมาชิกทั่วไป', phone: '085-901-2345', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-05' },
-  { id: 'MEM-024', name: 'นางสาวกมลวรรณ ชื่นใจ', role: 'สมาชิกทั่วไป', phone: '086-901-2345', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-10' },
-  { id: 'MEM-025', name: 'นายพิชัย ชูชาติ', role: 'สมาชิกทั่วไป', phone: '087-901-2345', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-12' },
-  { id: 'MEM-026', name: 'นางชลลดา ปันแก้ว', role: 'สมาชิกทั่วไป', phone: '088-901-2345', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-04-15' },
-  { id: 'MEM-027', name: 'นายธวัชชัย ยอดดี', role: 'สมาชิกทั่วไป', phone: '089-901-2345', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-20' },
-  { id: 'MEM-028', name: 'นางมธุรส หอมกลิ่น', role: 'สมาชิกทั่วไป', phone: '081-012-3456', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-22' },
-  { id: 'MEM-029', name: 'นายเสนาะ ร้องเพราะ', role: 'สมาชิกทั่วไป', phone: '082-012-3456', status: 'inactive', villageNumber: 'หมู่ 2', joinDate: '2024-04-25' },
-  { id: 'MEM-030', name: 'นางอัญชลี รื่นรมย์', role: 'สมาชิกทั่วไป', phone: '083-012-3456', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-28' },
-  { id: 'MEM-031', name: 'นายอุดม ศรีทอง', role: 'สมาชิกทั่วไป', phone: '084-012-3456', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-05-01' },
-  { id: 'MEM-032', name: 'นางรักษ์ชนก อุดมดี', role: 'สมาชิกทั่วไป', phone: '085-012-3456', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-05-05' },
-  { id: 'MEM-033', name: 'นายพชรพล อิ่มเอม', role: 'สมาชิกทั่วไป', phone: '086-012-3456', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-05-10' }
+  { id: 'MEM-001', name: 'นายสมเกียรติ พึ่งตน', role: 'ประธานกลุ่ม', phone: '081-234-5600', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-10', citizenId: '1509900000000' },
+  { id: 'MEM-002', name: 'นางใจดี ศรีสมุนไพร', role: 'รองประธาน', phone: '081-234-5602', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-15', citizenId: '1509900000002' },
+  { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '081-234-5699', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-01-15', citizenId: '1509900000099' },
+  { id: 'MEM-004', name: 'นางสมศรี มีวิถี', role: 'เลขานุการ', phone: '081-234-5604', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-20', citizenId: '1509900000004' },
+  { id: 'MEM-005', name: 'นายวิชัย ปัญญาดี', role: 'กรรมการ', phone: '081-234-5605', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-01', citizenId: '1509900000005' },
+  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'สมาชิกทั่วไป', phone: '081-234-5606', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-05', citizenId: '1509900000006' },
+  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5607', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-02-10', citizenId: '1509900000007' },
+  { id: 'MEM-008', name: 'นางสมปอง สุขสำราญ', role: 'สมาชิกทั่วไป', phone: '081-234-5608', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-10', citizenId: '1509900000008' },
+  { id: 'MEM-009', name: 'นายบุญมี ทองคำ', role: 'สมาชิกทั่วไป', phone: '081-234-5609', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-12', citizenId: '1509900000009' },
+  { id: 'MEM-010', name: 'นางประกาย แสงทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5610', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-15', citizenId: '1509900000010' },
+  { id: 'MEM-011', name: 'นายสุรพล เด่นดี', role: 'สมาชิกทั่วไป', phone: '081-234-5611', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-20', citizenId: '1509900000011' },
+  { id: 'MEM-012', name: 'นางวิมล รุ่งเรือง', role: 'สมาชิกทั่วไป', phone: '081-234-5612', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-22', citizenId: '1509900000012' },
+  { id: 'MEM-013', name: 'นายเกรียงไกร ใฝ่ดี', role: 'สมาชิกทั่วไป', phone: '081-234-5613', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-01', citizenId: '1509900000013' },
+  { id: 'MEM-014', name: 'นางนงนุช สุดสวย', role: 'สมาชิกทั่วไป', phone: '081-234-5614', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-05', citizenId: '1509900000014' },
+  { id: 'MEM-015', name: 'นายทวีลาภ ลาภดี', role: 'สมาชิกทั่วไป', phone: '081-234-5615', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-10', citizenId: '1509900000015' },
+  { id: 'MEM-016', name: 'นางพิศมัย ใจธรรม', role: 'สมาชิกทั่วไป', phone: '081-234-5616', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-12', citizenId: '1509900000016' },
+  { id: 'MEM-017', name: 'นายอดุลย์ อบอุ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5617', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-15', citizenId: '1509900000017' },
+  { id: 'MEM-018', name: 'นางสาวสุดา ชาเขียว', role: 'สมาชิกทั่วไป', phone: '081-234-5618', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-18', citizenId: '1509900000018' },
+  { id: 'MEM-019', name: 'นายสมหมาย มั่นคง', role: 'สมาชิกทั่วไป', phone: '081-234-5619', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-20', citizenId: '1509900000019' },
+  { id: 'MEM-020', name: 'นางอรอนงค์ โฉมงาม', role: 'สมาชิกทั่วไป', phone: '081-234-5620', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-22', citizenId: '1509900000020' },
+  { id: 'MEM-021', name: 'นายประจักษ์ รักสงบ', role: 'สมาชิกทั่วไป', phone: '081-234-5621', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-25', citizenId: '1509900000021' },
+  { id: 'MEM-022', name: 'นางสาวรุ่งทิวา แสงดาว', role: 'สมาชิกทั่วไป', phone: '081-234-5622', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-01', citizenId: '1509900000022' },
+  { id: 'MEM-023', name: 'นายประเสริฐ ดีเลิศ', role: 'สมาชิกทั่วไป', phone: '081-234-5623', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-05', citizenId: '1509900000023' },
+  { id: 'MEM-024', name: 'นางสาวกมลวรรณ ชื่นใจ', role: 'สมาชิกทั่วไป', phone: '081-234-5624', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-10', citizenId: '1509900000024' },
+  { id: 'MEM-025', name: 'นายพิชัย ชูชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5625', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-12', citizenId: '1509900000025' },
+  { id: 'MEM-026', name: 'นางชลลดา ปันแก้ว', role: 'สมาชิกทั่วไป', phone: '081-234-5626', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-04-15', citizenId: '1509900000026' },
+  { id: 'MEM-027', name: 'นายธวัชชัย ยอดดี', role: 'สมาชิกทั่วไป', phone: '081-234-5627', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-20', citizenId: '1509900000027' },
+  { id: 'MEM-028', name: 'นางมธุรส หอมกลิ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5628', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-22', citizenId: '1509900000028' },
+  { id: 'MEM-029', name: 'นายเสนาะ ร้องเพราะ', role: 'สมาชิกทั่วไป', phone: '081-234-5629', status: 'inactive', villageNumber: 'หมู่ 2', joinDate: '2024-04-25', citizenId: '1509900000029' },
+  { id: 'MEM-030', name: 'นางอัญชลี รื่นรมย์', role: 'สมาชิกทั่วไป', phone: '081-234-5630', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-28', citizenId: '1509900000030' },
+  { id: 'MEM-031', name: 'นายอุดม ศรีทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5631', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-05-01', citizenId: '1509900000031' },
+  { id: 'MEM-032', name: 'นางรักษ์ชนก อุดมดี', role: 'สมาชิกทั่วไป', phone: '081-234-5632', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-05-05', citizenId: '1509900000032' },
+  { id: 'MEM-033', name: 'นายพชรพล อิ่มเอม', role: 'สมาชิกทั่วไป', phone: '081-234-5633', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-05-10', citizenId: '1509900000033' }
 ];
 
 // Mock plots for some members to display initially
 const MOCK_PLOTS = [
-  { id: 'PLOT-001', memberId: 'MEM-001', name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, plantType: 'เก๊กฮวย', lat: 18.9142, lng: 98.9442, status: 'active' },
-  { id: 'PLOT-002', memberId: 'MEM-002', name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9158, lng: 98.9415, status: 'active' },
-  { id: 'PLOT-003', memberId: 'MEM-003', name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, plantType: 'เก๊กฮวย', lat: 18.9121, lng: 98.9495, status: 'active' },
-  { id: 'PLOT-004', memberId: 'MEM-004', name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, plantType: 'คาโมมายล์', lat: 18.9172, lng: 98.9455, status: 'active' },
-  { id: 'PLOT-005', memberId: 'MEM-006', name: 'แปลงไร่นิเวศน์', sizeRai: 4, sizeNgan: 0, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9095, lng: 98.9421, status: 'active' },
-  { id: 'PLOT-006', memberId: 'MEM-008', name: 'แปลงสวนหลังบ้านป้าสมปอง', sizeRai: 1, sizeNgan: 0, sizeSqWah: 20, plantType: 'คาโมมายล์', lat: 18.9135, lng: 98.9392, status: 'active' },
-  { id: 'PLOT-007', memberId: 'MEM-011', name: 'แปลงดอยวิวสวนหอม', sizeRai: 5, sizeNgan: 2, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9192, lng: 98.9481, status: 'active' },
-  { id: 'PLOT-008', memberId: 'MEM-015', name: 'แปลงผักหลังสวนทวีลาภ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9102, lng: 98.9463, status: 'active' }
+  { id: 'PLOT-001', memberIds: ['MEM-001', 'MEM-002'], name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, plantType: 'เก๊กฮวย', lat: 18.9142, lng: 98.9442, status: 'active' },
+  { id: 'PLOT-002', memberIds: ['MEM-002', 'MEM-004'], name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9158, lng: 98.9415, status: 'active' },
+  { id: 'PLOT-003', memberIds: ['MEM-003', 'MEM-005'], name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, plantType: 'เก๊กฮวย', lat: 18.9121, lng: 98.9495, status: 'active' },
+  { id: 'PLOT-004', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, plantType: 'คาโมมายล์', lat: 18.9172, lng: 98.9455, status: 'active' },
+  { id: 'PLOT-005', memberIds: ['MEM-006'], name: 'แปลงไร่นิเวศน์', sizeRai: 4, sizeNgan: 0, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9095, lng: 98.9421, status: 'active' },
+  { id: 'PLOT-006', memberIds: ['MEM-008'], name: 'แปลงสวนหลังบ้านป้าสมปอง', sizeRai: 1, sizeNgan: 0, sizeSqWah: 20, plantType: 'คาโมมายล์', lat: 18.9135, lng: 98.9392, status: 'active' },
+  { id: 'PLOT-007', memberIds: ['MEM-011'], name: 'แปลงดอยวิวสวนหอม', sizeRai: 5, sizeNgan: 2, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9192, lng: 98.9481, status: 'active' },
+  { id: 'PLOT-008', memberIds: ['MEM-015'], name: 'แปลงผักหลังสวนทวีลาภ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9102, lng: 98.9463, status: 'active' }
 ];
 
 // Mock crop seasons for initial plots
@@ -208,21 +211,36 @@ export class AppState {
   }
 
   login(username, password) {
-    const user = MOCK_USERS.find(
-      u => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
-    );
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim().replace(/-/g, '');
 
-    if (!user) {
-      throw new Error('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
+    const members = this.getMembers();
+    const member = members.find(m => m.citizenId === cleanUsername);
+    if (!member) {
+      throw new Error('ไม่พบบัญชีผู้ใช้งานที่มีเลขบัตรประชาชนนี้');
+    }
+
+    const memberPhoneClean = member.phone.replace(/-/g, '');
+    if (memberPhoneClean !== cleanPassword) {
+      throw new Error('รหัสผ่าน (เบอร์โทรศัพท์) ไม่ถูกต้อง');
+    }
+
+    // Determine role
+    let appRole = 'Member';
+    if (cleanUsername === '1509900000000' || member.role === 'ประธานกลุ่ม') {
+      appRole = 'Admin';
+    } else if (cleanUsername === '1509900000099' || member.role === 'เหรัญญิก') {
+      appRole = 'Officer';
     }
 
     const sessionData = {
-      username: user.username,
-      name: user.name,
-      role: user.role,
-      memberId: user.memberId,
-      avatarText: user.avatarText,
-      color: user.color,
+      username: cleanUsername,
+      name: member.name,
+      role: appRole,
+      roleDisplay: member.role,
+      memberId: member.id,
+      avatarText: member.name.charAt(0) || 'M',
+      color: appRole === 'Admin' ? 'emerald' : (appRole === 'Officer' ? 'amber' : 'blue'),
       loginTime: new Date().toISOString()
     };
 
@@ -247,13 +265,53 @@ export class AppState {
     }
     
     // 2. Members
-    if (!localStorage.getItem(STORAGE_KEYS.MEMBERS)) {
+    const storedMembers = localStorage.getItem(STORAGE_KEYS.MEMBERS);
+    if (!storedMembers) {
       localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(MOCK_MEMBERS));
+    } else {
+      try {
+        const list = JSON.parse(storedMembers);
+        const mem1 = list.find(m => m.id === 'MEM-001');
+        // If old citizenId format (starting with 35099) is detected, migrate to new format (15099)
+        if (mem1 && mem1.citizenId && mem1.citizenId.startsWith('35099')) {
+          list.forEach(m => {
+            const mockVer = MOCK_MEMBERS.find(mock => mock.id === m.id);
+            if (mockVer) {
+              m.citizenId = mockVer.citizenId;
+              m.phone = mockVer.phone;
+            }
+          });
+          localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
+          localStorage.removeItem(STORAGE_KEYS.AUTH); // Clear old session
+        }
+      } catch (e) {
+        console.error("Migration error:", e);
+      }
     }
 
     // 3. Plots
-    if (!localStorage.getItem(STORAGE_KEYS.PLOTS)) {
+    const storedPlots = localStorage.getItem(STORAGE_KEYS.PLOTS);
+    if (!storedPlots) {
       localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
+    } else {
+      try {
+        const list = JSON.parse(storedPlots);
+        let updated = false;
+        list.forEach(p => {
+          if (p.memberId) {
+            if (!p.memberIds) {
+              p.memberIds = [p.memberId];
+            }
+            delete p.memberId;
+            updated = true;
+          }
+        });
+        if (updated) {
+          localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(list));
+        }
+      } catch (e) {
+        console.error("Plots migration error:", e);
+      }
     }
 
     // 4. Crop Seasons
@@ -287,7 +345,13 @@ export class AppState {
 
   // --- Members Methods ---
   getMembers() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBERS)) || [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.MEMBERS);
+      const list = data ? JSON.parse(data) : MOCK_MEMBERS;
+      return (list || []).filter(m => m && typeof m === 'object' && m.id);
+    } catch (e) {
+      return MOCK_MEMBERS;
+    }
   }
 
   getMemberById(id) {
@@ -327,7 +391,7 @@ export class AppState {
 
   deleteMember(id) {
     let members = this.getMembers();
-    const plots = this.getPlots().filter(p => p.memberId === id);
+    const plots = this.getPlots().filter(p => p.memberIds && p.memberIds.includes(id));
     if (plots.length > 0) {
       throw new Error(`ไม่สามารถลบสมาชิกได้เนื่องจากสมาชิกมีแปลงปลูกอยู่ในระบบ (${plots.length} แปลง)`);
     }
@@ -339,7 +403,12 @@ export class AppState {
 
   // --- Plots Methods ---
   getPlots() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)) || [];
+    try {
+      const plots = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)) || [];
+      return (plots || []).filter(p => p && typeof p === 'object' && p.id);
+    } catch (e) {
+      return [];
+    }
   }
 
   getPlotById(id) {
@@ -347,7 +416,7 @@ export class AppState {
   }
 
   getPlotsByMemberId(memberId) {
-    return this.getPlots().filter(p => p.memberId === memberId);
+    return this.getPlots().filter(p => p.memberIds && p.memberIds.includes(memberId));
   }
 
   addPlot(plot) {
@@ -386,6 +455,7 @@ export class AppState {
     let plots = this.getPlots();
     const index = plots.findIndex(p => p.id === id);
     if (index !== -1) {
+      delete plots[index].memberId;
       plots[index] = { 
         ...plots[index], 
         ...updatedData,
@@ -670,7 +740,7 @@ export class AppState {
 
     return members.map(m => {
       // Find plots owned by this member
-      const memberPlots = plots.filter(p => p.memberId === m.id);
+      const memberPlots = plots.filter(p => p.memberIds && p.memberIds.includes(m.id));
       const plotIds = memberPlots.map(p => p.id);
 
       // Find crops on those plots
@@ -705,15 +775,22 @@ export class AppState {
     });
   }
 
-  // Helper for overall statistics (Overridden with Phase 2 data)
   getStats() {
-    const members = this.getMembers();
-    const plots = this.getPlots();
-    const crops = this.getCrops();
-    const inventory = this.getInventory();
-    const sales = this.getSales();
+    const currentUser = this.getCurrentUser();
+    const isMember = currentUser && currentUser.role === 'Member';
 
-    const activeMembersCount = members.filter(m => m.status === 'active').length;
+    const members = this.getMembers();
+    let plots = this.getPlots();
+    if (isMember) {
+      plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+    }
+    const plotIds = plots.map(p => p.id);
+    const crops = this.getCrops().filter(c => plotIds.includes(c.plotId));
+    const cropIds = crops.map(c => c.id);
+    const inventory = this.getInventory().filter(i => cropIds.includes(i.cropId));
+    const sales = this.getSales().filter(s => cropIds.includes(s.cropId));
+
+    const activeMembersCount = isMember ? 1 : members.filter(m => m.status === 'active').length;
     
     let totalSqMeters = 0;
     plots.forEach(p => {
@@ -737,7 +814,7 @@ export class AppState {
     const totalSalesRev = sales.reduce((sum, s) => sum + s.totalPrice, 0);
 
     return {
-      totalMembers: members.length,
+      totalMembers: isMember ? 1 : members.length,
       activeMembers: activeMembersCount,
       totalPlots: plots.length,
       totalAreaSqM: totalSqMeters,

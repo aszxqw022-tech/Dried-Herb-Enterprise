@@ -7,8 +7,15 @@ export const CropsComponent = {
   statusFilter: '',
 
   render() {
-    const crops = appState.getCrops();
-    const plots = appState.getPlots();
+    const currentUser = appState.getCurrentUser();
+    const isMember = currentUser && currentUser.role === 'Member';
+
+    let plots = appState.getPlots();
+    if (isMember) {
+      plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+    }
+    const plotIds = plots.map(p => p.id);
+    let crops = appState.getCrops().filter(c => plotIds.includes(c.plotId));
     const members = appState.getMembers();
 
     // Filter crops
@@ -23,11 +30,12 @@ export const CropsComponent = {
 
     const selectedCrop = crops.find(c => c.id === this.selectedCropId);
     let selectedPlot = null;
-    let selectedOwner = null;
+    let selectedOwnerNames = '-';
     if (selectedCrop) {
       selectedPlot = plots.find(p => p.id === selectedCrop.plotId);
       if (selectedPlot) {
-        selectedOwner = members.find(m => m.id === selectedPlot.memberId);
+        const owners = members.filter(m => selectedPlot.memberIds && selectedPlot.memberIds.includes(m.id));
+        selectedOwnerNames = owners.map(o => o.name).join(', ') || '-';
       }
     }
 
@@ -35,8 +43,9 @@ export const CropsComponent = {
     const plotsDropdown = plots
       .filter(p => p.status === 'active')
       .map(p => {
-        const owner = members.find(m => m.id === p.memberId);
-        return `<option value="${p.id}">${p.name} - ${p.plantType} (${owner ? owner.name : '-'})</option>`;
+        const owners = members.filter(m => p.memberIds && p.memberIds.includes(m.id));
+        const ownersNames = owners.map(o => o.name).join(', ') || '-';
+        return `<option value="${p.id}">${p.name} - ${p.plantType} (ของ: ${ownersNames})</option>`;
       })
       .join('');
 
@@ -199,7 +208,7 @@ export const CropsComponent = {
             <div>
               <span class="text-xs font-bold text-gray-400">${selectedCrop.id} | ปีการเพาะปลูก พ.ศ. ${selectedCrop.cropYear || '-'}</span>
               <h2 class="text-xl font-bold text-emerald-900 mt-0.5">${selectedPlot ? selectedPlot.name : '-'}</h2>
-              <p class="text-xs text-gray-500 mt-1">เกษตรกรผู้ดูแล: <b>${selectedOwner ? selectedOwner.name : '-'}</b></p>
+              <p class="text-xs text-gray-500 mt-1">เกษตรกรผู้ดูแล: <b>${selectedOwnerNames}</b></p>
             </div>
             
             <button id="delete-crop-btn" data-id="${selectedCrop.id}" class="text-red-500 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm" title="ลบรอบการปลูกนี้">
