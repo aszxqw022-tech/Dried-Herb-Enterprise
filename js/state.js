@@ -11,6 +11,8 @@ const STORAGE_KEYS = {
   AUTH: 'herb_enterprise_auth'
 };
 
+let supabaseClient = null;
+
 // Mock User Accounts for Login & Roles
 const MOCK_USERS = [
   {
