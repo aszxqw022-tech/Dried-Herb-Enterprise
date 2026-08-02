@@ -184,6 +184,11 @@ export const InventoryComponent = {
               <td class="px-6 py-3.5 text-sm text-emerald-800 font-black">${formatBaht(s.totalPrice)}</td>
               <td class="px-6 py-3.5 text-sm text-gray-600 truncate max-w-[120px]" title="${s.customer}">${s.customer}</td>
               <td class="px-6 py-3.5 text-xs text-gray-400">${formatThaiDate(s.date)}</td>
+              <td class="px-6 py-3.5 text-center">
+                <button class="view-sale-btn text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 mx-auto" data-sale-id="${s.id}">
+                  <i class="fas fa-eye text-[10px]"></i> ใบเสร็จ
+                </button>
+              </td>
             </tr>
           `;
         }).join('');
@@ -207,6 +212,7 @@ export const InventoryComponent = {
                 <th class="px-6 py-3.5">ยอดรวมเงิน</th>
                 <th class="px-6 py-3.5">ผู้ซื้อ / ช่องทาง</th>
                 <th class="px-6 py-3.5">วันที่จำหน่าย</th>
+                <th class="px-6 py-3.5 text-center">จัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -422,6 +428,84 @@ export const InventoryComponent = {
           </form>
         </div>
       </div>
+
+      <!-- Sale Detail Modal -->
+      <div id="sale-detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 animate-slide-in">
+          <!-- Modal Header -->
+          <div class="bg-[#1e4620] px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-file-invoice-dollar"></i> รายละเอียดใบเสร็จการจำหน่ายสมุนไพร
+            </h3>
+            <button type="button" id="close-sale-detail-modal-btn" class="text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body -->
+          <div class="p-6 space-y-6">
+            <!-- Receipt Header Info -->
+            <div class="flex justify-between items-start border-b border-gray-100 pb-4">
+              <div>
+                <span class="block text-[10px] font-bold text-emerald-800 uppercase tracking-widest">เลขที่ใบสำคัญ / Invoice</span>
+                <span id="detail-invoice-no" class="text-lg font-black text-gray-800">INV-000</span>
+              </div>
+              <div class="text-right">
+                <span class="block text-[10px] font-semibold text-gray-400 uppercase">วันที่จำหน่าย</span>
+                <span id="detail-date" class="text-sm font-bold text-gray-700">01 ม.ค. 2569</span>
+              </div>
+            </div>
+
+            <!-- Details Grid -->
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="block text-[10px] font-semibold text-gray-400 uppercase">รหัสรายการ</span>
+                <span id="detail-sale-id" class="font-bold text-emerald-800">-</span>
+              </div>
+              <div>
+                <span class="block text-[10px] font-semibold text-gray-400 uppercase">ล็อตผลผลิต (Crop ID)</span>
+                <span id="detail-crop-id" class="font-bold text-gray-700">-</span>
+              </div>
+              <div>
+                <span class="block text-[10px] font-semibold text-gray-400 uppercase">ชนิดพืช</span>
+                <span id="detail-plant-type" class="font-bold text-gray-700">-</span>
+              </div>
+              <div>
+                <span class="block text-[10px] font-semibold text-gray-400 uppercase">แปลงเพาะปลูก</span>
+                <span id="detail-plot-name" class="font-bold text-gray-700">-</span>
+              </div>
+              <div class="col-span-2">
+                <span class="block text-[10px] font-semibold text-gray-400 uppercase">ชื่อลูกค้า / ช่องทางจำหน่าย</span>
+                <span id="detail-customer" class="font-bold text-gray-800">-</span>
+              </div>
+            </div>
+
+            <!-- Farmers Co-owners section -->
+            <div class="space-y-2">
+              <span class="block text-[10px] font-semibold text-gray-400 uppercase">เกษตรกรผู้ถือครองแปลงร่วม (Co-owners)</span>
+              <div id="detail-owners-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <!-- Dynamic cards populated by JS -->
+              </div>
+            </div>
+
+            <!-- Pricing Breakdown Box -->
+            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-2">
+              <div class="flex justify-between text-xs text-gray-500">
+                <span>ปริมาณที่ขาย:</span>
+                <span id="detail-quantity" class="font-semibold text-gray-700">-</span>
+              </div>
+              <div class="flex justify-between text-xs text-gray-500">
+                <span>ราคาต่อหน่วย:</span>
+                <span id="detail-unit-price" class="font-semibold text-gray-700">-</span>
+              </div>
+              <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
+                <span class="text-sm font-bold text-gray-800">ยอดรวมทั้งสิ้น:</span>
+                <span id="detail-total-price" class="text-xl font-black text-emerald-800">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
   },
 
@@ -432,6 +516,8 @@ export const InventoryComponent = {
       this.bindStockEvents();
     } else if (this.activeTab === 'ledger') {
       this.bindLedgerEvents();
+    } else if (this.activeTab === 'sales') {
+      this.bindSalesEvents();
     }
   },
 
@@ -655,6 +741,67 @@ export const InventoryComponent = {
         
         const tbody = document.querySelector('table tbody');
         if (tbody) tbody.innerHTML = rowsHtml;
+      });
+    }
+  },
+
+  bindSalesEvents() {
+    const viewSaleBtns = document.querySelectorAll('.view-sale-btn');
+    const detailModal = document.getElementById('sale-detail-modal');
+    
+    viewSaleBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const saleId = btn.getAttribute('data-sale-id');
+        const sale = appState.getSales().find(s => s.id === saleId);
+        if (sale && detailModal) {
+          const crops = appState.getCrops();
+          const plots = appState.getPlots();
+          const members = appState.getMembers();
+          
+          const crop = crops.find(c => c.id === sale.cropId);
+          const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
+          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+          const ownersNames = owners.map(o => o.name).join(', ') || '-';
+          
+          // Populate details
+          document.getElementById('detail-sale-id').textContent = sale.id;
+          document.getElementById('detail-crop-id').textContent = sale.cropId;
+          document.getElementById('detail-plant-type').textContent = plot ? `${plot.plantType}อบแห้ง` : '-';
+          document.getElementById('detail-plot-name').textContent = plot ? plot.name : '-';
+          document.getElementById('detail-owners').textContent = ownersNames;
+          
+          // Display list of owners with their village details
+          const ownersListContainer = document.getElementById('detail-owners-list');
+          if (ownersListContainer) {
+            ownersListContainer.innerHTML = owners.map(o => `
+              <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
+                <i class="fas fa-user-circle text-lg text-emerald-600"></i>
+                <div>
+                  <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
+                  <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
+                </div>
+              </div>
+            `).join('') || '<div class="text-xs text-gray-500">-</div>';
+          }
+          
+          document.getElementById('detail-quantity').textContent = sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`;
+          document.getElementById('detail-unit-price').textContent = sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`;
+          document.getElementById('detail-total-price').textContent = formatBaht(sale.totalPrice);
+          document.getElementById('detail-customer').textContent = sale.customer || '-';
+          document.getElementById('detail-date').textContent = formatThaiDate(sale.date);
+          
+          // Generate a mockup invoice number if not exists
+          document.getElementById('detail-invoice-no').textContent = sale.invoiceNo || `INV-${sale.id.split('-')[1]}`;
+          
+          detailModal.classList.remove('hidden');
+        }
+      });
+    });
+
+    const closeDetailModalBtn = document.getElementById('close-sale-detail-modal-btn');
+    if (closeDetailModalBtn && detailModal) {
+      closeDetailModalBtn.addEventListener('click', () => {
+        detailModal.classList.add('hidden');
       });
     }
   },

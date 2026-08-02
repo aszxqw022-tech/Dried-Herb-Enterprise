@@ -49,14 +49,14 @@ const MOCK_USERS = [
 
 // Initial Profile setup
 const DEFAULT_ENTERPRISE = {
-  name: 'วิสาหกิจชุมชนสมุนไพรอบแห้งบ้านแม่ริม',
-  village: 'หมู่ที่ 4 บ้านหนองเขียว',
-  subdistrict: 'แม่แรม',
-  district: 'แม่ริม',
-  province: 'เชียงใหม่',
-  zipcode: '50180',
+  name: 'วิสาหกิจชุมชนสมุนไพรอบแห้งบ้านศรีดอนมูล',
+  village: 'หมู่ที่ 2 บ้านศรีดอนมูล',
+  subdistrict: 'ศรีดอนมูล',
+  district: 'เชียงแสน',
+  province: 'เชียงราย',
+  zipcode: '57150',
   phone: '089-555-1234',
-  email: 'maerim.driedherbs@gmail.com',
+  email: 'sridonmun.driedherbs@gmail.com',
   chairman: 'นายสมเกียรติ พึ่งตน',
   description: 'กลุ่มเกษตรกรผลิตและแปรรูปสมุนไพรอบแห้งปลอดสารพิษเพื่อความยั่งยืน เก๊กฮวย คาโมมายล์ และสมุนไพรพื้นบ้าน'
 };
@@ -469,8 +469,18 @@ export class AppState {
     this.initSupabase();
     
     // 1. Enterprise Setup
-    if (!localStorage.getItem(STORAGE_KEYS.ENTERPRISE)) {
+    const storedEnt = localStorage.getItem(STORAGE_KEYS.ENTERPRISE);
+    if (!storedEnt) {
       localStorage.setItem(STORAGE_KEYS.ENTERPRISE, JSON.stringify(DEFAULT_ENTERPRISE));
+    } else {
+      try {
+        const ent = JSON.parse(storedEnt);
+        if (ent && (ent.name === 'วิสาหกิจชุมชนสมุนไพรอบแห้งบ้านแม่ริม' || ent.district === 'แม่ริม')) {
+          localStorage.setItem(STORAGE_KEYS.ENTERPRISE, JSON.stringify(DEFAULT_ENTERPRISE));
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
     
     // 2. Members
