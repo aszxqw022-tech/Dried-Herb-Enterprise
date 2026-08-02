@@ -109,6 +109,34 @@ export const SettingsComponent = {
               </div>
             </div>
 
+            <!-- Supabase Database Connection Config -->
+            <div class="border-b border-gray-100 pb-4 pt-4">
+              <h3 class="text-lg font-medium text-emerald-800 flex items-center gap-2">
+                <i class="fas fa-database"></i> เชื่อมต่อฐานข้อมูล Supabase (ระบบคลาวด์ออนไลน์)
+              </h3>
+            </div>
+
+            <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 text-xs text-emerald-800 leading-relaxed">
+              <i class="fas fa-info-circle mr-1 text-emerald-700"></i>
+              เมื่อเชื่อมต่อกับ Supabase ข้อมูลวิสาหกิจทั้งหมดจะซิงค์และบันทึกออนไลน์ร่วมกันทันที หากปล่อยช่องว่างไว้ระบบจะสลับใช้ LocalStorage ของเบราว์เซอร์เครื่องนี้โดยอัตโนมัติ
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Supabase URL -->
+              <div class="md:col-span-2">
+                <label for="sup-url" class="block text-sm font-medium text-gray-700 mb-2">Supabase Project URL</label>
+                <input type="url" id="sup-url" name="supabaseUrl" value="${localStorage.getItem('supabase_url') || ''}" placeholder="เช่น https://xxxxxx.supabase.co"
+                  class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-mono">
+              </div>
+
+              <!-- Supabase Anon Key -->
+              <div class="md:col-span-2">
+                <label for="sup-key" class="block text-sm font-medium text-gray-700 mb-2">Supabase Anon Key</label>
+                <input type="text" id="sup-key" name="supabaseKey" value="${localStorage.getItem('supabase_key') || ''}" placeholder="เช่น eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-mono">
+              </div>
+            </div>
+
             <!-- Submit Button -->
             <div class="flex justify-end pt-4 gap-3">
               <button type="button" id="reset-settings-btn"
@@ -148,11 +176,37 @@ export const SettingsComponent = {
         zipcode: formData.get('zipcode')
       };
 
+      const supabaseUrlVal = formData.get('supabaseUrl') ? formData.get('supabaseUrl').trim() : '';
+      const supabaseKeyVal = formData.get('supabaseKey') ? formData.get('supabaseKey').trim() : '';
+
       try {
+        if (supabaseUrlVal && supabaseKeyVal) {
+          localStorage.setItem('supabase_url', supabaseUrlVal);
+          localStorage.setItem('supabase_key', supabaseKeyVal);
+        } else {
+          localStorage.removeItem('supabase_url');
+          localStorage.removeItem('supabase_key');
+        }
+
         appState.saveEnterprise(updatedProfile);
-        showToast('บันทึกข้อมูลวิสาหกิจเรียบร้อยแล้ว');
+
+        // Re-initialize Supabase connection and sync data!
+        showToast('กำลังบันทึกและเชื่อมต่อ Supabase...');
+        
+        appState.initSupabase();
+        
+        appState.syncFromSupabase().then(() => {
+          showToast('บันทึกข้อมูลวิสาหกิจและซิงค์ฐานข้อมูลสำเร็จ');
+          const main = document.getElementById('app-view');
+          if (main) {
+            main.innerHTML = this.render();
+            this.init();
+          }
+        }).catch(err => {
+          showToast('เชื่อมต่อ Supabase สำเร็จ แต่พบข้อผิดพลาดในการโหลดข้อมูล: ' + err.message, 'warning');
+        });
       } catch (err) {
-        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message, 'error');
       }
     });
 
