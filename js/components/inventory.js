@@ -754,46 +754,62 @@ export const InventoryComponent = {
         const saleId = btn.getAttribute('data-sale-id');
         const sale = appState.getSales().find(s => s.id === saleId);
         if (sale && detailModal) {
-          const crops = appState.getCrops();
-          const plots = appState.getPlots();
-          const members = appState.getMembers();
-          
-          const crop = crops.find(c => c.id === sale.cropId);
-          const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
-          const ownersNames = owners.map(o => o.name).join(', ') || '-';
-          
-          // Populate details
-          document.getElementById('detail-sale-id').textContent = sale.id;
-          document.getElementById('detail-crop-id').textContent = sale.cropId;
-          document.getElementById('detail-plant-type').textContent = plot ? `${plot.plantType}อบแห้ง` : '-';
-          document.getElementById('detail-plot-name').textContent = plot ? plot.name : '-';
-          document.getElementById('detail-owners').textContent = ownersNames;
-          
-          // Display list of owners with their village details
-          const ownersListContainer = document.getElementById('detail-owners-list');
-          if (ownersListContainer) {
-            ownersListContainer.innerHTML = owners.map(o => `
-              <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
-                <i class="fas fa-user-circle text-lg text-emerald-600"></i>
-                <div>
-                  <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
-                  <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
+          try {
+            const crops = appState.getCrops();
+            const plots = appState.getPlots();
+            const members = appState.getMembers();
+            
+            const crop = crops.find(c => c.id === sale.cropId);
+            const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
+            const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+            const ownersNames = owners.map(o => o.name).join(', ') || '-';
+            
+            // Populate details with safe helper
+            const setVal = (id, val) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = val;
+            };
+
+            setVal('detail-sale-id', sale.id);
+            setVal('detail-crop-id', sale.cropId || '-');
+            setVal('detail-plant-type', plot ? `${plot.plantType}อบแห้ง` : '-');
+            setVal('detail-plot-name', plot ? plot.name : '-');
+            setVal('detail-owners', ownersNames);
+            
+            // Display list of owners with their village details
+            const ownersListContainer = document.getElementById('detail-owners-list');
+            if (ownersListContainer) {
+              ownersListContainer.innerHTML = owners.map(o => `
+                <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
+                  <i class="fas fa-user-circle text-lg text-emerald-600"></i>
+                  <div>
+                    <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
+                    <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
+                  </div>
                 </div>
-              </div>
-            `).join('') || '<div class="text-xs text-gray-500">-</div>';
+              `).join('') || '<div class="text-xs text-gray-500">-</div>';
+            }
+            
+            setVal('detail-quantity', sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`);
+            setVal('detail-unit-price', sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`);
+            setVal('detail-total-price', formatBaht(sale.totalPrice));
+            setVal('detail-customer', sale.customer || '-');
+            
+            try {
+              setVal('detail-date', formatThaiDate(sale.date));
+            } catch (e) {
+              setVal('detail-date', sale.date || '-');
+            }
+            
+            // Generate a mockup invoice number if not exists
+            const invoiceNum = sale.invoiceNo || (sale.id && sale.id.includes('-') ? `INV-${sale.id.split('-')[1]}` : `INV-${sale.id || '000'}`);
+            setVal('detail-invoice-no', invoiceNum);
+            
+          } catch (innerErr) {
+            console.error("Error populating sale modal details:", innerErr);
           }
           
-          document.getElementById('detail-quantity').textContent = sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`;
-          document.getElementById('detail-unit-price').textContent = sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`;
-          document.getElementById('detail-total-price').textContent = formatBaht(sale.totalPrice);
-          document.getElementById('detail-customer').textContent = sale.customer || '-';
-          document.getElementById('detail-date').textContent = formatThaiDate(sale.date);
-          
-          // Generate a mockup invoice number if not exists
-          const invoiceNum = sale.invoiceNo || (sale.id && sale.id.includes('-') ? `INV-${sale.id.split('-')[1]}` : `INV-${sale.id || '000'}`);
-          document.getElementById('detail-invoice-no').textContent = invoiceNum;
-          
+          // Always show modal
           detailModal.classList.remove('hidden');
         }
       });
