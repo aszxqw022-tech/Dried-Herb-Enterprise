@@ -356,41 +356,45 @@ export class AppState {
       
       if (!salesError && salesData && salesData.length > 0) {
         this.salesCache = salesData.map(s => ({
-          ...s,
-          inventoryId: s.inventory_id,
-          quantityKg: s.quantity_kg,
+          id: s.id,
+          cropId: s.crop_id,
+          amount: s.amount,
+          price: s.price,
+          amountKg: s.amount_kg,
           pricePerKg: s.price_per_kg,
-          saleDate: s.sale_date,
-          buyerPhone: s.buyer_phone,
-          invoiceNo: s.invoice_no,
-          totalPrice: s.quantity_kg * s.price_per_kg
+          totalPrice: s.total_price || (s.amount * s.price) || 0,
+          customer: s.customer,
+          date: s.date,
+          saleType: s.sale_type
         }));
       } else if (salesData && salesData.length === 0) {
         const salesToInsert = MOCK_SALES.map((s, idx) => {
-          const invItem = this.inventoryCache.find(i => i.cropId === s.cropId);
           return {
             id: s.id,
-            inventory_id: invItem ? invItem.id : 'INV-001',
-            customer_name: s.customer,
-            quantity_kg: s.amountKg,
+            crop_id: s.cropId,
+            amount: s.amountKg,
+            price: s.pricePerKg,
+            amount_kg: s.amountKg,
             price_per_kg: s.pricePerKg,
-            sale_date: s.date,
-            buyer_phone: '081-234-5600',
-            invoice_no: `INV-${String(idx + 1).padStart(3, '0')}`
+            total_price: s.totalPrice,
+            customer: s.customer,
+            date: s.date,
+            sale_type: 'bulk'
           };
         });
         await supabaseClient.from('sales').insert(salesToInsert);
         this.salesCache = MOCK_SALES.map((s, idx) => {
-          const invItem = this.inventoryCache.find(i => i.cropId === s.cropId);
           return {
-            ...s,
-            inventoryId: invItem ? invItem.id : 'INV-001',
-            quantityKg: s.amountKg,
+            id: s.id,
+            cropId: s.cropId,
+            amount: s.amountKg,
+            price: s.pricePerKg,
+            amountKg: s.amountKg,
             pricePerKg: s.pricePerKg,
-            saleDate: s.date,
-            buyerPhone: '081-234-5600',
-            invoiceNo: `INV-${String(idx + 1).padStart(3, '0')}`,
-            totalPrice: s.amountKg * s.pricePerKg
+            totalPrice: s.totalPrice,
+            customer: s.customer,
+            date: s.date,
+            saleType: 'bulk'
           };
         });
       }

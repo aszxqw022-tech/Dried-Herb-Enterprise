@@ -791,7 +791,8 @@ export const InventoryComponent = {
           document.getElementById('detail-date').textContent = formatThaiDate(sale.date);
           
           // Generate a mockup invoice number if not exists
-          document.getElementById('detail-invoice-no').textContent = sale.invoiceNo || `INV-${sale.id.split('-')[1]}`;
+          const invoiceNum = sale.invoiceNo || (sale.id && sale.id.includes('-') ? `INV-${sale.id.split('-')[1]}` : `INV-${sale.id || '000'}`);
+          document.getElementById('detail-invoice-no').textContent = invoiceNum;
           
           detailModal.classList.remove('hidden');
         }
