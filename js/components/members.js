@@ -11,7 +11,6 @@ export const MembersComponent = {
   editingMemberId: null,
   activeDetailMemberId: null,
   currentPhotoBase64: '',
-  citizenIdMasked: true,
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -210,12 +209,12 @@ export const MembersComponent = {
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
-            <!-- Citizen ID (บัตรประชาชน) -->
+            <!-- House Number (เลขที่บ้าน) -->
             <div>
-              <label for="mem-citizenId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลขบัตรประจำตัวประชาชน *</label>
-              <input type="text" id="mem-citizenId" name="citizenId" required pattern="\\d{13}" maxlength="13" placeholder="ตัวเลข 13 หลัก เช่น 1209901234567"
+              <label for="mem-houseNumber" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลขที่บ้าน *</label>
+              <input type="text" id="mem-houseNumber" name="houseNumber" required placeholder="เช่น 12/4 หรือ 45/1"
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <span class="block text-[10px] text-gray-400 mt-1">กรอกตัวเลข 13 หลักโดยไม่ต้องใส่ขีดขวาง</span>
+              <span class="block text-[10px] text-gray-400 mt-1">ใช้สำหรับเป็นบัญชีเข้าสู่ระบบ (Username)</span>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -438,16 +437,16 @@ export const MembersComponent = {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(form);
-        const citizenVal = formData.get('citizenId').trim();
+        const houseVal = formData.get('houseNumber').trim();
 
-        if (citizenVal.length !== 13 || isNaN(citizenVal)) {
-          showToast('เลขประจำตัวประชาชนต้องเป็นตัวเลข 13 หลัก', 'warning');
+        if (!houseVal) {
+          showToast('กรุณาระบุเลขที่บ้าน', 'warning');
           return;
         }
 
         const data = {
           name: formData.get('name'),
-          citizenId: citizenVal,
+          houseNumber: houseVal,
           role: formData.get('role'),
           phone: formData.get('phone'),
           villageNumber: formData.get('villageNumber'),
@@ -484,7 +483,6 @@ export const MembersComponent = {
         // Prevent click bubble if element is nested
         const id = btn.getAttribute('data-id');
         this.activeDetailMemberId = id;
-        this.citizenIdMasked = true; // reset mask to true on opening
         this.showMemberDetail(id);
         if (detailModal) detailModal.classList.remove('hidden');
       });
@@ -538,7 +536,7 @@ export const MembersComponent = {
       document.getElementById('modal-title').innerHTML = `<i class="fas fa-user-edit"></i> แก้ไขข้อมูลสมาชิก (${id})`;
       
       document.getElementById('mem-name').value = member.name;
-      document.getElementById('mem-citizenId').value = member.citizenId || '';
+      document.getElementById('mem-houseNumber').value = member.houseNumber || '';
       document.getElementById('mem-role').value = member.role;
       document.getElementById('mem-phone').value = member.phone;
       document.getElementById('mem-village').value = member.villageNumber;
@@ -580,9 +578,7 @@ export const MembersComponent = {
     const netProfit = totalRevenue - totalCost;
     const totalDryStock = mInventory.reduce((sum, i) => sum + (i.dryStockKg || 0), 0);
 
-    const citizenId = m.citizenId || ('1509900123' + String(m.id.split('-')[1] || '001').padStart(3, '0'));
-    const formatted = `${citizenId[0]}-${citizenId.substring(1,5)}-${citizenId.substring(5,10)}-${citizenId.substring(10,12)}-${citizenId[12]}`;
-    const masked = `${citizenId[0]}-${citizenId.substring(1,5)}-${citizenId.substring(5,10)}-XX-X`;
+    const houseNumber = m.houseNumber || '-';
 
     const avatarHtml = m.photo
       ? `<img src="${m.photo}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md mx-auto">`
@@ -608,13 +604,8 @@ export const MembersComponent = {
 
             <div class="border-t border-gray-100 pt-4 text-left space-y-3.5 text-xs text-gray-600">
               <div>
-                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เลขบัตรประจำตัวประชาชน</span>
-                <div class="flex items-center gap-2 mt-1">
-                  <span id="detail-citizen-id" class="font-bold text-gray-800 text-sm tracking-wide">${this.citizenIdMasked ? masked : formatted}</span>
-                  <button type="button" id="toggle-detail-id-btn" class="text-gray-450 hover:text-emerald-700 transition-colors focus:outline-none" title="${this.citizenIdMasked ? 'แสดงเลขบัตรประชาชน' : 'ซ่อนเลขบัตรประชาชน'}">
-                    <i class="fas ${this.citizenIdMasked ? 'fa-eye' : 'fa-eye-slash'}"></i>
-                  </button>
-                </div>
+                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เลขที่บ้าน</span>
+                <span id="detail-house-number" class="font-bold text-gray-800 text-sm mt-0.5 block">${houseNumber}</span>
               </div>
               <div>
                 <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เบอร์โทรศัพท์</span>
@@ -696,19 +687,7 @@ export const MembersComponent = {
         </div>
       `;
 
-      // Bind eye icon toggle for citizen ID
-      const toggleBtn = document.getElementById('toggle-detail-id-btn');
-      if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
-          this.citizenIdMasked = !this.citizenIdMasked;
-          const idSpan = document.getElementById('detail-citizen-id');
-          if (idSpan) idSpan.textContent = this.citizenIdMasked ? masked : formatted;
-          
-          const icon = toggleBtn.querySelector('i');
-          if (icon) icon.className = this.citizenIdMasked ? 'fas fa-eye' : 'fas fa-eye-slash';
-          toggleBtn.title = this.citizenIdMasked ? 'แสดงเลขบัตรประชาชน' : 'ซ่อนเลขบัตรประชาชน';
-        });
-      }
+      // Detail view render complete
     }
   },
 
@@ -725,11 +704,11 @@ export const MembersComponent = {
         const randomPhone = `08${Math.floor(Math.random() * 9) + 1}-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`;
         const randomVillage = `หมู่ ${Math.floor(Math.random() * 5) + 1}`;
         const randomJoinDate = `2024-${String(Math.floor(Math.random() * 6) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`;
-        const randomCitizenId = '15099' + String(Math.floor(10000000 + Math.random() * 90000000));
+        const randomHouseNumber = `${Math.floor(Math.random() * 150) + 1}/${Math.floor(Math.random() * 5) + 1}`;
 
         const newMember = {
           name: randomName,
-          citizenId: randomCitizenId,
+          houseNumber: randomHouseNumber,
           role: randomRole,
           phone: randomPhone,
           villageNumber: randomVillage,

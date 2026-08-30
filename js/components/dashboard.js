@@ -30,6 +30,9 @@ export const DashboardComponent = {
           const plot = plots.find(p => p.id === c.plotId);
           const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
           const ownersNames = owners.map(o => o.name).join(', ') || '-';
+          const herbType = c.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
+          const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
+
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
               <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${c.id}</td>
@@ -39,9 +42,9 @@ export const DashboardComponent = {
               </td>
               <td class="px-6 py-4">
                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
-                  plot && plot.plantType === 'เก๊กฮวย' ? 'badge-chrysanthemum' : 'badge-chamomile'
+                  isChrys ? 'badge-chrysanthemum text-amber-800 bg-amber-100' : 'badge-chamomile text-sky-800 bg-sky-100'
                 }">
-                  ${plot ? plot.plantType : '-'}
+                  ${herbType}
                 </span>
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">${formatThaiDate(c.plantDate)}</td>
@@ -136,85 +139,34 @@ export const DashboardComponent = {
 
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          <!-- Column 1 & 2: Active Crops Seasons -->
-          <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-hourglass-half text-emerald-600"></i>
-                รอบเพาะปลูกที่กำลังเติบโต (Active Seasons)
-              </h3>
-              <span class="text-xs bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full font-bold">
-                ทั้งหมด ${crops.length} รอบ
-              </span>
-            </div>
-
-            <div class="overflow-x-auto rounded-xl border border-gray-100">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
-                    <th class="px-6 py-3.5">รหัสรอบ</th>
-                    <th class="px-6 py-3.5">ชื่อแปลง / เกษตรกร</th>
-                    <th class="px-6 py-3.5">พืชที่ปลูก</th>
-                    <th class="px-6 py-3.5">วันเริ่มปลูก</th>
-                    <th class="px-6 py-3.5">วันคาดว่าจะเก็บเกี่ยว</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${activeCropsHtml}
-                </tbody>
-              </table>
-            </div>
+        <!-- Active Crops Seasons Table (Full Width) -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <i class="fas fa-hourglass-half text-emerald-600"></i>
+              รอบเพาะปลูกที่กำลังเติบโต (Active Seasons)
+            </h3>
+            <span class="text-xs bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full font-bold">
+              ทั้งหมด ${crops.length} รอบ
+            </span>
           </div>
 
-          <!-- Column 3: Herb Crops Distribution (Styled custom Bar Charts) -->
-          <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div>
-              <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <i class="fas fa-pie-chart text-emerald-600"></i>
-                สัดส่วนสมุนไพรในแปลงปลูก
-              </h3>
-
-              <!-- Chart Content -->
-              <div class="space-y-6">
-                <!-- Chrysanthemum -->
-                <div class="space-y-2">
-                  <div class="flex justify-between items-center text-sm font-medium">
-                    <span class="text-amber-800 flex items-center gap-1.5">
-                      <span class="w-3 h-3 bg-amber-500 rounded-full inline-block"></span>
-                      เก๊กฮวย
-                    </span>
-                    <span class="text-gray-500">${stats.chrysanthemumPlots} แปลง (${chrysPercent}%)</span>
-                  </div>
-                  <div class="w-full bg-gray-100 rounded-full h-3">
-                    <div class="bg-amber-500 h-3 rounded-full transition-all duration-500" style="width: ${chrysPercent}%"></div>
-                  </div>
-                </div>
-
-                <!-- Chamomile -->
-                <div class="space-y-2">
-                  <div class="flex justify-between items-center text-sm font-medium">
-                    <span class="text-sky-800 flex items-center gap-1.5">
-                      <span class="w-3 h-3 bg-sky-500 rounded-full inline-block"></span>
-                      คาโมมายล์
-                    </span>
-                    <span class="text-gray-500">${stats.chamomilePlots} แปลง (${chamoPercent}%)</span>
-                  </div>
-                  <div class="w-full bg-gray-100 rounded-full h-3">
-                    <div class="bg-sky-500 h-3 rounded-full transition-all duration-500" style="width: ${chamoPercent}%"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Notice card -->
-            <div class="mt-6 p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900 leading-relaxed">
-              <i class="fas fa-info-circle mr-1 text-emerald-600"></i> 
-              สัดส่วนนี้อ้างอิงจากแปลงปลูกที่ลงทะเบียนพิกัดและชนิดพืชเรียบร้อยแล้วในฐานข้อมูลระบบจัดการแปลงปลูก
-            </div>
+          <div class="overflow-x-auto rounded-xl border border-gray-100">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
+                  <th class="px-6 py-3.5">รหัสรอบ</th>
+                  <th class="px-6 py-3.5">ชื่อแปลง / เกษตรกร</th>
+                  <th class="px-6 py-3.5">พืชที่ปลูก</th>
+                  <th class="px-6 py-3.5">วันเริ่มปลูก</th>
+                  <th class="px-6 py-3.5">วันคาดว่าจะเก็บเกี่ยว</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${activeCropsHtml}
+              </tbody>
+            </table>
           </div>
-
         </div>
       </div>
     `;

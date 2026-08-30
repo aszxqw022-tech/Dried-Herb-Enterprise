@@ -4,6 +4,7 @@ import { DashboardComponent } from './components/dashboard.js';
 import { MembersComponent } from './components/members.js?v=2';
 import { PlotsComponent } from './components/plots.js';
 import { CropsComponent } from './components/crops.js?v=2';
+import { CropHistoryComponent } from './components/cropHistory.js';
 import { SettingsComponent } from './components/settings.js';
 import { InventoryComponent } from './components/inventory.js?v=3'; // Phase 2
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
@@ -17,6 +18,7 @@ class AppController {
       members: MembersComponent,
       plots: PlotsComponent,
       crops: CropsComponent,
+      'crop-history': CropHistoryComponent,
       settings: SettingsComponent,
       inventory: InventoryComponent,  // Phase 2
       trace: TraceabilityComponent,   // Phase 2

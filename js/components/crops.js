@@ -4,6 +4,7 @@ import { formatThaiDate, formatBaht, showToast } from '../helpers.js';
 
 export const CropsComponent = {
   selectedCropId: null,
+  selectedCropIds: [],
   statusFilter: '',
 
   render() {
@@ -18,9 +19,11 @@ export const CropsComponent = {
     let crops = appState.getCrops().filter(c => plotIds.includes(c.plotId));
     const members = appState.getMembers();
 
-    // Filter crops
+    // Filter crops (Default: show growing crops only, unless user explicitly filters)
     const filtered = crops.filter(c => {
-      return this.statusFilter ? c.status === this.statusFilter : true;
+      if (this.statusFilter === 'all') return true;
+      if (this.statusFilter === 'harvested') return c.status === 'harvested';
+      return c.status === 'growing'; // default statusFilter '' shows growing only
     });
 
     // Auto-select first crop if none is selected
@@ -49,30 +52,77 @@ export const CropsComponent = {
       })
       .join('');
 
+    // Check if all filtered are checked
+    const allChecked = filtered.length > 0 && filtered.every(c => this.selectedCropIds.includes(c.id));
+
     // Crop Season cards/list for left panel
     const cropCardsHtml = filtered.length === 0
       ? `<div class="p-8 text-center text-sm text-gray-500">ไม่พบรอบการเพาะปลูกในระบบ</div>`
       : filtered.map(c => {
           const plot = plots.find(p => p.id === c.plotId);
           const isSelected = c.id === this.selectedCropId;
+          const isChecked = this.selectedCropIds.includes(c.id);
           const statusText = c.status === 'growing' ? 'กำลังเติบโต' : 'เก็บเกี่ยวแล้ว';
           const statusColor = c.status === 'growing' 
             ? 'bg-green-50 text-green-700 border-green-200' 
             : 'bg-gray-100 text-gray-600 border-gray-200';
 
+          // Countdown calculation
+          let countdownText = '';
+          if (c.status === 'growing') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Fert Countdown
+            if (c.fertDateEst) {
+              const fertEstDate = new Date(c.fertDateEst);
+              fertEstDate.setHours(0, 0, 0, 0);
+              const fertDiffDays = Math.ceil((fertEstDate - today) / (1000 * 60 * 60 * 24));
+              if (fertDiffDays > 0) {
+                countdownText += `<span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full"><i class="fas fa-hand-holding-seedling mr-1"></i>อีก ${fertDiffDays} วันใส่ปุ๋ย</span>`;
+              } else if (fertDiffDays === 0) {
+                countdownText += `<span class="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full animate-pulse"><i class="fas fa-exclamation-circle mr-1"></i>ถึงกำหนดใส่ปุ๋ยวันนี้</span>`;
+              } else {
+                countdownText += `<span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full"><i class="fas fa-exclamation-triangle mr-1"></i>เลยกำหนดใส่ปุ๋ย ${Math.abs(fertDiffDays)} วัน</span>`;
+              }
+            }
+
+            // Harvest Countdown
+            if (c.harvestDateEst) {
+              const estDate = new Date(c.harvestDateEst);
+              estDate.setHours(0, 0, 0, 0);
+              const diffDays = Math.ceil((estDate - today) / (1000 * 60 * 60 * 24));
+
+              if (diffDays > 0) {
+                countdownText += `<span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full"><i class="far fa-clock mr-1"></i>อีก ${diffDays} วันเก็บเกี่ยว</span>`;
+              } else if (diffDays === 0) {
+                countdownText += `<span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full animate-pulse"><i class="fas fa-exclamation-circle mr-1"></i>ถึงกำหนดเก็บเกี่ยววันนี้</span>`;
+              } else {
+                countdownText += `<span class="text-[10px] bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded-full"><i class="fas fa-exclamation-triangle mr-1"></i>เลยกำหนดเก็บเกี่ยว ${Math.abs(diffDays)} วัน</span>`;
+              }
+            }
+          }
+
           return `
-            <div data-id="${c.id}" class="crop-select-card p-4 rounded-2xl border transition-all cursor-pointer ${
+            <div data-id="${c.id}" class="crop-select-card p-4 rounded-2xl border transition-all cursor-pointer relative group ${
               isSelected 
-                ? 'bg-emerald-50/50 border-emerald-500 shadow-sm' 
+                ? 'bg-emerald-50/60 border-emerald-500 shadow-sm' 
                 : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm'
             }">
-              <div class="flex justify-between items-start mb-2">
-                <span class="text-xs font-bold text-emerald-800">${c.id}</span>
-                <span class="px-2 py-0.5 text-[10px] font-semibold border rounded-full ${statusColor}">${statusText}</span>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2.5">
+                  <input type="checkbox" data-crop-id="${c.id}" ${isChecked ? 'checked' : ''} 
+                    class="crop-batch-checkbox rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 transition-all cursor-pointer">
+                  <span class="text-xs font-bold text-emerald-800">${c.id}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  ${countdownText}
+                  <span class="px-2 py-0.5 text-[10px] font-semibold border rounded-full ${statusColor}">${statusText}</span>
+                </div>
               </div>
-              <h4 class="text-sm font-bold text-gray-800">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
-              <div class="flex justify-between items-center mt-3 text-xs text-gray-500">
-                <span>เริ่มปลูก: ${formatThaiDate(c.plantDate)}</span>
+              <h4 class="text-sm font-bold text-gray-800 pl-6">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
+              <div class="flex justify-between items-center mt-3 text-xs text-gray-500 pl-6">
+                <span>รอบที่ ${c.cropCycle || 1}/2 | เริ่มปลูก: ${formatThaiDate(c.plantDate)}</span>
                 <span class="font-bold text-gray-700">ปี ${c.cropYear || '-'}</span>
               </div>
             </div>
@@ -92,6 +142,7 @@ export const CropsComponent = {
           <div class="text-xs text-gray-400 font-medium">${formatThaiDate(f.date)}</div>
           <div class="text-sm font-semibold text-gray-800 mt-0.5">${f.type}</div>
           <div class="text-xs text-gray-500 mt-0.5">ปริมาณ: ${f.amount} | ค่าใช้จ่าย: ${formatBaht(f.cost || 0)}</div>
+          ${f.note ? `<div class="text-[11px] text-amber-700 bg-amber-50/80 px-2.5 py-1 rounded-lg mt-1 inline-block border border-amber-200/50"><i class="far fa-sticky-note mr-1"></i>หมายเหตุ: ${f.note}</div>` : ''}
         </div>
       `).join('');
 
@@ -103,15 +154,56 @@ export const CropsComponent = {
       // Harvest action box or result (Enhanced for Phase 2: Processing and QR)
       let harvestBoxHtml = '';
       if (selectedCrop.status === 'growing') {
+        let countdownDetailHtml = '';
+        let fertCountdownDetailHtml = '';
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedCrop.fertDateEst) {
+          const fertEstDate = new Date(selectedCrop.fertDateEst);
+          fertEstDate.setHours(0, 0, 0, 0);
+          const fertDiffDays = Math.ceil((fertEstDate - today) / (1000 * 60 * 60 * 24));
+
+          if (fertDiffDays > 0) {
+            fertCountdownDetailHtml = `<div class="inline-flex items-center px-3 py-1 bg-emerald-500 text-white font-bold text-xs rounded-full shadow-sm">🌱 เหลืออีก ${fertDiffDays} วันใส่ปุ๋ยบำรุง</div>`;
+          } else if (fertDiffDays === 0) {
+            fertCountdownDetailHtml = `<div class="inline-flex items-center px-3 py-1 bg-emerald-400 text-gray-900 font-bold text-xs rounded-full shadow-sm animate-bounce">📢 ถึงวันกำหนดใส่ปุ๋ยวันนี้!</div>`;
+          } else {
+            fertCountdownDetailHtml = `<div class="inline-flex items-center px-3 py-1 bg-red-400 text-white font-bold text-xs rounded-full shadow-sm">⚠️ เลยกำหนดใส่ปุ๋ยมาแล้ว ${Math.abs(fertDiffDays)} วัน</div>`;
+          }
+        }
+
+        if (selectedCrop.harvestDateEst) {
+          const estDate = new Date(selectedCrop.harvestDateEst);
+          estDate.setHours(0, 0, 0, 0);
+          const diffDays = Math.ceil((estDate - today) / (1000 * 60 * 60 * 24));
+
+          if (diffDays > 0) {
+            countdownDetailHtml = `<div class="inline-flex items-center px-3 py-1 bg-amber-400 text-gray-900 font-black text-xs rounded-full shadow-sm">⏳ เหลืออีก ${diffDays} วันเก็บเกี่ยว</div>`;
+          } else if (diffDays === 0) {
+            countdownDetailHtml = `<div class="inline-flex items-center px-3 py-1 bg-red-500 text-white font-black text-xs rounded-full shadow-sm animate-bounce">🚨 ถึงวันเก็บเกี่ยวผลผลิตวันนี้!</div>`;
+          } else {
+            countdownDetailHtml = `<div class="inline-flex items-center px-3 py-1 bg-red-600 text-white font-black text-xs rounded-full shadow-sm">⚠️ เลยกำหนดเก็บเกี่ยวมาแล้ว ${Math.abs(diffDays)} วัน</div>`;
+          }
+        }
+
         harvestBoxHtml = `
           <div class="p-5 bg-gradient-to-r from-emerald-700 to-emerald-800 rounded-2xl text-white shadow-md space-y-3">
-            <div class="flex items-center gap-2">
-              <i class="fas fa-box text-xl text-amber-300"></i>
-              <h4 class="font-bold text-sm">รอบการปลูกกำลังเติบโต</h4>
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-box text-xl text-amber-300"></i>
+                <h4 class="font-bold text-sm">รอบการปลูกกำลังเติบโต (รอบที่ ${selectedCrop.cropCycle || 1} ของปี)</h4>
+              </div>
+              <div class="flex items-center gap-2">
+                ${fertCountdownDetailHtml}
+                ${countdownDetailHtml}
+              </div>
             </div>
-            <p class="text-xs text-emerald-100 leading-relaxed">
-              คาดว่าจะเก็บเกี่ยวผลผลิตได้ในวันที่: <b>${formatThaiDate(selectedCrop.harvestDateEst)}</b>
-            </p>
+            <div class="text-xs text-emerald-100 leading-relaxed flex flex-wrap gap-4 pt-1">
+              ${selectedCrop.fertDateEst ? `<span>กำหนดใส่ปุ๋ยถัดไป: <b>${formatThaiDate(selectedCrop.fertDateEst)}</b></span>` : ''}
+              <span>คาดว่าจะเก็บเกี่ยวได้: <b>${formatThaiDate(selectedCrop.harvestDateEst)}</b></span>
+            </div>
             <div class="flex gap-2 pt-1.5">
               <button id="add-fert-btn" class="w-1/2 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors border border-emerald-500/30 flex items-center justify-center gap-1">
                 <i class="fas fa-hand-holding-seedling"></i> ใส่ปุ๋ย/บำรุง
@@ -137,7 +229,7 @@ export const CropsComponent = {
                 เก็บเกี่ยวดอกสดได้ <b>${selectedCrop.yield} กก.</b> รอส่งเข้าเตาอบแปรรูปเพื่อหักยอดน้ำหนักเป็นดอกแห้งเข้าสต็อก
               </p>
               <button id="dry-process-btn" data-id="${selectedCrop.id}" class="w-full mt-2 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-lg transition-colors flex items-center justify-center gap-1 font-bold">
-                <i class="fas fa-arrow-right"></i> ส่งไปอบแห้งและตัดสต็อกเข้าคลัง
+                <i class="fas fa-warehouse"></i> ไปที่หน้าคลังสินค้า (ผลผลิตดอกสด) เพื่อกรอกข้อมูลการอบแห้ง
               </button>
             </div>
           `;
@@ -206,7 +298,7 @@ export const CropsComponent = {
           <!-- Detailed Header -->
           <div class="flex justify-between items-start border-b border-gray-100 pb-4">
             <div>
-              <span class="text-xs font-bold text-gray-400">${selectedCrop.id} | ปีการเพาะปลูก พ.ศ. ${selectedCrop.cropYear || '-'}</span>
+              <span class="text-xs font-bold text-gray-400">${selectedCrop.id} | รอบที่ ${selectedCrop.cropCycle || 1}/2 | ปีการเพาะปลูก พ.ศ. ${selectedCrop.cropYear || '-'}</span>
               <h2 class="text-xl font-bold text-emerald-900 mt-0.5">${selectedPlot ? selectedPlot.name : '-'}</h2>
               <p class="text-xs text-gray-500 mt-1">เกษตรกรผู้ดูแล: <b>${selectedOwnerNames}</b></p>
             </div>
@@ -217,10 +309,14 @@ export const CropsComponent = {
           </div>
 
           <!-- Quick Statistics -->
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-4 gap-3">
             <div class="p-3 bg-gray-50 rounded-2xl text-center">
               <span class="text-[10px] text-gray-400 block">สมุนไพร</span>
-              <span class="text-sm font-bold text-gray-800">${selectedPlot ? selectedPlot.plantType : '-'}</span>
+              <span class="text-sm font-bold text-gray-800">${selectedCrop.seedlingSource || (selectedPlot ? selectedPlot.plantType : '-') || '-'}</span>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-2xl text-center">
+              <span class="text-[10px] text-gray-400 block">จำนวนต้นกล้า</span>
+              <span class="text-sm font-bold text-emerald-700">${selectedCrop.seedlingCount ? `${selectedCrop.seedlingCount} ต้น` : '-'}</span>
             </div>
             <div class="p-3 bg-gray-50 rounded-2xl text-center font-bold text-emerald-800">
               <span class="text-[10px] text-gray-400 block">ต้นทุนสะสมรวม</span>
@@ -246,8 +342,11 @@ export const CropsComponent = {
             <div class="mt-4 pl-6 relative border-l-2 border-gray-200 pb-4">
               <div class="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-emerald-800 border border-white"></div>
               <div class="text-xs text-gray-400 font-medium">${formatThaiDate(selectedCrop.plantDate)}</div>
-              <div class="text-sm font-bold text-gray-800 mt-0.5">เริ่มลงกล้าสมุนไพร</div>
-              <div class="text-xs text-gray-500 mt-0.5">เตรียมดินด้วยปุ๋ยคอก บันทึกต้นทุนรอบปลูกเริ่มต้น</div>
+              <div class="text-sm font-bold text-gray-800 mt-0.5">เริ่มลงกล้าสมุนไพร ${selectedCrop.seedlingCount ? `(${selectedCrop.seedlingCount} ต้น)` : ''}</div>
+              <div class="text-xs text-gray-500 mt-0.5">
+                ${selectedCrop.seedlingSource ? `ชนิดสมุนไพร: ${selectedCrop.seedlingSource} | ` : ''}เตรียมดินและลงต้นกล้าสมุนไพร บันทึกต้นทุนรอบปลูกเริ่มต้น
+              </div>
+              ${selectedCrop.note ? `<div class="text-[11px] text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg mt-1 inline-block border border-emerald-200/60"><i class="far fa-sticky-note mr-1"></i>หมายเหตุ: ${selectedCrop.note}</div>` : ''}
             </div>
 
             <!-- Custom Fertilizer events list -->
@@ -260,6 +359,7 @@ export const CropsComponent = {
                 <div class="text-xs text-gray-400 font-medium">${formatThaiDate(selectedCrop.harvestDateActual)}</div>
                 <div class="text-sm font-bold text-gray-800 mt-0.5">ดำเนินการเก็บเกี่ยวผลผลิตสำเร็จ</div>
                 <div class="text-xs text-emerald-600 font-bold mt-0.5">ผลผลิตเก็บเกี่ยว: +${selectedCrop.yield} กิโลกรัม (น้ำหนักดอกสด)</div>
+                ${selectedCrop.harvestNote ? `<div class="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg mt-1 inline-block border border-amber-200/60"><i class="far fa-sticky-note mr-1"></i>หมายเหตุ: ${selectedCrop.harvestNote}</div>` : ''}
               </div>
             ` : ''}
 
@@ -292,12 +392,20 @@ export const CropsComponent = {
           <div>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <i class="fas fa-history text-emerald-700"></i>
-              ระบบบันทึกรอบเพาะปลูก (Crop Seasons)
+              ระบบบันทึกรอบเพาะปลูกสมุนไพร
             </h1>
             <p class="text-sm text-gray-500 mt-1">บันทึกขั้นตอนการเจริญเติบโต ต้นทุนสะสม ประวัติการใส่ปุ๋ยบำรุง และบันทึกเก็บเกี่ยวผลผลิต</p>
           </div>
-          <div>
-            <button id="add-crop-season-btn" class="px-4 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+          <div class="flex flex-wrap gap-2">
+            <button id="batch-add-fert-btn" ${this.selectedCropIds.length === 0 ? 'disabled' : ''} 
+              class="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:hover:bg-emerald-600 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+              <i class="fas fa-hand-holding-seedling"></i> ใส่ปุ๋ยกลุ่ม (${this.selectedCropIds.length})
+            </button>
+            <button id="batch-record-harvest-btn" ${this.selectedCropIds.length === 0 ? 'disabled' : ''} 
+              class="px-3.5 py-2 text-xs font-semibold text-gray-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:hover:bg-amber-400 rounded-xl transition-all flex items-center gap-1.5 shadow-sm font-bold">
+              <i class="fas fa-box-open"></i> บันทึกเก็บเกี่ยวกลุ่ม (${this.selectedCropIds.length})
+            </button>
+            <button id="add-crop-season-btn" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-800 hover:bg-emerald-900 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
               <i class="fas fa-plus-circle"></i> เริ่มรอบการปลูกใหม่
             </button>
           </div>
@@ -307,13 +415,19 @@ export const CropsComponent = {
           <!-- Left Panel: Filter & Crop Seasons List -->
           <div class="lg:col-span-1 space-y-4">
             
-            <!-- Filters -->
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-              <label for="crops-status-filter" class="block text-xs font-semibold text-gray-400 uppercase mb-2">ตัวกรองสถานะรอบปลูก</label>
+            <!-- Filters & Batch Selection Control Bar -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <label for="crops-status-filter" class="block text-xs font-semibold text-gray-400 uppercase">ตัวกรองสถานะรอบปลูก</label>
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 cursor-pointer">
+                  <input type="checkbox" id="select-all-crops-checkbox" ${allChecked ? 'checked' : ''} class="rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-3.5 h-3.5">
+                  <span>เลือกทั้งหมด</span>
+                </label>
+              </div>
               <select id="crops-status-filter" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="">ทั้งหมด (${crops.length})</option>
-                <option value="growing" ${this.statusFilter === 'growing' ? 'selected' : ''}>กำลังเติบโต (${crops.filter(c => c.status === 'growing').length})</option>
-                <option value="harvested" ${this.statusFilter === 'harvested' ? 'selected' : ''}>เก็บเกี่ยวเสร็จสิ้น (${crops.filter(c => c.status === 'harvested').length})</option>
+                <option value="" ${this.statusFilter === '' ? 'selected' : ''}>กำลังเติบโต (${crops.filter(c => c.status === 'growing').length}) - เริ่มต้น</option>
+                <option value="harvested" ${this.statusFilter === 'harvested' ? 'selected' : ''}>เก็บเกี่ยวเสร็จสิ้น (${crops.filter(c => c.status === 'harvested').length}) - ซ่อนไว้</option>
+                <option value="all" ${this.statusFilter === 'all' ? 'selected' : ''}>แสดงทั้งหมด (${crops.length})</option>
               </select>
             </div>
 
@@ -357,11 +471,14 @@ export const CropsComponent = {
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-              <!-- Plant Date -->
+              <!-- Crop Cycle -->
               <div>
-                <label for="crop-plantDate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เริ่มปลูก *</label>
-                <input type="date" id="crop-plantDate" name="plantDate" required
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <label for="crop-cycle" class="block text-xs font-semibold text-gray-500 uppercase mb-1">รอบปลูกประจำปี *</label>
+                <select id="crop-cycle" name="cropCycle" required
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="1">รอบที่ 1 (ช่วงครึ่งปีแรก)</option>
+                  <option value="2">รอบที่ 2 (ช่วงครึ่งปีหลัง)</option>
+                </select>
               </div>
 
               <!-- Crop Year -->
@@ -372,11 +489,60 @@ export const CropsComponent = {
               </div>
             </div>
 
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Plant Date -->
+              <div>
+                <label for="crop-plantDate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เริ่มปลูก *</label>
+                <input type="date" id="crop-plantDate" name="plantDate" required
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <!-- Estimated Harvest Date -->
+              <div>
+                <label for="crop-harvestDateEst" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันคาดการณ์เก็บเกี่ยว *</label>
+                <input type="date" id="crop-harvestDateEst" name="harvestDateEst" required
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+
+            <!-- Estimated Fertilizer Date -->
+            <div>
+              <label for="crop-fertDateEst" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันคาดการณ์ใส่ปุ๋ย/บำรุงถัดไป</label>
+              <input type="date" id="crop-fertDateEst" name="fertDateEst"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Seedling Count -->
+              <div>
+                <label for="crop-seedlingCount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">จำนวนต้นกล้าที่ลง (ต้น) *</label>
+                <input type="number" id="crop-seedlingCount" name="seedlingCount" required min="1" placeholder="เช่น 500"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <!-- Seedling Source / Strain Select -->
+              <div>
+                <label for="crop-seedlingSource" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชนิดสมุนไพรต้นกล้า *</label>
+                <select id="crop-seedlingSource" name="seedlingSource" required
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="เก๊กฮวย">เก๊กฮวย</option>
+                  <option value="คาโมมายล์">คาโมมายล์</option>
+                </select>
+              </div>
+            </div>
+
             <div>
               <!-- Cost -->
-              <label for="crop-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ต้นทุนเริ่มต้น (บาท) *</label>
+              <label for="crop-cost" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ต้นทุนเริ่มต้น/ค่ากล้าพันธุ์ (บาท) *</label>
               <input type="number" id="crop-cost" name="cost" required min="0" placeholder="เช่น 2500"
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Remark -->
+            <div>
+              <label for="crop-note" class="block text-xs font-semibold text-gray-500 uppercase mb-1">หมายเหตุ</label>
+              <textarea id="crop-note" name="note" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติม หรือหมายเหตุเพิ่มเติม (ถ้ามี)"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
             </div>
 
             <!-- Footer Buttons -->
@@ -437,6 +603,13 @@ export const CropsComponent = {
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
+            <!-- Remark -->
+            <div>
+              <label for="fert-note" class="block text-xs font-semibold text-gray-500 uppercase mb-1">หมายเหตุ</label>
+              <textarea id="fert-note" name="note" rows="2" placeholder="ระบุหมายเหตุหรือสภาพอากาศแปลง (ถ้ามี)"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+            </div>
+
             <!-- Footer Buttons -->
             <div class="flex justify-end pt-4 gap-2.5">
               <button type="button" class="close-fert-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
@@ -472,11 +645,18 @@ export const CropsComponent = {
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
-            <!-- Yield Amount -->
+            <!-- Yield Amount (Fresh) -->
             <div>
               <label for="harvest-yield" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณน้ำหนักดอกสด (กิโลกรัม) *</label>
-              <input type="number" id="harvest-yield" name="yield" required min="0" step="any" placeholder="เช่น 150.5"
+              <input type="number" id="harvest-yield" name="yield" required min="0.01" step="any" placeholder="เช่น 150.5"
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Remark -->
+            <div>
+              <label for="harvest-note" class="block text-xs font-semibold text-gray-500 uppercase mb-1">หมายเหตุ</label>
+              <textarea id="harvest-note" name="note" rows="2" placeholder="ระบุคุณภาพดอกสด สภาพความสมบูรณ์ หรือหมายเหตุเพิ่มเติม"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
             </div>
 
             <!-- Info hint -->
@@ -526,14 +706,83 @@ export const CropsComponent = {
   },
 
   bindSelection() {
+    // Single card select for timeline details
     const cards = document.querySelectorAll('.crop-select-card');
     cards.forEach(card => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        if (e.target.classList.contains('crop-batch-checkbox')) return; // ignore checkbox click bubble
         const id = card.getAttribute('data-id');
         this.selectedCropId = id;
         this.refreshView();
       });
     });
+
+    // Checkbox batch selections
+    const checkboxes = document.querySelectorAll('.crop-batch-checkbox');
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const id = cb.getAttribute('data-crop-id');
+        if (cb.checked) {
+          if (!this.selectedCropIds.includes(id)) this.selectedCropIds.push(id);
+        } else {
+          this.selectedCropIds = this.selectedCropIds.filter(i => i !== id);
+        }
+        this.refreshView();
+      });
+    });
+
+    // Select All Checkbox
+    const selectAllCb = document.getElementById('select-all-crops-checkbox');
+    if (selectAllCb) {
+      selectAllCb.addEventListener('change', (e) => {
+        const currentUser = appState.getCurrentUser();
+        const isMember = currentUser && currentUser.role === 'Member';
+        let plots = appState.getPlots();
+        if (isMember) plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+        const plotIds = plots.map(p => p.id);
+        let crops = appState.getCrops().filter(c => plotIds.includes(c.plotId));
+        const filtered = crops.filter(c => this.statusFilter ? c.status === this.statusFilter : true);
+
+        if (selectAllCb.checked) {
+          this.selectedCropIds = filtered.map(c => c.id);
+        } else {
+          this.selectedCropIds = [];
+        }
+        this.refreshView();
+      });
+    }
+
+    // Batch Add Fertilizer Button listener
+    const batchAddFertBtn = document.getElementById('batch-add-fert-btn');
+    const modalFert = document.getElementById('fert-modal');
+    if (batchAddFertBtn && modalFert) {
+      batchAddFertBtn.addEventListener('click', () => {
+        if (this.selectedCropIds.length === 0) return;
+        const formFert = document.getElementById('fert-form');
+        if (formFert) {
+          formFert.reset();
+          document.getElementById('fert-date').value = new Date().toISOString().split('T')[0];
+        }
+        this.isBatchFertilizer = true; // flag batch operation
+        modalFert.classList.remove('hidden');
+      });
+    }
+
+    // Batch Record Harvest Button listener
+    const batchRecordHarvestBtn = document.getElementById('batch-record-harvest-btn');
+    const modalHarvest = document.getElementById('harvest-modal');
+    if (batchRecordHarvestBtn && modalHarvest) {
+      batchRecordHarvestBtn.addEventListener('click', () => {
+        if (this.selectedCropIds.length === 0) return;
+        const formHarvest = document.getElementById('harvest-form');
+        if (formHarvest) {
+          formHarvest.reset();
+          document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
+        }
+        this.isBatchHarvest = true; // flag batch harvest operation
+        modalHarvest.classList.remove('hidden');
+      });
+    }
   },
 
   bindModals() {
@@ -547,8 +796,28 @@ export const CropsComponent = {
       openNewBtn.addEventListener('click', () => {
         if (formNew) {
           formNew.reset();
-          document.getElementById('crop-plantDate').value = new Date().toISOString().split('T')[0];
-          document.getElementById('crop-year').value = new Date().getFullYear() + 543;
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
+
+          const plantDateInput = document.getElementById('crop-plantDate');
+          const harvestDateEstInput = document.getElementById('crop-harvestDateEst');
+
+          if (plantDateInput) {
+            plantDateInput.min = todayStr;
+            plantDateInput.value = todayStr;
+          }
+
+          // Default estimated harvest date (+3 months)
+          const defaultEst = new Date(today);
+          defaultEst.setMonth(defaultEst.getMonth() + 3);
+          const defaultEstStr = defaultEst.toISOString().split('T')[0];
+
+          if (harvestDateEstInput) {
+            harvestDateEstInput.min = todayStr;
+            harvestDateEstInput.value = defaultEstStr;
+          }
+
+          document.getElementById('crop-year').value = today.getFullYear() + 543;
         }
         modalNew.classList.remove('hidden');
       });
@@ -564,11 +833,49 @@ export const CropsComponent = {
       formNew.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(formNew);
+        const plotId = formData.get('plotId');
+        const plantDateStr = formData.get('plantDate');
+        const harvestDateEstStr = formData.get('harvestDateEst');
+
+        // Validation: plant date must be present or future date only
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (plantDateStr < todayStr) {
+          showToast('วันที่เริ่มปลูกต้องเป็นวันที่ปัจจุบันหรืออนาคตเท่านั้น', 'warning');
+          return;
+        }
+
+        if (harvestDateEstStr < plantDateStr) {
+          showToast('วันคาดการณ์เก็บเกี่ยวต้องไม่มาก่อนวันที่เริ่มปลูก', 'warning');
+          return;
+        }
+
+        const cropYear = parseInt(formData.get('cropYear')) || (new Date(plantDateStr).getFullYear() + 543);
+        const cropCycle = parseInt(formData.get('cropCycle')) || 1;
+
+        // Check 2 crops per year per plot limit
+        const existingCropsForPlotYear = appState.getCrops().filter(c => c.plotId === plotId && c.cropYear === cropYear);
+        if (existingCropsForPlotYear.length >= 2) {
+          showToast(`แปลงนี้มีรอบการปลูกครบ 2 ครั้งในปี พ.ศ. ${cropYear} แล้ว`, 'warning');
+          return;
+        }
+
+        const duplicateCycle = existingCropsForPlotYear.find(c => (c.cropCycle || 1) === cropCycle);
+        if (duplicateCycle) {
+          showToast(`แปลงนี้มีรอบที่ ${cropCycle} ในปี พ.ศ. ${cropYear} แล้ว`, 'warning');
+          return;
+        }
+
         const data = {
-          plotId: formData.get('plotId'),
+          plotId: plotId,
           plantDate: formData.get('plantDate'),
+          harvestDateEst: formData.get('harvestDateEst'),
+          fertDateEst: formData.get('fertDateEst') || null,
+          cropCycle: cropCycle,
+          seedlingCount: parseInt(formData.get('seedlingCount')) || 0,
+          seedlingSource: formData.get('seedlingSource') ? formData.get('seedlingSource').trim() : '',
           cost: parseFloat(formData.get('cost')) || 0,
-          cropYear: parseInt(formData.get('cropYear')) || (new Date(formData.get('plantDate')).getFullYear() + 543),
+          cropYear: cropYear,
+          note: formData.get('note') ? formData.get('note').trim() : '',
           status: 'growing'
         };
 
@@ -576,7 +883,7 @@ export const CropsComponent = {
           const added = appState.addCrop(data);
           this.selectedCropId = added.id;
           if (modalNew) modalNew.classList.add('hidden');
-          showToast(`เริ่มรอบการปลูกใหม่สำเร็จ (${added.id})`);
+          showToast(`เริ่มรอบการปลูกใหม่สำเร็จ (${added.id}) รอบที่ ${cropCycle}/${cropYear}`);
           this.refreshView();
         } catch (err) {
           showToast('เกิดข้อผิดพลาดในการลงทะเบียน', 'error');
@@ -596,6 +903,7 @@ export const CropsComponent = {
           formFert.reset();
           document.getElementById('fert-date').value = new Date().toISOString().split('T')[0];
         }
+        this.isBatchFertilizer = false;
         modalFert.classList.remove('hidden');
       });
     }
@@ -614,10 +922,25 @@ export const CropsComponent = {
           date: formData.get('date'),
           type: formData.get('type'),
           amount: formData.get('amount'),
-          cost: parseFloat(formData.get('cost')) || 0
+          cost: parseFloat(formData.get('cost')) || 0,
+          note: formData.get('note') ? formData.get('note').trim() : ''
         };
 
-        if (this.selectedCropId) {
+        if (this.isBatchFertilizer && this.selectedCropIds.length > 0) {
+          try {
+            let count = 0;
+            this.selectedCropIds.forEach(cropId => {
+              appState.addFertilizerLog(cropId, logEntry);
+              count++;
+            });
+            if (modalFert) modalFert.classList.add('hidden');
+            showToast(`บันทึกประวัติการใส่ปุ๋ย/บำรุงสำเร็จใน ${count} แปลงเรียบร้อยแล้ว`);
+            this.selectedCropIds = []; // clear batch selection
+            this.refreshView();
+          } catch (err) {
+            showToast('เกิดข้อผิดพลาดในการบันทึกกลุ่ม', 'error');
+          }
+        } else if (this.selectedCropId) {
           try {
             appState.addFertilizerLog(this.selectedCropId, logEntry);
             if (modalFert) modalFert.classList.add('hidden');
@@ -642,6 +965,7 @@ export const CropsComponent = {
           formHarvest.reset();
           document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
         }
+        this.isBatchHarvest = false;
         modalHarvest.classList.remove('hidden');
       });
     }
@@ -659,10 +983,25 @@ export const CropsComponent = {
         const data = {
           harvestDateActual: formData.get('harvestDateActual'),
           yield: parseFloat(formData.get('yield')) || 0,
+          harvestNote: formData.get('note') ? formData.get('note').trim() : '',
           status: 'harvested'
         };
 
-        if (this.selectedCropId) {
+        if (this.isBatchHarvest && this.selectedCropIds.length > 0) {
+          try {
+            let count = 0;
+            this.selectedCropIds.forEach(cropId => {
+              appState.updateCrop(cropId, data);
+              count++;
+            });
+            if (modalHarvest) modalHarvest.classList.add('hidden');
+            showToast(`บันทึกผลผลิตและปรับสถานะเก็บเกี่ยวสำเร็จใน ${count} แปลงเรียบร้อยแล้ว`);
+            this.selectedCropIds = []; // clear batch selection
+            this.refreshView();
+          } catch (err) {
+            showToast('เกิดข้อผิดพลาดในการบันทึกเก็บเกี่ยวกลุ่ม', 'error');
+          }
+        } else if (this.selectedCropId) {
           try {
             appState.updateCrop(this.selectedCropId, data);
             if (modalHarvest) modalHarvest.classList.add('hidden');
@@ -704,13 +1043,7 @@ export const CropsComponent = {
         const crop = appState.getCropById(id);
         
         if (crop) {
-          try {
-            const dryWeight = appState.processDryHerbStock(id, crop.yield);
-            showToast(`แปรรูปอบแห้งสำเร็จ! นำเข้าคลังสินค้าแล้วจำนวน ${dryWeight} กก. (หักตามอัตราส่วนความชื้น)`);
-            this.refreshView();
-          } catch (err) {
-            showToast(err.message, 'error');
-          }
+          window.location.hash = '#inventory';
         }
       });
     }

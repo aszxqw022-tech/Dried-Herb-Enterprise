@@ -16,7 +16,7 @@ let supabaseClient = null;
 // Mock User Accounts for Login & Roles
 const MOCK_USERS = [
   {
-    username: '1509900000000',
+    username: '12/4',
     password: '0812345600',
     name: 'นายสมเกียรติ พึ่งตน',
     role: 'Admin',
@@ -26,7 +26,7 @@ const MOCK_USERS = [
     color: 'emerald'
   },
   {
-    username: '1509900000099',
+    username: '45/1',
     password: '0812345699',
     name: 'นายมานะ รักเกษตร',
     role: 'Officer',
@@ -36,7 +36,7 @@ const MOCK_USERS = [
     color: 'amber'
   },
   {
-    username: '1509900000002',
+    username: '12/5',
     password: '0812345602',
     name: 'นางใจดี ศรีสมุนไพร',
     role: 'Member',
@@ -63,51 +63,47 @@ const DEFAULT_ENTERPRISE = {
 
 // Mock 33 Members
 const MOCK_MEMBERS = [
-  { id: 'MEM-001', name: 'นายสมเกียรติ พึ่งตน', role: 'ประธานกลุ่ม', phone: '081-234-5600', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-10', citizenId: '1509900000000' },
-  { id: 'MEM-002', name: 'นางใจดี ศรีสมุนไพร', role: 'รองประธาน', phone: '081-234-5602', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-15', citizenId: '1509900000002' },
-  { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '081-234-5699', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-01-15', citizenId: '1509900000099' },
-  { id: 'MEM-004', name: 'นางสมศรี มีวิถี', role: 'เลขานุการ', phone: '081-234-5604', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-20', citizenId: '1509900000004' },
-  { id: 'MEM-005', name: 'นายวิชัย ปัญญาดี', role: 'กรรมการ', phone: '081-234-5605', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-01', citizenId: '1509900000005' },
-  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'สมาชิกทั่วไป', phone: '081-234-5606', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-05', citizenId: '1509900000006' },
-  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5607', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-02-10', citizenId: '1509900000007' },
-  { id: 'MEM-008', name: 'นางสมปอง สุขสำราญ', role: 'สมาชิกทั่วไป', phone: '081-234-5608', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-10', citizenId: '1509900000008' },
-  { id: 'MEM-009', name: 'นายบุญมี ทองคำ', role: 'สมาชิกทั่วไป', phone: '081-234-5609', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-12', citizenId: '1509900000009' },
-  { id: 'MEM-010', name: 'นางประกาย แสงทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5610', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-15', citizenId: '1509900000010' },
-  { id: 'MEM-011', name: 'นายสุรพล เด่นดี', role: 'สมาชิกทั่วไป', phone: '081-234-5611', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-20', citizenId: '1509900000011' },
-  { id: 'MEM-012', name: 'นางวิมล รุ่งเรือง', role: 'สมาชิกทั่วไป', phone: '081-234-5612', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-22', citizenId: '1509900000012' },
-  { id: 'MEM-013', name: 'นายเกรียงไกร ใฝ่ดี', role: 'สมาชิกทั่วไป', phone: '081-234-5613', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-01', citizenId: '1509900000013' },
-  { id: 'MEM-014', name: 'นางนงนุช สุดสวย', role: 'สมาชิกทั่วไป', phone: '081-234-5614', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-05', citizenId: '1509900000014' },
-  { id: 'MEM-015', name: 'นายทวีลาภ ลาภดี', role: 'สมาชิกทั่วไป', phone: '081-234-5615', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-10', citizenId: '1509900000015' },
-  { id: 'MEM-016', name: 'นางพิศมัย ใจธรรม', role: 'สมาชิกทั่วไป', phone: '081-234-5616', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-12', citizenId: '1509900000016' },
-  { id: 'MEM-017', name: 'นายอดุลย์ อบอุ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5617', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-15', citizenId: '1509900000017' },
-  { id: 'MEM-018', name: 'นางสาวสุดา ชาเขียว', role: 'สมาชิกทั่วไป', phone: '081-234-5618', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-18', citizenId: '1509900000018' },
-  { id: 'MEM-019', name: 'นายสมหมาย มั่นคง', role: 'สมาชิกทั่วไป', phone: '081-234-5619', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-20', citizenId: '1509900000019' },
-  { id: 'MEM-020', name: 'นางอรอนงค์ โฉมงาม', role: 'สมาชิกทั่วไป', phone: '081-234-5620', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-22', citizenId: '1509900000020' },
-  { id: 'MEM-021', name: 'นายประจักษ์ รักสงบ', role: 'สมาชิกทั่วไป', phone: '081-234-5621', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-25', citizenId: '1509900000021' },
-  { id: 'MEM-022', name: 'นางสาวรุ่งทิวา แสงดาว', role: 'สมาชิกทั่วไป', phone: '081-234-5622', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-01', citizenId: '1509900000022' },
-  { id: 'MEM-023', name: 'นายประเสริฐ ดีเลิศ', role: 'สมาชิกทั่วไป', phone: '081-234-5623', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-05', citizenId: '1509900000023' },
-  { id: 'MEM-024', name: 'นางสาวกมลวรรณ ชื่นใจ', role: 'สมาชิกทั่วไป', phone: '081-234-5624', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-10', citizenId: '1509900000024' },
-  { id: 'MEM-025', name: 'นายพิชัย ชูชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5625', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-12', citizenId: '1509900000025' },
-  { id: 'MEM-026', name: 'นางชลลดา ปันแก้ว', role: 'สมาชิกทั่วไป', phone: '081-234-5626', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-04-15', citizenId: '1509900000026' },
-  { id: 'MEM-027', name: 'นายธวัชชัย ยอดดี', role: 'สมาชิกทั่วไป', phone: '081-234-5627', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-20', citizenId: '1509900000027' },
-  { id: 'MEM-028', name: 'นางมธุรส หอมกลิ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5628', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-22', citizenId: '1509900000028' },
-  { id: 'MEM-029', name: 'นายเสนาะ ร้องเพราะ', role: 'สมาชิกทั่วไป', phone: '081-234-5629', status: 'inactive', villageNumber: 'หมู่ 2', joinDate: '2024-04-25', citizenId: '1509900000029' },
-  { id: 'MEM-030', name: 'นางอัญชลี รื่นรมย์', role: 'สมาชิกทั่วไป', phone: '081-234-5630', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-28', citizenId: '1509900000030' },
-  { id: 'MEM-031', name: 'นายอุดม ศรีทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5631', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-05-01', citizenId: '1509900000031' },
-  { id: 'MEM-032', name: 'นางรักษ์ชนก อุดมดี', role: 'สมาชิกทั่วไป', phone: '081-234-5632', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-05-05', citizenId: '1509900000032' },
-  { id: 'MEM-033', name: 'นายพชรพล อิ่มเอม', role: 'สมาชิกทั่วไป', phone: '081-234-5633', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-05-10', citizenId: '1509900000033' }
+  { id: 'MEM-001', name: 'นายสมเกียรติ พึ่งตน', role: 'ประธานกลุ่ม', phone: '081-234-5600', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-10', houseNumber: '12/4' },
+  { id: 'MEM-002', name: 'นางใจดี ศรีสมุนไพร', role: 'รองประธาน', phone: '081-234-5602', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-15', houseNumber: '12/5' },
+  { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '081-234-5699', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-01-15', houseNumber: '45/1' },
+  { id: 'MEM-004', name: 'นางสมศรี มีวิถี', role: 'เลขานุการ', phone: '081-234-5604', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-20', houseNumber: '18' },
+  { id: 'MEM-005', name: 'นายวิชัย ปัญญาดี', role: 'กรรมการ', phone: '081-234-5605', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-01', houseNumber: '99/2' },
+  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'สมาชิกทั่วไป', phone: '081-234-5606', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-05', houseNumber: '24/1' },
+  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5607', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-02-10', houseNumber: '55' },
+  { id: 'MEM-008', name: 'นางสมปอง สุขสำราญ', role: 'สมาชิกทั่วไป', phone: '081-234-5608', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-10', houseNumber: '102' },
+  { id: 'MEM-009', name: 'นายบุญมี ทองคำ', role: 'สมาชิกทั่วไป', phone: '081-234-5609', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-12', houseNumber: '7/3' },
+  { id: 'MEM-010', name: 'นางประกาย แสงทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5610', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-15', houseNumber: '88' },
+  { id: 'MEM-011', name: 'นายสุรพล เด่นดี', role: 'สมาชิกทั่วไป', phone: '081-234-5611', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-20', houseNumber: '14/2' },
+  { id: 'MEM-012', name: 'นางวิมล รุ่งเรือง', role: 'สมาชิกทั่วไป', phone: '081-234-5612', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-22', houseNumber: '33' },
+  { id: 'MEM-013', name: 'นายเกรียงไกร ใฝ่ดี', role: 'สมาชิกทั่วไป', phone: '081-234-5613', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-01', houseNumber: '61/4' },
+  { id: 'MEM-014', name: 'นางนงนุช สุดสวย', role: 'สมาชิกทั่วไป', phone: '081-234-5614', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-05', houseNumber: '40' },
+  { id: 'MEM-015', name: 'นายทวีลาภ ลาภดี', role: 'สมาชิกทั่วไป', phone: '081-234-5615', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-10', houseNumber: '115' },
+  { id: 'MEM-016', name: 'นางพิศมัย ใจธรรม', role: 'สมาชิกทั่วไป', phone: '081-234-5616', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-12', houseNumber: '29' },
+  { id: 'MEM-017', name: 'นายอดุลย์ อบอุ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5617', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-15', houseNumber: '82/1' },
+  { id: 'MEM-018', name: 'นางสาวสุดา ชาเขียว', role: 'สมาชิกทั่วไป', phone: '081-234-5618', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-18', houseNumber: '19' },
+  { id: 'MEM-019', name: 'นายสมหมาย มั่นคง', role: 'สมาชิกทั่วไป', phone: '081-234-5619', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-03-20', houseNumber: '104' },
+  { id: 'MEM-020', name: 'นางอรอนงค์ โฉมงาม', role: 'สมาชิกทั่วไป', phone: '081-234-5620', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-03-22', houseNumber: '73/2' },
+  { id: 'MEM-021', name: 'นายประจักษ์ รักสงบ', role: 'สมาชิกทั่วไป', phone: '081-234-5621', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-03-25', houseNumber: '51' },
+  { id: 'MEM-022', name: 'นางสาวรุ่งทิวา แสงดาว', role: 'สมาชิกทั่วไป', phone: '081-234-5622', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-01', houseNumber: '95' },
+  { id: 'MEM-023', name: 'นายประเสริฐ ดีเลิศ', role: 'สมาชิกทั่วไป', phone: '081-234-5623', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-05', houseNumber: '37/1' },
+  { id: 'MEM-024', name: 'นางสาวกมลวรรณ ชื่นใจ', role: 'สมาชิกทั่วไป', phone: '081-234-5624', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-10', houseNumber: '6/2' },
+  { id: 'MEM-025', name: 'นายพิชัย ชูชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5625', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-12', houseNumber: '128' },
+  { id: 'MEM-026', name: 'นางชลลดา ปันแก้ว', role: 'สมาชิกทั่วไป', phone: '081-234-5626', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-04-15', houseNumber: '84' },
+  { id: 'MEM-027', name: 'นายธวัชชัย ยอดดี', role: 'สมาชิกทั่วไป', phone: '081-234-5627', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-20', houseNumber: '111/3' },
+  { id: 'MEM-028', name: 'นางมธุรส หอมกลิ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5628', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-04-22', houseNumber: '48' },
+  { id: 'MEM-029', name: 'นายเสนาะ ร้องเพราะ', role: 'สมาชิกทั่วไป', phone: '081-234-5629', status: 'inactive', villageNumber: 'หมู่ 2', joinDate: '2024-04-25', houseNumber: '15/1' },
+  { id: 'MEM-030', name: 'นางอัญชลี รื่นรมย์', role: 'สมาชิกทั่วไป', phone: '081-234-5630', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-04-28', houseNumber: '67' },
+  { id: 'MEM-031', name: 'นายอุดม ศรีทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5631', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-05-01', houseNumber: '2/1' },
+  { id: 'MEM-032', name: 'นางรักษ์ชนก อุดมดี', role: 'สมาชิกทั่วไป', phone: '081-234-5632', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-05-05', houseNumber: '93' },
+  { id: 'MEM-033', name: 'นายพชรพล อิ่มเอม', role: 'สมาชิกทั่วไป', phone: '081-234-5633', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-05-10', houseNumber: '58/2' }
 ];
 
 // Mock plots for some members to display initially
 const MOCK_PLOTS = [
-  { id: 'PLOT-001', memberIds: ['MEM-001', 'MEM-002'], name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, plantType: 'เก๊กฮวย', lat: 18.9142, lng: 98.9442, status: 'active' },
-  { id: 'PLOT-002', memberIds: ['MEM-002', 'MEM-004'], name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9158, lng: 98.9415, status: 'active' },
-  { id: 'PLOT-003', memberIds: ['MEM-003', 'MEM-005'], name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, plantType: 'เก๊กฮวย', lat: 18.9121, lng: 98.9495, status: 'active' },
-  { id: 'PLOT-004', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, plantType: 'คาโมมายล์', lat: 18.9172, lng: 98.9455, status: 'active' },
-  { id: 'PLOT-005', memberIds: ['MEM-006'], name: 'แปลงไร่นิเวศน์', sizeRai: 4, sizeNgan: 0, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9095, lng: 98.9421, status: 'active' },
-  { id: 'PLOT-006', memberIds: ['MEM-008'], name: 'แปลงสวนหลังบ้านป้าสมปอง', sizeRai: 1, sizeNgan: 0, sizeSqWah: 20, plantType: 'คาโมมายล์', lat: 18.9135, lng: 98.9392, status: 'active' },
-  { id: 'PLOT-007', memberIds: ['MEM-011'], name: 'แปลงดอยวิวสวนหอม', sizeRai: 5, sizeNgan: 2, sizeSqWah: 0, plantType: 'เก๊กฮวย', lat: 18.9192, lng: 98.9481, status: 'active' },
-  { id: 'PLOT-008', memberIds: ['MEM-015'], name: 'แปลงผักหลังสวนทวีลาภ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 0, plantType: 'คาโมมายล์', lat: 18.9102, lng: 98.9463, status: 'active' }
+  { id: 'PLOT-001', memberIds: ['MEM-001'], name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, lat: 18.9142, lng: 98.9442, status: 'active' },
+  { id: 'PLOT-002', memberIds: ['MEM-002'], name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, lat: 18.9158, lng: 98.9415, status: 'active' },
+  { id: 'PLOT-003', memberIds: ['MEM-003'], name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, lat: 18.9121, lng: 98.9495, status: 'active' },
+  { id: 'PLOT-004', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, lat: 18.9172, lng: 98.9455, status: 'active' }
 ];
 
 // Mock crop seasons for initial plots
@@ -115,79 +111,163 @@ const MOCK_CROPS = [
   {
     id: 'CROP-001',
     plotId: 'PLOT-001',
-    plantDate: '2026-03-10',
-    harvestDateEst: '2026-07-10',
+    plantDate: '2026-08-27',
+    harvestDateEst: '2026-11-27',
+    fertDateEst: '2026-09-10',
     harvestDateActual: null,
+    seedlingCount: 800,
+    seedlingSource: 'เก๊กฮวย',
     cost: 4500,
     yield: null,
     status: 'growing',
     cropYear: 2569,
+    cropCycle: 1,
+    note: 'ลงกล้าเก๊กฮวยแปลงสวนหน้าบ้าน เตรียมดินด้วยปุ๋ยหมักชีวภาพ',
     fertilizingLog: [
-      { date: '2026-03-10', type: 'ปุ๋ยหมักชีวภาพสูตรใบ', amount: '20 กิโลกรัม', cost: 350 },
-      { date: '2026-04-15', type: 'น้ำหมักมูลค้างคาวบำรุงต้น', amount: '5 ลิตร (เจือจาง)', cost: 200 },
-      { date: '2026-06-01', type: 'ปุ๋ยอินทรีย์บำรุงดอก', amount: '15 กิโลกรัม', cost: 300 }
+      { date: '2026-08-27', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '30 กิโลกรัม', cost: 450, note: 'รองพื้นก่อนลงกล้า' }
     ]
   },
   {
     id: 'CROP-002',
     plotId: 'PLOT-002',
-    plantDate: '2026-04-01',
-    harvestDateEst: '2026-07-15',
+    plantDate: '2026-08-28',
+    harvestDateEst: '2026-11-28',
+    fertDateEst: '2026-09-12',
     harvestDateActual: null,
+    seedlingCount: 500,
+    seedlingSource: 'คาโมมายล์',
     cost: 3200,
     yield: null,
     status: 'growing',
     cropYear: 2569,
+    cropCycle: 1,
+    note: 'ลงกล้าคาโมมายล์ แปลงริมคลองส่งน้ำ',
     fertilizingLog: [
-      { date: '2026-04-01', type: 'ปุ๋ยคอกเตรียมดิน', amount: '50 กิโลกรัม', cost: 400 },
-      { date: '2026-05-10', type: 'ปุ๋ยหมักแห้งเศษสมุนไพร', amount: '15 กิโลกรัม', cost: 250 }
+      { date: '2026-08-28', type: 'ปุ๋ยคอกมูลไก่หมัก', amount: '25 กิโลกรัม', cost: 300, note: 'บำรุงต้นกล้าเริ่มต้น' }
     ]
   },
   {
     id: 'CROP-003',
     plotId: 'PLOT-003',
-    plantDate: '2025-11-01',
-    harvestDateEst: '2026-03-01',
-    harvestDateActual: '2026-03-05',
-    cost: 5000,
-    yield: 185.5, // kg fresh
-    status: 'harvested',
-    isProcessed: true, // Already processed
-    cropYear: 2568,
-    fertilizingLog: [
-      { date: '2025-11-01', type: 'ปุ๋ยอินทรีย์พื้นฐาน', amount: '30 กิโลกรัม', cost: 500 },
-      { date: '2025-12-15', type: 'น้ำหมักสะเดาไล่แมลง', amount: '2 ลิตร', cost: 150 },
-      { date: '2026-01-20', type: 'ปุ๋ยอินทรีย์เร่งดอก', amount: '20 กิโลกรัม', cost: 400 }
-    ]
+    plantDate: '2026-09-01',
+    harvestDateEst: '2026-12-01',
+    fertDateEst: '2026-09-15',
+    harvestDateActual: null,
+    seedlingCount: 1200,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 5500,
+    yield: null,
+    status: 'growing',
+    cropYear: 2569,
+    cropCycle: 1,
+    note: 'ลงกล้าเก๊กฮวย แปลงเชิงเขาม่อนแก้ว',
+    fertilizingLog: []
   },
   {
     id: 'CROP-004',
     plotId: 'PLOT-004',
-    plantDate: '2025-11-15',
-    harvestDateEst: '2026-03-15',
-    harvestDateActual: '2026-03-12',
-    cost: 2500,
-    yield: 75.2, // kg fresh
+    plantDate: '2026-09-05',
+    harvestDateEst: '2026-12-05',
+    fertDateEst: '2026-09-20',
+    harvestDateActual: null,
+    seedlingCount: 650,
+    seedlingSource: 'คาโมมายล์',
+    cost: 3800,
+    yield: null,
+    status: 'growing',
+    cropYear: 2569,
+    cropCycle: 1,
+    note: 'ลงกล้าคาโมมายล์ แปลงใกล้หอประชุม',
+    fertilizingLog: []
+  },
+  {
+    id: 'CROP-005',
+    plotId: 'PLOT-001',
+    plantDate: '2026-03-01',
+    harvestDateEst: '2026-06-01',
+    harvestDateActual: '2026-06-05',
+    seedlingCount: 800,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 4500,
+    yield: 160.0,
     status: 'harvested',
-    isProcessed: true, // Already processed
-    cropYear: 2568,
+    isProcessed: true,
+    cropYear: 2569,
+    cropCycle: 1,
+    note: 'รอบปลูกเก๊กฮวย เก็บเกี่ยวผลผลิตเรียบร้อยและอบแห้งแล้ว',
+    harvestNote: 'ดอกสดสมบูรณ์ คุณภาพเกรด A',
     fertilizingLog: [
-      { date: '2025-11-15', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '10 กิโลกรัม', cost: 200 },
-      { date: '2026-01-05', type: 'ปุ๋ยคอกมูลไก่แห้ง', amount: '10 กิโลกรัม', cost: 200 }
+      { date: '2026-03-05', type: 'ปุ๋ยหมักชีวภาพสูตรใบ', amount: '20 กิโลกรัม', cost: 350 }
     ]
+  },
+  {
+    id: 'CROP-006',
+    plotId: 'PLOT-002',
+    plantDate: '2026-03-15',
+    harvestDateEst: '2026-06-15',
+    harvestDateActual: '2026-06-18',
+    seedlingCount: 500,
+    seedlingSource: 'คาโมมายล์',
+    cost: 3200,
+    yield: 90.0,
+    status: 'harvested',
+    isProcessed: true,
+    cropYear: 2569,
+    cropCycle: 1,
+    note: 'รอบปลูกคาโมมายล์ เก็บเกี่ยวและอบแห้งแล้ว',
+    harvestNote: 'ดอกแห้งหอมมาก',
+    fertilizingLog: [
+      { date: '2026-03-20', type: 'ปุ๋ยคอกเตรียมดิน', amount: '30 กิโลกรัม', cost: 400 }
+    ]
+  },
+  {
+    id: 'CROP-007',
+    plotId: 'PLOT-003',
+    plantDate: '2026-04-01',
+    harvestDateEst: '2026-07-01',
+    harvestDateActual: '2026-08-25',
+    seedlingCount: 1000,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 4800,
+    yield: 175.5,
+    status: 'harvested',
+    isProcessed: false,
+    cropYear: 2569,
+    cropCycle: 1,
+    note: 'เก็บเกี่ยวดอกสดเก๊กฮวยเรียบร้อยแล้ว รอส่งเข้าตู้อบแห้ง',
+    harvestNote: 'ดอกสดคุณภาพดี รอคิวเตาอบที่ 1',
+    fertilizingLog: []
+  },
+  {
+    id: 'CROP-008',
+    plotId: 'PLOT-004',
+    plantDate: '2026-04-10',
+    harvestDateEst: '2026-07-10',
+    harvestDateActual: '2026-08-26',
+    seedlingCount: 600,
+    seedlingSource: 'คาโมมายล์',
+    cost: 3500,
+    yield: 85.0,
+    status: 'harvested',
+    isProcessed: false,
+    cropYear: 2569,
+    cropCycle: 1,
+    note: 'เก็บเกี่ยวดอกสดคาโมมายล์เรียบร้อยแล้ว รอส่งเข้าตู้อบแห้ง',
+    harvestNote: 'ดอกสดสมบูรณ์ รอคิวเตาอบที่ 2',
+    fertilizingLog: []
   }
 ];
 
 // Mock inventory split by cropId (Phase 2 core feature)
 const MOCK_INVENTORY = [
-  { cropId: 'CROP-003', herbType: 'เก๊กฮวย', dryStockKg: 13.18, processedDate: '2026-03-06' }, // 185.5 / 8 = 23.18 kg. Sold 10, remaining 13.18
-  { cropId: 'CROP-004', herbType: 'คาโมมายล์', dryStockKg: 7.53, processedDate: '2026-03-13' }  // 75.2 / 6 = 12.53 kg. Sold 5, remaining 7.53
+  { cropId: 'CROP-005', herbType: 'เก๊กฮวย', dryStockKg: 15.0, processedDate: '2026-06-07' },
+  { cropId: 'CROP-006', herbType: 'คาโมมายล์', dryStockKg: 10.0, processedDate: '2026-06-20' }
 ];
 
 // Mock sales transactions linked to specific cropIds
 const MOCK_SALES = [
-  { id: 'SALE-001', cropId: 'CROP-003', amountKg: 10.0, pricePerKg: 450, totalPrice: 4500, customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-03-20' },
-  { id: 'SALE-002', cropId: 'CROP-004', amountKg: 5.0, pricePerKg: 600, totalPrice: 3000, customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-04-05' }
+  { id: 'SALE-001', cropId: 'CROP-005', amountKg: 5.0, pricePerKg: 500, totalPrice: 2500, customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-06-15' },
+  { id: 'SALE-002', cropId: 'CROP-006', amountKg: 5.0, pricePerKg: 650, totalPrice: 3250, customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-06-25' }
 ];
 
 export class AppState {
@@ -344,7 +424,6 @@ export class AppState {
           status: i.status,
           history: i.history || []
         }));
-        await supabaseClient.from('inventory').insert(invToInsert);
         this.inventoryCache = JSON.parse(JSON.stringify(MOCK_INVENTORY));
       }
 
@@ -356,45 +435,41 @@ export class AppState {
       
       if (!salesError && salesData && salesData.length > 0) {
         this.salesCache = salesData.map(s => ({
-          id: s.id,
-          cropId: s.crop_id,
-          amount: s.amount,
-          price: s.price,
-          amountKg: s.amount_kg,
+          ...s,
+          inventoryId: s.inventory_id,
+          quantityKg: s.quantity_kg,
           pricePerKg: s.price_per_kg,
-          totalPrice: s.total_price || (s.amount * s.price) || 0,
-          customer: s.customer,
-          date: s.date,
-          saleType: s.sale_type
+          saleDate: s.sale_date,
+          buyerPhone: s.buyer_phone,
+          invoiceNo: s.invoice_no,
+          totalPrice: s.quantity_kg * s.price_per_kg
         }));
       } else if (salesData && salesData.length === 0) {
         const salesToInsert = MOCK_SALES.map((s, idx) => {
+          const invItem = this.inventoryCache.find(i => i.cropId === s.cropId);
           return {
             id: s.id,
-            crop_id: s.cropId,
-            amount: s.amountKg,
-            price: s.pricePerKg,
-            amount_kg: s.amountKg,
+            inventory_id: invItem ? invItem.id : 'INV-001',
+            customer_name: s.customer,
+            quantity_kg: s.amountKg,
             price_per_kg: s.pricePerKg,
-            total_price: s.totalPrice,
-            customer: s.customer,
-            date: s.date,
-            sale_type: 'bulk'
+            sale_date: s.date,
+            buyer_phone: '081-234-5600',
+            invoice_no: `INV-${String(idx + 1).padStart(3, '0')}`
           };
         });
         await supabaseClient.from('sales').insert(salesToInsert);
         this.salesCache = MOCK_SALES.map((s, idx) => {
+          const invItem = this.inventoryCache.find(i => i.cropId === s.cropId);
           return {
-            id: s.id,
-            cropId: s.cropId,
-            amount: s.amountKg,
-            price: s.pricePerKg,
-            amountKg: s.amountKg,
+            ...s,
+            inventoryId: invItem ? invItem.id : 'INV-001',
+            quantityKg: s.amountKg,
             pricePerKg: s.pricePerKg,
-            totalPrice: s.totalPrice,
-            customer: s.customer,
-            date: s.date,
-            saleType: 'bulk'
+            saleDate: s.date,
+            buyerPhone: '081-234-5600',
+            invoiceNo: `INV-${String(idx + 1).padStart(3, '0')}`,
+            totalPrice: s.amountKg * s.pricePerKg
           };
         });
       }
@@ -426,9 +501,9 @@ export class AppState {
     const cleanPassword = password.trim().replace(/-/g, '');
 
     const members = this.getMembers();
-    const member = members.find(m => m.citizenId === cleanUsername);
+    const member = members.find(m => m.houseNumber && m.houseNumber.trim() === cleanUsername);
     if (!member) {
-      throw new Error('ไม่พบบัญชีผู้ใช้งานที่มีเลขบัตรประชาชนนี้');
+      throw new Error('ไม่พบบัญชีผู้ใช้งานที่มีเลขที่บ้านนี้');
     }
 
     const memberPhoneClean = member.phone.replace(/-/g, '');
@@ -438,9 +513,9 @@ export class AppState {
 
     // Determine role
     let appRole = 'Member';
-    if (cleanUsername === '1509900000000' || member.role === 'ประธานกลุ่ม') {
+    if (member.id === 'MEM-001' || member.role === 'ประธานกลุ่ม') {
       appRole = 'Admin';
-    } else if (cleanUsername === '1509900000099' || member.role === 'เหรัญญิก') {
+    } else if (member.id === 'MEM-003' || member.role === 'เหรัญญิก') {
       appRole = 'Officer';
     }
 
@@ -495,14 +570,15 @@ export class AppState {
       try {
         const list = JSON.parse(storedMembers);
         const mem1 = list.find(m => m.id === 'MEM-001');
-        // If MEM-001 is missing citizenId or has the old format starting with 35099, migrate to new format
-        if (mem1 && (!mem1.citizenId || mem1.citizenId.startsWith('35099'))) {
+        // Migrate to houseNumber structure if needed
+        if (mem1 && (!mem1.houseNumber || mem1.citizenId)) {
           list.forEach(m => {
             const mockVer = MOCK_MEMBERS.find(mock => mock.id === m.id);
             if (mockVer) {
-              m.citizenId = mockVer.citizenId;
+              m.houseNumber = mockVer.houseNumber;
               m.phone = mockVer.phone;
             }
+            delete m.citizenId;
           });
           localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
           localStorage.removeItem(STORAGE_KEYS.AUTH); // Clear old session
@@ -513,44 +589,18 @@ export class AppState {
     }
 
     // 3. Plots
-    const storedPlots = localStorage.getItem(STORAGE_KEYS.PLOTS);
-    if (!storedPlots) {
+    if (!localStorage.getItem(STORAGE_KEYS.PLOTS) || JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)).length === 0) {
       localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
-    } else {
-      try {
-        const list = JSON.parse(storedPlots);
-        let updated = false;
-        list.forEach(p => {
-          if (p.memberId) {
-            if (!p.memberIds) {
-              p.memberIds = [p.memberId];
-            }
-            delete p.memberId;
-            updated = true;
-          }
-        });
-        if (updated) {
-          localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(list));
-        }
-      } catch (e) {
-        console.error("Plots migration error:", e);
-      }
     }
 
     // 4. Crop Seasons
-    if (!localStorage.getItem(STORAGE_KEYS.CROPS)) {
-      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
-    }
+    localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
 
     // 5. Inventory (Phase 2)
-    if (!localStorage.getItem(STORAGE_KEYS.INVENTORY)) {
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
-    }
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
 
     // 6. Sales (Phase 2)
-    if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
-      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
-    }
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
 
     // Trigger asynchronous Supabase synchronization if connected
     if (supabaseClient) {
@@ -1011,23 +1061,27 @@ export class AppState {
 
   /**
    * Process fresh harvested flowers into dry herb stock
-   * Ratio: Chrysanthemum 8:1, Chamomile 6:1
+   * Allows optional custom dryWeightKg input, or defaults to calculated ratio (Chrysanthemum 8:1, Chamomile 6:1)
    */
-  processDryHerbStock(cropId, freshYieldKg) {
+  processDryHerbStock(cropId, freshYieldKg, customDryWeightKg = null) {
     const crop = this.getCropById(cropId);
     if (!crop) throw new Error('ไม่พบรหัสรอบการปลูกนี้ในระบบ');
     if (crop.isProcessed) throw new Error('ล็อตเพาะปลูกนี้ผ่านกระบวนการแปรรูปอบแห้งแล้ว');
 
     const plot = this.getPlotById(crop.plotId);
-    if (!plot) throw new Error('ไม่พบแปลงปลูกที่ผูกกับรอบปลูกนี้');
+    const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
 
     const yieldAmount = parseFloat(freshYieldKg) || crop.yield || 0;
     if (yieldAmount <= 0) throw new Error('น้ำหนักผลผลิตสดต้องมากกว่า 0 กิโลกรัมเพื่อเข้าอบแห้ง');
 
-    // Calculate dried yield
-    const ratio = plot.plantType === 'เก๊กฮวย' ? 8 : 6;
-    const dryWeight = yieldAmount / ratio;
-    const finalDryWeight = parseFloat(dryWeight.toFixed(2));
+    // Calculate dried yield or use custom dry weight
+    let finalDryWeight = 0;
+    if (customDryWeightKg !== null && !isNaN(parseFloat(customDryWeightKg)) && parseFloat(customDryWeightKg) > 0) {
+      finalDryWeight = parseFloat(parseFloat(customDryWeightKg).toFixed(2));
+    } else {
+      const ratio = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย') ? 8 : 6;
+      finalDryWeight = parseFloat((yieldAmount / ratio).toFixed(2));
+    }
 
     // 1. Add to Inventory
     const inventory = this.getInventory();
@@ -1044,7 +1098,7 @@ export class AppState {
     } else {
       invItem = {
         cropId: cropId,
-        herbType: plot.plantType,
+        herbType: herbType,
         dryStockKg: finalDryWeight,
         processedDate: new Date().toISOString().split('T')[0]
       };

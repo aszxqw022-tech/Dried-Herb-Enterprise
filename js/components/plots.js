@@ -19,19 +19,12 @@ export const PlotsComponent = {
     }
     const members = appState.getMembers();
 
-    // Generate members checkboxes options for co-ownership selection (used in the Modal)
-    const membersCheckboxes = members
+    // Generate member options for single owner selection (used in the Modal)
+    const memberOptions = members
       .filter(m => m.status === 'active')
       .map(m => {
         const isSelf = isMember && m.id === currentUser.memberId;
-        return `
-          <label class="flex items-center gap-2 text-xs text-gray-750 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors">
-            <input type="checkbox" name="memberIds" value="${m.id}" 
-              ${isSelf ? 'checked disabled' : ''} 
-              class="plot-member-checkbox rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 transition-all">
-            <span>${m.name} <span class="text-gray-400 font-mono text-[10px]">(${m.id})</span></span>
-          </label>
-        `;
+        return `<option value="${m.id}" ${isSelf ? 'selected' : ''}>${m.name} (${m.id}) - บ้านเลขที่ ${m.houseNumber || '-'}</option>`;
       })
       .join('');
 
@@ -39,22 +32,15 @@ export const PlotsComponent = {
     const rowsHtml = plots.length === 0 
       ? `<tr><td colspan="7" class="px-6 py-6 text-center text-sm text-gray-500">ยังไม่มีการบันทึกแปลงปลูกในระบบ</td></tr>`
       : plots.map(p => {
-          const owners = members.filter(m => p.memberIds && p.memberIds.includes(m.id));
-          const ownersNames = owners.map(o => o.name).join(', ') || 'ไม่พบชื่อเจ้าของ';
+          const owner = members.find(m => (p.memberIds && p.memberIds.includes(m.id)) || p.memberId === m.id);
+          const ownerName = owner ? owner.name : 'ไม่พบชื่อเจ้าของ';
           const areaFormatted = formatThaiArea(p.sizeRai, p.sizeNgan, p.sizeSqWah);
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
               <td class="px-6 py-3.5 text-sm font-semibold text-emerald-800">${p.id}</td>
               <td class="px-6 py-3.5 text-sm font-medium text-gray-900">${p.name}</td>
-              <td class="px-6 py-3.5 text-sm text-gray-600">${ownersNames}</td>
+              <td class="px-6 py-3.5 text-sm text-gray-600">${ownerName}</td>
               <td class="px-6 py-3.5 text-sm text-gray-600">${areaFormatted}</td>
-              <td class="px-6 py-3.5">
-                <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
-                  p.plantType === 'เก๊กฮวย' ? 'badge-chrysanthemum' : 'badge-chamomile'
-                }">
-                  ${p.plantType}
-                </span>
-              </td>
               <td class="px-6 py-3.5 text-xs font-mono text-gray-500">
                 ${(parseFloat(p.lat) || 0).toFixed(4)}, ${(parseFloat(p.lng) || 0).toFixed(4)}
               </td>
@@ -116,9 +102,8 @@ export const PlotsComponent = {
                   <tr class="bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
                     <th class="px-6 py-3.5">รหัสแปลง</th>
                     <th class="px-6 py-3.5">ชื่อแปลง</th>
-                    <th class="px-6 py-3.5">เกษตรกรเจ้าของ</th>
+                    <th class="px-6 py-3.5">เจ้าของแปลง</th>
                     <th class="px-6 py-3.5">ขนาดพื้นที่</th>
-                    <th class="px-6 py-3.5">พืชที่ปลูก</th>
                     <th class="px-6 py-3.5">พิกัด Lat, Lng</th>
                     <th class="px-6 py-3.5 text-right">จัดการ</th>
                   </tr>
@@ -147,19 +132,18 @@ export const PlotsComponent = {
           
           <!-- Modal Body Form -->
           <form id="plot-modal-form" class="p-6">
-            <!-- Hidden input to prevent JS cache exceptions from old scripts expecting this element -->
-            <input type="hidden" id="plot-memberId" value="">
-            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               <!-- Left Column: Form Inputs -->
               <div class="space-y-4">
                 <!-- Owner Member Selection -->
                 <div>
-                  <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">เกษตรกรผู้ถือครองร่วม * <span class="text-[10px] text-gray-400 normal-case">(เลือกได้หลายคน)</span></label>
-                  <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-1.5 bg-gray-50/30">
-                    ${membersCheckboxes}
-                  </div>
+                  <label for="modal-plot-ownerId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เจ้าของแปลง *</label>
+                  <select id="modal-plot-ownerId" name="ownerId" required ${isMember ? 'disabled' : ''}
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="">-- เลือกเจ้าของแปลง --</option>
+                    ${memberOptions}
+                  </select>
                 </div>
 
                 <!-- Plot Name -->
@@ -167,16 +151,6 @@ export const PlotsComponent = {
                   <label for="modal-plot-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อเรียกแปลงปลูก *</label>
                   <input type="text" id="modal-plot-name" name="name" required placeholder="เช่น แปลง 1 ข้างบ้านป้าใจดี"
                     class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-
-                <!-- Herb Type -->
-                <div>
-                  <label for="modal-plot-plantType" class="block text-xs font-semibold text-gray-500 uppercase mb-1">พืชสมุนไพรหลัก *</label>
-                  <select id="modal-plot-plantType" name="plantType" required
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    <option value="เก๊กฮวย">เก๊กฮวย (Chrysanthemum)</option>
-                    <option value="คาโมมายล์">คาโมมายล์ (Chamomile)</option>
-                  </select>
                 </div>
 
                 <!-- Area Size Inputs -->
@@ -282,17 +256,9 @@ export const PlotsComponent = {
       attribution: '© OpenStreetMap contributors'
     }).addTo(mapInstance);
 
-    const chrysanthemumIcon = L.divIcon({
+    const plotPinIcon = L.divIcon({
       className: 'custom-div-icon',
-      html: `<div class="w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center bg-amber-500 text-white font-bold"><i class="fas fa-seedling"></i></div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    });
-
-    const chamomileIcon = L.divIcon({
-      className: 'custom-div-icon',
-      html: `<div class="w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center bg-sky-500 text-white font-bold"><i class="fas fa-seedling"></i></div>`,
+      html: `<div class="w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center bg-emerald-600 text-white font-bold"><i class="fas fa-seedling"></i></div>`,
       iconSize: [32, 32],
       iconAnchor: [16, 32],
       popupAnchor: [0, -32]
@@ -303,22 +269,18 @@ export const PlotsComponent = {
     plots.forEach(p => {
       const owners = members.filter(m => p.memberIds && p.memberIds.includes(m.id));
       const ownersNames = owners.map(o => o.name).join(', ') || '-';
-      const icon = p.plantType === 'เก๊กฮวย' ? chrysanthemumIcon : chamomileIcon;
       
       const latVal = parseFloat(p.lat);
       const lngVal = parseFloat(p.lng);
       if (isNaN(latVal) || isNaN(lngVal)) return;
 
-      const marker = L.marker([latVal, lngVal], { icon: icon }).addTo(mapInstance);
+      const marker = L.marker([latVal, lngVal], { icon: plotPinIcon }).addTo(mapInstance);
       
       const popupContent = `
         <div class="p-1 leading-normal font-sans">
           <span class="text-xs font-bold text-gray-500">${p.id}</span>
           <h4 class="text-sm font-bold text-gray-900 mt-0.5">${p.name}</h4>
-          <p class="text-xs text-gray-600 mt-1"><b>เกษตรกร:</b> ${ownersNames}</p>
-          <p class="text-xs text-gray-600"><b>พืชสมุนไพร:</b> <span class="px-1.5 py-0.5 rounded text-[10px] ${
-            p.plantType === 'เก๊กฮวย' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-          }">${p.plantType}</span></p>
+          <p class="text-xs text-gray-600 mt-1"><b>เจ้าของแปลง:</b> ${ownersNames}</p>
           <p class="text-xs text-gray-600"><b>ขนาดพื้นที่:</b> ${formatThaiArea(p.sizeRai, p.sizeNgan, p.sizeSqWah)}</p>
           <p class="text-[10px] text-gray-400 mt-1">พิกัด: ${latVal.toFixed(5)}, ${lngVal.toFixed(5)}</p>
         </div>
@@ -360,22 +322,18 @@ export const PlotsComponent = {
         const currentUser = appState.getCurrentUser();
         const isMember = currentUser && currentUser.role === 'Member';
 
-        const memberCheckboxes = document.querySelectorAll('.plot-member-checkbox:checked');
-        const checkedMemberIds = Array.from(memberCheckboxes).map(cb => cb.value);
+        const ownerSelect = document.getElementById('modal-plot-ownerId');
+        const selectedOwnerId = isMember ? currentUser.memberId : (ownerSelect ? ownerSelect.value : '');
 
-        if (isMember && currentUser && !checkedMemberIds.includes(currentUser.memberId)) {
-          checkedMemberIds.push(currentUser.memberId);
-        }
-
-        if (checkedMemberIds.length === 0) {
-          showToast('กรุณาเลือกเกษตรกรผู้ถือครองร่วมอย่างน้อย 1 คน', 'error');
+        if (!selectedOwnerId) {
+          showToast('กรุณาเลือกเจ้าของแปลง', 'error');
           return;
         }
 
         const data = {
-          memberIds: checkedMemberIds,
+          memberIds: [selectedOwnerId],
+          memberId: selectedOwnerId,
           name: document.getElementById('modal-plot-name').value,
-          plantType: document.getElementById('modal-plot-plantType').value,
           sizeRai: parseInt(document.getElementById('modal-plot-rai').value) || 0,
           sizeNgan: parseInt(document.getElementById('modal-plot-ngan').value) || 0,
           sizeSqWah: parseInt(document.getElementById('modal-plot-sqWah').value) || 0,
@@ -468,13 +426,7 @@ export const PlotsComponent = {
     const form = document.getElementById('plot-modal-form');
     if (form) form.reset();
 
-    // Clear checkboxes
-    const checkboxes = document.querySelectorAll('.plot-member-checkbox');
-    checkboxes.forEach(cb => {
-      const isSelf = isMember && cb.value === currentUser.memberId;
-      cb.checked = isSelf;
-      cb.disabled = isSelf;
-    });
+    const ownerSelect = document.getElementById('modal-plot-ownerId');
 
     let defaultLat = 18.9142;
     let defaultLng = 98.9442;
@@ -487,14 +439,12 @@ export const PlotsComponent = {
       if (plot) {
         document.getElementById('plot-modal-title').innerHTML = `<i class="fas fa-edit"></i> แก้ไขข้อมูลแปลงปลูก (${id})`;
         
-        checkboxes.forEach(cb => {
-          const isSelf = isMember && cb.value === currentUser.memberId;
-          cb.checked = isSelf || (plot.memberIds && plot.memberIds.includes(cb.value));
-          cb.disabled = isSelf;
-        });
+        const currentOwnerId = (plot.memberIds && plot.memberIds[0]) || plot.memberId || '';
+        if (ownerSelect) {
+          ownerSelect.value = isMember ? currentUser.memberId : currentOwnerId;
+        }
 
         document.getElementById('modal-plot-name').value = plot.name || '';
-        document.getElementById('modal-plot-plantType').value = plot.plantType || 'เก๊กฮวย';
         document.getElementById('modal-plot-rai').value = plot.sizeRai || 0;
         document.getElementById('modal-plot-ngan').value = plot.sizeNgan || 0;
         document.getElementById('modal-plot-sqWah').value = plot.sizeSqWah || 0;

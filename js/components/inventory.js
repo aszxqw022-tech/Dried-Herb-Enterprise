@@ -3,9 +3,10 @@ import { appState } from '../state.js';
 import { formatThaiDate, formatBaht, showToast } from '../helpers.js';
 
 export const InventoryComponent = {
-  activeTab: 'stock', // 'stock' | 'ledger' | 'sales'
+  activeTab: 'fresh', // 'fresh' | 'stock' | 'ledger' | 'sales'
   searchMemberQuery: '',
   sellingCropId: null,
+  selectedFreshCropIds: [],
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -14,11 +15,12 @@ export const InventoryComponent = {
     const stats = appState.getStats();
     
     let plots = appState.getPlots();
+    let crops = appState.getCrops();
     if (isMember) {
       plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+      const plotIds = plots.map(p => p.id);
+      crops = crops.filter(c => plotIds.includes(c.plotId));
     }
-    const plotIds = plots.map(p => p.id);
-    const crops = appState.getCrops().filter(c => plotIds.includes(c.plotId));
     const cropIds = crops.map(c => c.id);
     
     const inventory = appState.getInventory().filter(i => cropIds.includes(i.cropId));
@@ -35,7 +37,7 @@ export const InventoryComponent = {
       filteredReport = filteredReport.filter(r => r.id === currentUser.memberId);
     }
 
-    // 2. Build Inventory Stock Tab HTML
+    // 2. Build Inventory Stock Tab HTML (Per-Lot Cards)
     const activeInventoryLots = inventory.filter(inv => inv.dryStockKg > 0);
     const stockTabHtml = activeInventoryLots.length === 0
       ? `<div class="p-8 text-center text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">ไม่มีสินค้าอบแห้งคงเหลือในคลังในขณะนี้</div>`
@@ -43,13 +45,14 @@ export const InventoryComponent = {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           ${activeInventoryLots.map(inv => {
             const crop = appState.getCropById(inv.cropId);
-            const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-            const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+            const plot = crop ? appState.getPlotById(crop.plotId) : null;
+            const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
             const ownersNames = owners.map(o => o.name).join(', ') || '-';
-            const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
+            const herbType = inv.herbType || (crop ? crop.seedlingSource : 'สมุนไพร');
+            const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
             
             return `
-              <div class="glass-card bg-white rounded-2xl p-5 border border-gray-100 flex flex-col justify-between space-y-4">
+              <div class="glass-card bg-white rounded-3xl p-5 border border-gray-100 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
                 <div>
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-1.5 flex-wrap">
@@ -59,16 +62,16 @@ export const InventoryComponent = {
                       </button>
                     </div>
                     <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
-                      isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
+                      isChrys ? 'badge-chrysanthemum text-amber-800 bg-amber-100' : 'badge-chamomile text-sky-800 bg-sky-100'
                     }">
-                      ${inv.herbType}อบแห้ง
+                      ${herbType}อบแห้ง
                     </span>
                   </div>
                   <h4 class="text-base font-bold text-gray-800">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
                   <p class="text-xs text-gray-500 mt-1">เกษตรกรเจ้าของ: <b>${ownersNames}</b></p>
                   
-                  <div class="mt-4 p-3 bg-gray-50 rounded-xl flex justify-between items-center">
-                    <span class="text-xs text-gray-500">สต็อกคงเหลือล็อตนี้:</span>
+                  <div class="mt-4 p-4 bg-gray-50 rounded-2xl flex justify-between items-center border border-gray-100">
+                    <span class="text-xs text-gray-500 font-medium">สต็อกคงเหลือล็อตนี้:</span>
                     <span class="text-2xl font-black text-emerald-800">${inv.dryStockKg.toFixed(2)} <span class="text-xs font-bold text-gray-400">กก.</span></span>
                   </div>
                   <div class="text-[10px] text-gray-400 mt-2 text-right">
@@ -77,7 +80,7 @@ export const InventoryComponent = {
                 </div>
 
                 <div class="pt-2">
-                  <button data-crop-id="${inv.cropId}" class="sell-stock-btn w-full py-2.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5">
+                  <button data-crop-id="${inv.cropId}" class="sell-stock-btn w-full py-2.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold">
                     <i class="fas fa-shopping-cart"></i> บันทึกการขาย
                   </button>
                 </div>
@@ -159,11 +162,12 @@ export const InventoryComponent = {
     const salesRowsHtml = sales.length === 0
       ? `<tr><td colspan="8" class="px-6 py-6 text-center text-sm text-gray-500">ยังไม่พบข้อมูลการจำหน่ายผลผลิตในระบบ</td></tr>`
       : sales.map(s => {
-          const crop = crops.find(c => c.id === s.cropId);
-          const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+          const crop = appState.getCropById(s.cropId);
+          const plot = crop ? appState.getPlotById(crop.plotId) : null;
+          const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
           const ownersNames = owners.map(o => o.name).join(', ') || '-';
-          const isChrys = plot && (plot.plantType === 'เก๊กฮวย' || plot.plantType.includes('เก๊กฮวย'));
+          const herbType = crop ? (crop.seedlingSource || (plot ? plot.plantType : '-') || '-') : '-';
+          const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
           
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
@@ -173,7 +177,7 @@ export const InventoryComponent = {
               <td class="px-6 py-3.5">
                 <span class="px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${
                   isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
-                }">${plot ? plot.plantType : '-'}อบแห้ง</span>
+                }">${herbType}อบแห้ง</span>
               </td>
               <td class="px-6 py-3.5 text-sm text-gray-700 font-bold text-center">
                 ${s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`}
@@ -223,9 +227,90 @@ export const InventoryComponent = {
       </div>
     `;
 
+    // 1. Unprocessed fresh harvested crops
+    const unprocessedCrops = crops.filter(c => c.status === 'harvested' && !c.isProcessed);
+
+    // Build Fresh Harvested Tab HTML
+    const freshTabHtml = unprocessedCrops.length === 0
+      ? `<div class="p-8 text-center text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">ยังไม่มีผลผลิตดอกสดที่รอเข้าอบแห้งในขณะนี้</div>`
+      : `
+        <div class="space-y-4">
+          <!-- Top Control Header for Batch Dry Process -->
+          <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="select-all-fresh-checkbox" ${this.selectedFreshCropIds.length === unprocessedCrops.length && unprocessedCrops.length > 0 ? 'checked' : ''} 
+                class="rounded text-amber-600 focus:ring-amber-500 border-gray-300 w-4 h-4 cursor-pointer">
+              <label for="select-all-fresh-checkbox" class="text-xs font-bold text-gray-700 cursor-pointer">
+                เลือกทั้งหมด (${this.selectedFreshCropIds.length}/${unprocessedCrops.length} แปลง)
+              </label>
+            </div>
+
+            <button id="batch-dry-process-btn" ${this.selectedFreshCropIds.length === 0 ? 'disabled' : ''} 
+              class="px-4 py-2.5 text-xs font-bold text-gray-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:hover:bg-amber-400 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+              <i class="fas fa-fire-alt"></i> บันทึกอบแห้งพร้อมกัน (${this.selectedFreshCropIds.length} แปลง)
+            </button>
+          </div>
+
+          <!-- Fresh Crop Cards Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${unprocessedCrops.map(c => {
+              const plot = appState.getPlotById(c.plotId);
+              const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
+              const ownersNames = owners.map(o => o.name).join(', ') || '-';
+              const herbType = c.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
+              const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
+              const isChecked = this.selectedFreshCropIds.includes(c.id);
+
+              return `
+                <div class="glass-card bg-white rounded-3xl p-5 border border-amber-200/70 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
+                  <div>
+                    <div class="flex justify-between items-start mb-2">
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" data-crop-id="${c.id}" ${isChecked ? 'checked' : ''} 
+                          class="fresh-batch-checkbox rounded text-amber-600 focus:ring-amber-500 border-gray-300 w-4 h-4 cursor-pointer">
+                        <span class="text-xs font-bold text-gray-400">ล็อต: ${c.id}</span>
+                      </div>
+                      <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
+                        isChrys ? 'badge-chrysanthemum text-amber-800 bg-amber-100' : 'badge-chamomile text-sky-800 bg-sky-100'
+                      }">
+                        ${herbType} (ดอกสด)
+                      </span>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-800 pl-6">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
+                    <p class="text-xs text-gray-500 mt-1 pl-6">เกษตรกรเจ้าของ: <b>${ownersNames}</b></p>
+                    
+                    <div class="mt-4 p-4 bg-amber-50/70 rounded-2xl border border-amber-100 flex justify-between items-center">
+                      <div>
+                        <span class="text-[10px] text-amber-700 font-bold block">น้ำหนักดอกสดเก็บเกี่ยวได้</span>
+                        <span class="text-2xl font-black text-amber-900 mt-0.5 block">${(c.yield || 0).toFixed(2)} <span class="text-xs font-bold text-amber-700">กก.</span></span>
+                      </div>
+                      <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm">
+                        <i class="fas fa-seedling"></i>
+                      </div>
+                    </div>
+                    
+                    <div class="text-[10px] text-gray-400 mt-2 flex justify-between items-center">
+                      <span>วันที่เก็บเกี่ยว: ${formatThaiDate(c.harvestDateActual)}</span>
+                      <span class="text-amber-700 font-bold"><i class="fas fa-fire mr-1"></i>รออบแห้ง</span>
+                    </div>
+                  </div>
+
+                  <div class="pt-2">
+                    <button data-crop-id="${c.id}" class="open-dry-modal-btn w-full py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5">
+                      <i class="fas fa-fire-alt"></i> กรอกข้อมูลการอบแห้ง
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
     // 5. Select tab layout content
     let tabContentHtml = '';
-    if (this.activeTab === 'stock') tabContentHtml = stockTabHtml;
+    if (this.activeTab === 'fresh') tabContentHtml = freshTabHtml;
+    else if (this.activeTab === 'stock') tabContentHtml = stockTabHtml;
     else if (this.activeTab === 'ledger') tabContentHtml = ledgerTabHtml;
     else if (this.activeTab === 'sales') tabContentHtml = salesTabHtml;
 
@@ -271,8 +356,16 @@ export const InventoryComponent = {
         </div>
 
         <!-- Dynamic Navigation Tabs -->
-        <div class="flex border-b border-gray-200">
-          <button id="tab-stock-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none ${
+        <div class="flex border-b border-gray-200 overflow-x-auto">
+          <button id="tab-fresh-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
+            this.activeTab === 'fresh' 
+              ? 'border-emerald-700 text-emerald-700 font-bold' 
+              : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
+          }">
+            <i class="fas fa-leaf mr-1.5 text-amber-600"></i> ผลผลิตดอกสด (${unprocessedCrops.length})
+          </button>
+
+          <button id="tab-stock-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
             this.activeTab === 'stock' 
               ? 'border-emerald-700 text-emerald-700 font-bold' 
               : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
@@ -280,7 +373,7 @@ export const InventoryComponent = {
             <i class="fas fa-dolly-flatbed mr-1.5"></i> สมุนไพรอบแห้งพร้อมขาย
           </button>
           
-          <button id="tab-ledger-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none ${
+          <button id="tab-ledger-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
             this.activeTab === 'ledger' 
               ? 'border-emerald-700 text-emerald-700 font-bold' 
               : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
@@ -288,7 +381,7 @@ export const InventoryComponent = {
             <i class="fas fa-calculator mr-1.5"></i> สรุปต้นทุน-กำไรรายสมาชิก
           </button>
 
-          <button id="tab-sales-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none ${
+          <button id="tab-sales-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
             this.activeTab === 'sales' 
               ? 'border-emerald-700 text-emerald-700 font-bold' 
               : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
@@ -447,7 +540,7 @@ export const InventoryComponent = {
             <!-- Receipt Header Info -->
             <div class="flex justify-between items-start border-b border-gray-100 pb-4">
               <div>
-                <span class="block text-[10px] font-bold text-emerald-800 uppercase tracking-widest">เลขที่ใบสำคัญ / Invoice</span>
+                <span class="block text-[10px] font-bold text-emerald-800 uppercase tracking-widest">เลขที่ใบสำคัญชำระเงิน</span>
                 <span id="detail-invoice-no" class="text-lg font-black text-gray-800">INV-000</span>
               </div>
               <div class="text-right">
@@ -506,13 +599,61 @@ export const InventoryComponent = {
           </div>
         </div>
       </div>
+      <!-- Dry Process Modal (Form for entering actual dry yield) -->
+      <div id="dry-process-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
+        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Modal Header -->
+          <div class="bg-amber-600 px-6 py-4 text-white flex justify-between items-center">
+            <h3 class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fas fa-fire-alt"></i> บันทึกข้อมูลการอบแห้งผลผลิต
+            </h3>
+            <button type="button" class="close-dry-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <!-- Modal Body Form -->
+          <form id="dry-process-form" class="p-6 space-y-4">
+            <div>
+              <span class="block text-xs font-semibold text-gray-400 uppercase">ล็อตผลผลิตดอกสด</span>
+              <span id="dry-modal-crop-display" class="block text-base font-extrabold text-amber-900 mt-0.5">CROP-XXX</span>
+            </div>
+
+            <!-- Fresh Weight Display -->
+            <div class="p-3 bg-amber-50 rounded-xl flex justify-between items-center">
+              <span class="text-xs text-amber-800 font-bold">น้ำหนักดอกสดเดิม:</span>
+              <span id="dry-modal-fresh-display" class="text-sm font-black text-amber-900">0.00 กก.</span>
+            </div>
+
+            <!-- Actual Dried Weight Input -->
+            <div>
+              <label for="dry-modal-dry-weight" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักสมุนไพรอบแห้งที่ได้จริง (กิโลกรัม) *</label>
+              <input type="number" id="dry-modal-dry-weight" name="dryWeight" required min="0.01" step="any" placeholder="เช่น 20.5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-emerald-800">
+              <span id="dry-modal-calc-hint" class="block text-[10px] text-gray-400 mt-1">* หากกรอกแล้ว ระบบจะนำยอดไปเพิ่มใน "สมุนไพรอบแห้งพร้อมขาย" อัตโนมัติ</span>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end pt-4 gap-2.5">
+              <button type="button" class="close-dry-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                ยกเลิก
+              </button>
+              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm font-bold">
+                <i class="fas fa-check"></i> บันทึกและนำเข้าคลังสินค้า
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     `;
   },
 
   init() {
     this.bindTabEvents();
     
-    if (this.activeTab === 'stock') {
+    if (this.activeTab === 'fresh') {
+      this.bindFreshEvents();
+    } else if (this.activeTab === 'stock') {
       this.bindStockEvents();
     } else if (this.activeTab === 'ledger') {
       this.bindLedgerEvents();
@@ -522,9 +663,17 @@ export const InventoryComponent = {
   },
 
   bindTabEvents() {
+    const freshBtn = document.getElementById('tab-fresh-btn');
     const stockBtn = document.getElementById('tab-stock-btn');
     const ledgerBtn = document.getElementById('tab-ledger-btn');
     const salesBtn = document.getElementById('tab-sales-btn');
+
+    if (freshBtn) {
+      freshBtn.addEventListener('click', () => {
+        this.activeTab = 'fresh';
+        this.refreshView();
+      });
+    }
 
     if (stockBtn) {
       stockBtn.addEventListener('click', () => {
@@ -544,6 +693,133 @@ export const InventoryComponent = {
       salesBtn.addEventListener('click', () => {
         this.activeTab = 'sales';
         this.refreshView();
+      });
+    }
+  },
+
+  bindFreshEvents() {
+    const dryModalBtns = document.querySelectorAll('.open-dry-modal-btn');
+    const modalDry = document.getElementById('dry-process-modal');
+    const closeDryBtns = document.querySelectorAll('.close-dry-modal-btn');
+    const formDry = document.getElementById('dry-process-form');
+
+    let processingCropId = null;
+
+    // Checkbox batch selections for fresh crops
+    const freshCheckboxes = document.querySelectorAll('.fresh-batch-checkbox');
+    freshCheckboxes.forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const id = cb.getAttribute('data-crop-id');
+        if (cb.checked) {
+          if (!this.selectedFreshCropIds.includes(id)) this.selectedFreshCropIds.push(id);
+        } else {
+          this.selectedFreshCropIds = this.selectedFreshCropIds.filter(i => i !== id);
+        }
+        this.refreshView();
+      });
+    });
+
+    // Select All Fresh Checkbox
+    const selectAllFreshCb = document.getElementById('select-all-fresh-checkbox');
+    if (selectAllFreshCb) {
+      selectAllFreshCb.addEventListener('change', (e) => {
+        const currentUser = appState.getCurrentUser();
+        const isMember = currentUser && currentUser.role === 'Member';
+        let plots = appState.getPlots();
+        let crops = appState.getCrops();
+        if (isMember) {
+          plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
+          const plotIds = plots.map(p => p.id);
+          crops = crops.filter(c => plotIds.includes(c.plotId));
+        }
+        const unprocessedCrops = crops.filter(c => c.status === 'harvested' && !c.isProcessed);
+
+        if (selectAllFreshCb.checked) {
+          this.selectedFreshCropIds = unprocessedCrops.map(c => c.id);
+        } else {
+          this.selectedFreshCropIds = [];
+        }
+        this.refreshView();
+      });
+    }
+
+    // Batch Dry Process Button click
+    const batchDryBtn = document.getElementById('batch-dry-process-btn');
+    if (batchDryBtn) {
+      batchDryBtn.addEventListener('click', () => {
+        if (this.selectedFreshCropIds.length === 0) return;
+        if (confirm(`คุณต้องการบันทึกการอบแห้งและแปรรูปนำเข้าคลังสินค้าพร้อมกันทั้งหมด ${this.selectedFreshCropIds.length} แปลง ใช่หรือไม่?`)) {
+          try {
+            let totalAdded = 0;
+            this.selectedFreshCropIds.forEach(cropId => {
+              const crop = appState.getCropById(cropId);
+              if (crop && !crop.isProcessed) {
+                const added = appState.processDryHerbStock(cropId, crop.yield);
+                totalAdded += added;
+              }
+            });
+            showToast(`แปรรูปอบแห้งกลุ่มสำเร็จ! นำเข้าคลังสินค้าพร้อมขายรวมทั้งสิ้น ${totalAdded.toFixed(2)} กก.`, 'success');
+            this.selectedFreshCropIds = []; // reset batch selection
+            this.activeTab = 'stock'; // Switch automatically to stock tab to view dry stock
+            this.refreshView();
+          } catch (err) {
+            showToast('เกิดข้อผิดพลาดในการอบแห้งกลุ่ม: ' + err.message, 'error');
+          }
+        }
+      });
+    }
+
+    dryModalBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cropId = btn.getAttribute('data-crop-id');
+        const crop = appState.getCropById(cropId);
+
+        if (crop && modalDry) {
+          processingCropId = cropId;
+          const plot = appState.getPlotById(crop.plotId);
+          const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
+
+          document.getElementById('dry-modal-crop-display').textContent = `${crop.id} (${herbType})`;
+          document.getElementById('dry-modal-fresh-display').textContent = `${(crop.yield || 0).toFixed(2)} กก.`;
+
+          // Default estimate calculation (Chrysanthemum 8:1, Chamomile 6:1)
+          const ratio = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย') ? 8 : 6;
+          const estDry = ((crop.yield || 0) / ratio).toFixed(2);
+          document.getElementById('dry-modal-dry-weight').value = estDry;
+
+          modalDry.classList.remove('hidden');
+        }
+      });
+    });
+
+    closeDryBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (modalDry) modalDry.classList.add('hidden');
+      });
+    });
+
+    if (formDry) {
+      formDry.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const customDryWeight = parseFloat(document.getElementById('dry-modal-dry-weight').value) || 0;
+
+        if (!processingCropId) return;
+
+        if (customDryWeight <= 0) {
+          showToast('กรุณากรอกน้ำหนักสมุนไพรอบแห้งที่ได้จริง', 'warning');
+          return;
+        }
+
+        try {
+          const addedDryWeight = appState.processDryHerbStock(processingCropId, null, customDryWeight);
+          if (modalDry) modalDry.classList.add('hidden');
+          showToast(`บันทึกข้อมูลการอบแห้งสำเร็จ! นำเข้าคลังสินค้าพร้อมขายจำนวน ${addedDryWeight} กก.`, 'success');
+          this.selectedFreshCropIds = this.selectedFreshCropIds.filter(i => i !== processingCropId);
+          this.activeTab = 'stock'; // Switch automatically to stock tab to view dry stock
+          this.refreshView();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
       });
     }
   },
@@ -754,62 +1030,45 @@ export const InventoryComponent = {
         const saleId = btn.getAttribute('data-sale-id');
         const sale = appState.getSales().find(s => s.id === saleId);
         if (sale && detailModal) {
-          try {
-            const crops = appState.getCrops();
-            const plots = appState.getPlots();
-            const members = appState.getMembers();
-            
-            const crop = crops.find(c => c.id === sale.cropId);
-            const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-            const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
-            const ownersNames = owners.map(o => o.name).join(', ') || '-';
-            
-            // Populate details with safe helper
-            const setVal = (id, val) => {
-              const el = document.getElementById(id);
-              if (el) el.textContent = val;
-            };
-
-            setVal('detail-sale-id', sale.id);
-            setVal('detail-crop-id', sale.cropId || '-');
-            setVal('detail-plant-type', plot ? `${plot.plantType}อบแห้ง` : '-');
-            setVal('detail-plot-name', plot ? plot.name : '-');
-            setVal('detail-owners', ownersNames);
-            
-            // Display list of owners with their village details
-            const ownersListContainer = document.getElementById('detail-owners-list');
-            if (ownersListContainer) {
-              ownersListContainer.innerHTML = owners.map(o => `
-                <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
-                  <i class="fas fa-user-circle text-lg text-emerald-600"></i>
-                  <div>
-                    <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
-                    <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
-                  </div>
+          const crops = appState.getCrops();
+          const plots = appState.getPlots();
+          const members = appState.getMembers();
+          
+          const crop = crops.find(c => c.id === sale.cropId);
+          const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
+          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+          const ownersNames = owners.map(o => o.name).join(', ') || '-';
+          
+          // Populate details
+          document.getElementById('detail-sale-id').textContent = sale.id;
+          document.getElementById('detail-crop-id').textContent = sale.cropId;
+          document.getElementById('detail-plant-type').textContent = plot ? `${plot.plantType}อบแห้ง` : '-';
+          document.getElementById('detail-plot-name').textContent = plot ? plot.name : '-';
+          document.getElementById('detail-owners').textContent = ownersNames;
+          
+          // Display list of owners with their village details
+          const ownersListContainer = document.getElementById('detail-owners-list');
+          if (ownersListContainer) {
+            ownersListContainer.innerHTML = owners.map(o => `
+              <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
+                <i class="fas fa-user-circle text-lg text-emerald-600"></i>
+                <div>
+                  <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
+                  <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
                 </div>
-              `).join('') || '<div class="text-xs text-gray-500">-</div>';
-            }
-            
-            setVal('detail-quantity', sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`);
-            setVal('detail-unit-price', sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`);
-            setVal('detail-total-price', formatBaht(sale.totalPrice));
-            setVal('detail-customer', sale.customer || '-');
-            
-            try {
-              setVal('detail-date', formatThaiDate(sale.date));
-            } catch (e) {
-              setVal('detail-date', sale.date || '-');
-            }
-            
-            // Generate a mockup invoice number if not exists
-            const invoiceNum = sale.invoiceNo || (sale.id && sale.id.includes('-') ? `INV-${sale.id.split('-')[1]}` : `INV-${sale.id || '000'}`);
-            setVal('detail-invoice-no', invoiceNum);
-            
-          } catch (innerErr) {
-            console.error("Error populating sale modal details:", innerErr);
+              </div>
+            `).join('') || '<div class="text-xs text-gray-500">-</div>';
           }
           
-          // Always show modal
+          document.getElementById('detail-quantity').textContent = sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`;
+          document.getElementById('detail-unit-price').textContent = sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`;
+          document.getElementById('detail-total-price').textContent = formatBaht(sale.totalPrice);
+          document.getElementById('detail-customer').textContent = sale.customer || '-';
+          document.getElementById('detail-date').textContent = formatThaiDate(sale.date);
+          
+          // Generate a mockup invoice number if not exists
+          document.getElementById('detail-invoice-no').textContent = sale.invoiceNo || `INV-${sale.id.split('-')[1]}`;
+          
           detailModal.classList.remove('hidden');
         }
       });
