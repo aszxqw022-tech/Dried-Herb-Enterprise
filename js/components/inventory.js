@@ -1,6 +1,6 @@
 // Inventory and Cost-Profit Ledger Component
 import { appState } from '../state.js';
-import { formatThaiDate, formatBaht, showToast } from '../helpers.js';
+import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
 
 export const InventoryComponent = {
   activeTab: 'fresh', // 'fresh' | 'stock' | 'ledger' | 'sales'
@@ -185,8 +185,11 @@ export const InventoryComponent = {
               <td class="px-6 py-3.5 text-sm text-gray-500">
                 ${s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระปุก` : `${formatBaht(s.pricePerKg || s.price)}/กก.`}
               </td>
-              <td class="px-6 py-3.5 text-sm text-emerald-800 font-black">${formatBaht(s.totalPrice)}</td>
-              <td class="px-6 py-3.5 text-sm text-gray-600 truncate max-w-[120px]" title="${s.customer}">${s.customer}</td>
+              <td class="px-6 py-3.5 text-sm font-black text-emerald-800">${formatBaht(s.totalPrice)}</td>
+              <td class="px-6 py-3.5 text-sm text-gray-800">
+                <div class="font-bold truncate max-w-[150px]" title="${s.customer}">${s.customer}</div>
+                ${s.customerId ? `<span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">${s.customerId}</span>` : ''}
+              </td>
               <td class="px-6 py-3.5 text-xs text-gray-400">${formatThaiDate(s.date)}</td>
               <td class="px-6 py-3.5 text-center">
                 <button class="view-sale-btn text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 mx-auto" data-sale-id="${s.id}">
@@ -392,259 +395,6 @@ export const InventoryComponent = {
 
         ${tabContentHtml}
       </div>
-
-      <!-- Record Sale Modal -->
-      <div id="sale-record-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-          <!-- Modal Header -->
-          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-            <h3 class="font-bold text-sm flex items-center gap-1.5">
-              <i class="fas fa-cash-register"></i> บันทึกรายการขายสินค้าแปรรูป
-            </h3>
-            <button type="button" class="close-sale-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body Form -->
-          <form id="sale-form" class="p-6 space-y-4">
-            <!-- Lot Code Display -->
-            <div>
-              <span class="block text-xs font-semibold text-gray-400 uppercase">จำหน่ายจากรหัสล็อตสินค้า</span>
-              <span id="sale-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
-            </div>
-
-            <!-- Sale Type Select -->
-            <div>
-              <label for="sale-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทสินค้าที่ขาย *</label>
-              <select id="sale-type" name="saleType" required
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="bulk">วัตถุดิบอบแห้ง (กิโลกรัม)</option>
-                <option value="jar">กระปุกสำเร็จรูป (กระปุก)</option>
-              </select>
-            </div>
-
-            <!-- Sale Quantity -->
-            <div>
-              <label for="sale-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ขาย (กิโลกรัม) *</label>
-              <input type="number" id="sale-amount" name="amount" required min="0.01" step="any" placeholder="เช่น 5.5"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <span id="sale-max-stock-display" class="block text-[10px] text-gray-400 mt-1">สต็อกล็อตนี้คงเหลือสูงสุด: - กก.</span>
-            </div>
-
-            <!-- Price per Unit -->
-            <div>
-              <label for="sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาต่อกิโลกรัม (บาท) *</label>
-              <input type="number" id="sale-price" name="price" required min="1" placeholder="เช่น 450"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Customer Info -->
-            <div>
-              <label for="sale-customer" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ลูกค้า / ช่องทางจัดจำหน่าย *</label>
-              <input type="text" id="sale-customer" name="customer" required placeholder="เช่น ร้านกาแฟสวนร่มรื่น, แฟนเพจกลุ่ม"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Date -->
-            <div>
-              <label for="sale-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่จำหน่าย *</label>
-              <input type="date" id="sale-date" name="date" required
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Info hint -->
-            <div class="p-3 bg-green-50 text-green-900 border border-green-100 rounded-xl text-[10px] leading-relaxed">
-              <i class="fas fa-info-circle mr-1 text-green-600"></i>
-              การบันทึกขายจะหักยอดคลังสินค้าล็อตนี้ และคำนวณบวกรายรับคืนเข้ากับเกษตรกรเจ้าของสิทธิ์ของล็อตโดยอัตโนมัติ
-            </div>
-
-            <!-- Footer Buttons -->
-            <div class="flex justify-end pt-4 gap-2.5">
-              <button type="button" class="close-sale-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                ยกเลิก
-              </button>
-              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
-                <i class="fas fa-check"></i> บันทึกขายและหักยอด
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-
-
-      <!-- Edit Lot Weights Modal (Hidden by default) -->
-      <div id="edit-weights-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-          <!-- Modal Header -->
-          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-            <h3 class="font-bold text-sm flex items-center gap-1.5">
-              <i class="fas fa-weight-hanging"></i> แก้ไขน้ำหนักผลผลิตสดและแห้ง
-            </h3>
-            <button type="button" class="close-weights-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body Form -->
-          <form id="edit-weights-form" class="p-6 space-y-4">
-            <!-- Lot Code Display -->
-            <div>
-              <span class="block text-xs font-semibold text-gray-400 uppercase">แก้ไขข้อมูลของล็อตสินค้า</span>
-              <span id="weights-crop-display" class="block text-base font-extrabold text-emerald-800 mt-1">CROP-XXX</span>
-            </div>
-
-            <!-- Fresh weight input -->
-            <div>
-              <label for="weights-fresh" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักดอกสดที่เก็บเกี่ยวได้ (กิโลกรัม) *</label>
-              <input type="number" id="weights-fresh" name="yieldFresh" required min="0.01" step="any" placeholder="เช่น 150.5"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Dried weight input -->
-            <div>
-              <label for="weights-dry" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักอบแห้งที่บรรจุเข้าคลัง (กิโลกรัม) *</label>
-              <input type="number" id="weights-dry" name="dryStock" required min="0.01" step="any" placeholder="เช่น 20.0"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Footer Buttons -->
-            <div class="flex justify-end pt-4 gap-2.5">
-              <button type="button" class="close-weights-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                ยกเลิก
-              </button>
-              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm font-bold">
-                <i class="fas fa-save"></i> บันทึกข้อมูลน้ำหนัก
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Sale Detail Modal -->
-      <div id="sale-detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 animate-slide-in">
-          <!-- Modal Header -->
-          <div class="bg-[#1e4620] px-6 py-4 text-white flex justify-between items-center">
-            <h3 class="font-bold text-sm flex items-center gap-1.5">
-              <i class="fas fa-file-invoice-dollar"></i> รายละเอียดใบเสร็จการจำหน่ายสมุนไพร
-            </h3>
-            <button type="button" id="close-sale-detail-modal-btn" class="text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body -->
-          <div class="p-6 space-y-6">
-            <!-- Receipt Header Info -->
-            <div class="flex justify-between items-start border-b border-gray-100 pb-4">
-              <div>
-                <span class="block text-[10px] font-bold text-emerald-800 uppercase tracking-widest">เลขที่ใบสำคัญชำระเงิน</span>
-                <span id="detail-invoice-no" class="text-lg font-black text-gray-800">INV-000</span>
-              </div>
-              <div class="text-right">
-                <span class="block text-[10px] font-semibold text-gray-400 uppercase">วันที่จำหน่าย</span>
-                <span id="detail-date" class="text-sm font-bold text-gray-700">01 ม.ค. 2569</span>
-              </div>
-            </div>
-
-            <!-- Details Grid -->
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span class="block text-[10px] font-semibold text-gray-400 uppercase">รหัสรายการ</span>
-                <span id="detail-sale-id" class="font-bold text-emerald-800">-</span>
-              </div>
-              <div>
-                <span class="block text-[10px] font-semibold text-gray-400 uppercase">ล็อตผลผลิต (Crop ID)</span>
-                <span id="detail-crop-id" class="font-bold text-gray-700">-</span>
-              </div>
-              <div>
-                <span class="block text-[10px] font-semibold text-gray-400 uppercase">ชนิดพืช</span>
-                <span id="detail-plant-type" class="font-bold text-gray-700">-</span>
-              </div>
-              <div>
-                <span class="block text-[10px] font-semibold text-gray-400 uppercase">แปลงเพาะปลูก</span>
-                <span id="detail-plot-name" class="font-bold text-gray-700">-</span>
-              </div>
-              <div class="col-span-2">
-                <span class="block text-[10px] font-semibold text-gray-400 uppercase">ชื่อลูกค้า / ช่องทางจำหน่าย</span>
-                <span id="detail-customer" class="font-bold text-gray-800">-</span>
-              </div>
-            </div>
-
-            <!-- Farmers Co-owners section -->
-            <div class="space-y-2">
-              <span class="block text-[10px] font-semibold text-gray-400 uppercase">เกษตรกรผู้ถือครองแปลงร่วม (Co-owners)</span>
-              <div id="detail-owners-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <!-- Dynamic cards populated by JS -->
-              </div>
-            </div>
-
-            <!-- Pricing Breakdown Box -->
-            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-2">
-              <div class="flex justify-between text-xs text-gray-500">
-                <span>ปริมาณที่ขาย:</span>
-                <span id="detail-quantity" class="font-semibold text-gray-700">-</span>
-              </div>
-              <div class="flex justify-between text-xs text-gray-500">
-                <span>ราคาต่อหน่วย:</span>
-                <span id="detail-unit-price" class="font-semibold text-gray-700">-</span>
-              </div>
-              <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
-                <span class="text-sm font-bold text-gray-800">ยอดรวมทั้งสิ้น:</span>
-                <span id="detail-total-price" class="text-xl font-black text-emerald-800">-</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Dry Process Modal (Form for entering actual dry yield) -->
-      <div id="dry-process-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black bg-opacity-40 transition-opacity">
-        <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-gray-100">
-          <!-- Modal Header -->
-          <div class="bg-amber-600 px-6 py-4 text-white flex justify-between items-center">
-            <h3 class="font-bold text-sm flex items-center gap-1.5">
-              <i class="fas fa-fire-alt"></i> บันทึกข้อมูลการอบแห้งผลผลิต
-            </h3>
-            <button type="button" class="close-dry-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body Form -->
-          <form id="dry-process-form" class="p-6 space-y-4">
-            <div>
-              <span class="block text-xs font-semibold text-gray-400 uppercase">ล็อตผลผลิตดอกสด</span>
-              <span id="dry-modal-crop-display" class="block text-base font-extrabold text-amber-900 mt-0.5">CROP-XXX</span>
-            </div>
-
-            <!-- Fresh Weight Display -->
-            <div class="p-3 bg-amber-50 rounded-xl flex justify-between items-center">
-              <span class="text-xs text-amber-800 font-bold">น้ำหนักดอกสดเดิม:</span>
-              <span id="dry-modal-fresh-display" class="text-sm font-black text-amber-900">0.00 กก.</span>
-            </div>
-
-            <!-- Actual Dried Weight Input -->
-            <div>
-              <label for="dry-modal-dry-weight" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักสมุนไพรอบแห้งที่ได้จริง (กิโลกรัม) *</label>
-              <input type="number" id="dry-modal-dry-weight" name="dryWeight" required min="0.01" step="any" placeholder="เช่น 20.5"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-emerald-800">
-              <span id="dry-modal-calc-hint" class="block text-[10px] text-gray-400 mt-1">* หากกรอกแล้ว ระบบจะนำยอดไปเพิ่มใน "สมุนไพรอบแห้งพร้อมขาย" อัตโนมัติ</span>
-            </div>
-
-            <!-- Footer Buttons -->
-            <div class="flex justify-end pt-4 gap-2.5">
-              <button type="button" class="close-dry-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                ยกเลิก
-              </button>
-              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm font-bold">
-                <i class="fas fa-check"></i> บันทึกและนำเข้าคลังสินค้า
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
     `;
   },
 
@@ -772,208 +522,488 @@ export const InventoryComponent = {
     dryModalBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const cropId = btn.getAttribute('data-crop-id');
-        const crop = appState.getCropById(cropId);
-
-        if (crop && modalDry) {
-          processingCropId = cropId;
-          const plot = appState.getPlotById(crop.plotId);
-          const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
-
-          document.getElementById('dry-modal-crop-display').textContent = `${crop.id} (${herbType})`;
-          document.getElementById('dry-modal-fresh-display').textContent = `${(crop.yield || 0).toFixed(2)} กก.`;
-
-          // Default estimate calculation (Chrysanthemum 8:1, Chamomile 6:1)
-          const ratio = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย') ? 8 : 6;
-          const estDry = ((crop.yield || 0) / ratio).toFixed(2);
-          document.getElementById('dry-modal-dry-weight').value = estDry;
-
-          modalDry.classList.remove('hidden');
-        }
+        this.openDryProcessModal(cropId);
       });
     });
+  },
 
-    closeDryBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (modalDry) modalDry.classList.add('hidden');
-      });
+  openDryProcessModal(cropId) {
+    const crop = appState.getCropById(cropId);
+    if (!crop) return;
+
+    const plot = appState.getPlotById(crop.plotId);
+    const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
+    const ratio = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย') ? 8 : 6;
+    const estDry = ((crop.yield || 0) / ratio).toFixed(2);
+
+    const formHtml = `
+      <form id="global-dry-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
+          <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex justify-between items-center">
+            <div>
+              <span class="block text-xs font-semibold text-gray-400 uppercase">ล็อตผลผลิตดอกสด</span>
+              <span class="block text-base font-extrabold text-amber-900 mt-0.5">${crop.id} (${herbType})</span>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-amber-800 font-bold block">น้ำหนักดอกสดเดิม:</span>
+              <span class="text-base font-black text-amber-900 block">${(crop.yield || 0).toFixed(2)} กก.</span>
+            </div>
+          </div>
+
+          <div>
+            <label for="global-dry-weight" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักสมุนไพรอบแห้งที่ได้จริง (กิโลกรัม) *</label>
+            <input type="number" id="global-dry-weight" name="dryWeight" required min="0.01" step="any" value="${estDry}" placeholder="เช่น 20.5"
+              class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-emerald-800">
+            <span class="block text-[10px] text-gray-400 mt-1">* หากกรอกแล้ว ระบบจะนำยอดไปเพิ่มใน "สมุนไพรอบแห้งพร้อมขาย" อัตโนมัติ</span>
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-check"></i> บันทึกและนำเข้าคลังสินค้า
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: 'บันทึกข้อมูลการอบแห้งผลผลิต',
+      icon: 'fas fa-fire-alt',
+      size: 'max-w-2xl',
+      headerColor: 'bg-amber-600',
+      content: formHtml,
+      onRender: (dialog) => {
+        const form = dialog.querySelector('#global-dry-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = dialog.querySelector('#global-dry-weight');
+            const customDryWeight = parseFloat(input ? input.value : 0) || 0;
+            if (customDryWeight <= 0) {
+              showToast('กรุณากรอกน้ำหนักสมุนไพรอบแห้งที่ได้จริง', 'warning');
+              return;
+            }
+            try {
+              const addedDryWeight = appState.processDryHerbStock(cropId, null, customDryWeight);
+              closeGlobalModal();
+              showToast(`บันทึกข้อมูลการอบแห้งสำเร็จ! นำเข้าคลังสินค้าพร้อมขายจำนวน ${addedDryWeight} กก.`, 'success');
+              this.selectedFreshCropIds = this.selectedFreshCropIds.filter(i => i !== cropId);
+              this.activeTab = 'stock';
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
     });
-
-    if (formDry) {
-      formDry.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const customDryWeight = parseFloat(document.getElementById('dry-modal-dry-weight').value) || 0;
-
-        if (!processingCropId) return;
-
-        if (customDryWeight <= 0) {
-          showToast('กรุณากรอกน้ำหนักสมุนไพรอบแห้งที่ได้จริง', 'warning');
-          return;
-        }
-
-        try {
-          const addedDryWeight = appState.processDryHerbStock(processingCropId, null, customDryWeight);
-          if (modalDry) modalDry.classList.add('hidden');
-          showToast(`บันทึกข้อมูลการอบแห้งสำเร็จ! นำเข้าคลังสินค้าพร้อมขายจำนวน ${addedDryWeight} กก.`, 'success');
-          this.selectedFreshCropIds = this.selectedFreshCropIds.filter(i => i !== processingCropId);
-          this.activeTab = 'stock'; // Switch automatically to stock tab to view dry stock
-          this.refreshView();
-        } catch (err) {
-          showToast(err.message, 'error');
-        }
-      });
-    }
   },
 
   bindStockEvents() {
     const sellBtns = document.querySelectorAll('.sell-stock-btn');
-    const saleModal = document.getElementById('sale-record-modal');
-    const closeSaleBtns = document.querySelectorAll('.close-sale-modal-btn');
-    const saleForm = document.getElementById('sale-form');
-    const saleTypeSelect = document.getElementById('sale-type');
-
     sellBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const cropId = btn.getAttribute('data-crop-id');
-        const invItem = appState.getInventoryByCropId(cropId);
-        
-        if (invItem && saleModal) {
-          this.sellingCropId = cropId;
-          document.getElementById('sale-crop-display').textContent = `${cropId} (${invItem.herbType}อบแห้ง)`;
-          
-          if (saleForm) {
-            saleForm.reset();
-            document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
-            
-            if (saleTypeSelect) {
-              saleTypeSelect.value = 'bulk';
-              updateSaleFormUI(invItem);
-            }
-          }
-
-          saleModal.classList.remove('hidden');
-        }
+        this.openSaleModal(cropId);
       });
     });
 
-    const updateSaleFormUI = (invItem) => {
-      if (!invItem) return;
-      const type = saleTypeSelect ? saleTypeSelect.value : 'bulk';
-      const amountInput = document.getElementById('sale-amount');
-      const amountLabel = amountInput.previousElementSibling;
-      const priceInput = document.getElementById('sale-price');
-      const priceLabel = priceInput.previousElementSibling;
-      const maxDisplay = document.getElementById('sale-max-stock-display');
-
-      if (type === 'bulk') {
-        amountLabel.textContent = 'ปริมาณที่ขาย (กิโลกรัม) *';
-        amountInput.placeholder = 'เช่น 5.5';
-        amountInput.step = 'any';
-        amountInput.min = '0.01';
-        amountInput.max = invItem.dryStockKg;
-        priceLabel.textContent = 'ราคาต่อกิโลกรัม (บาท) *';
-        priceInput.placeholder = 'เช่น 450';
-        maxDisplay.textContent = `สต็อกล็อตนี้คงเหลือสูงสุด: ${invItem.dryStockKg} กก.`;
-      } else {
-        const isChrys = invItem.herbType === 'เก๊กฮวย' || invItem.herbType.includes('เก๊กฮวย');
-        const jarCapacity = isChrys ? 0.10 : 0.05; // 100g / 50g
-        const maxJars = Math.floor(invItem.dryStockKg / jarCapacity);
-
-        amountLabel.textContent = 'จำนวนกระปุกที่ขาย (กระปุก) *';
-        amountInput.placeholder = 'เช่น 10';
-        amountInput.step = '1';
-        amountInput.min = '1';
-        amountInput.max = maxJars;
-        priceLabel.textContent = 'ราคาต่อกระปุก (บาท) *';
-        priceInput.placeholder = 'เช่น 80';
-        maxDisplay.textContent = `สต็อกล็อตนี้คงเหลือขายเป็นกระปุกสูงสุด: ${maxJars} กระปุก (เทียบเท่าน้ำหนักในคลัง)`;
-      }
-    };
-
-    if (saleTypeSelect) {
-      saleTypeSelect.addEventListener('change', () => {
-        if (this.sellingCropId) {
-          const invItem = appState.getInventoryByCropId(this.sellingCropId);
-          updateSaleFormUI(invItem);
-        }
-      });
-    }
-
-    closeSaleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (saleModal) saleModal.classList.add('hidden');
-      });
-    });
-
-    if (saleForm) {
-      saleForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const formData = new FormData(saleForm);
-        const amount = parseFloat(formData.get('amount'));
-        const price = parseFloat(formData.get('price'));
-        const customer = formData.get('customer');
-        const date = formData.get('date');
-        const saleType = formData.get('saleType') || 'bulk';
-
-        if (this.sellingCropId) {
-          try {
-            appState.recordSale(this.sellingCropId, amount, price, customer, date, saleType);
-            showToast(`หักยอดสต็อกล็อต ${this.sellingCropId} และบันทึกขายสำเร็จ`);
-            if (saleModal) saleModal.classList.add('hidden');
-            this.refreshView();
-          } catch (err) {
-            showToast(err.message, 'error');
-          }
-        }
-      });
-    }
-
-    // --- Edit Weights Modal Events ---
-    const weightsModal = document.getElementById('edit-weights-modal');
     const editWeightsBtns = document.querySelectorAll('.edit-lot-weights-btn');
-    const closeWeightsBtns = document.querySelectorAll('.close-weights-modal-btn');
-    const weightsForm = document.getElementById('edit-weights-form');
-
     editWeightsBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const cropId = btn.getAttribute('data-crop-id');
-        const invItem = appState.getInventoryByCropId(cropId);
-        const crop = appState.getCropById(cropId);
-        
-        if (invItem && weightsModal) {
-          this.editingWeightsCropId = cropId;
-          document.getElementById('weights-crop-display').textContent = `${cropId} (${invItem.herbType}อบแห้ง)`;
-          document.getElementById('weights-fresh').value = crop ? (crop.yield || 0) : 0;
-          document.getElementById('weights-dry').value = invItem.dryStockKg || 0;
-          weightsModal.classList.remove('hidden');
-        }
+        this.openEditWeightsModal(cropId);
       });
     });
+  },
 
-    closeWeightsBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (weightsModal) weightsModal.classList.add('hidden');
-      });
-    });
+  openSaleModal(cropId) {
+    const invItem = appState.getInventoryByCropId(cropId);
+    if (!invItem) return;
+    this.sellingCropId = cropId;
 
-    if (weightsForm) {
-      weightsForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const formData = new FormData(weightsForm);
-        const yieldFresh = parseFloat(formData.get('yieldFresh')) || 0;
-        const dryStock = parseFloat(formData.get('dryStock')) || 0;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isChrys = invItem.herbType === 'เก๊กฮวย' || invItem.herbType.includes('เก๊กฮวย');
+    const jarCapacity = isChrys ? 0.10 : 0.05;
+    const maxJars = Math.floor(invItem.dryStockKg / jarCapacity);
 
-        if (this.editingWeightsCropId) {
-          try {
-            appState.updateLotWeights(this.editingWeightsCropId, yieldFresh, dryStock);
-            showToast(`อัปเดตน้ำหนักล็อต ${this.editingWeightsCropId} เรียบร้อยแล้ว`);
-            if (weightsModal) weightsModal.classList.add('hidden');
-            this.refreshView();
-          } catch (err) {
-            showToast(err.message, 'error');
+    const formHtml = `
+      <form id="global-sale-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
+          <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+            <div>
+              <span class="block text-xs font-semibold text-emerald-800 uppercase">จำหน่ายจากรหัสล็อตสินค้า</span>
+              <span class="block text-lg font-black text-emerald-950 mt-0.5">${cropId} (${invItem.herbType}อบแห้ง)</span>
+            </div>
+            <span id="global-sale-max-display" class="text-xs font-bold text-emerald-700 bg-white px-3 py-1.5 rounded-xl border border-emerald-200">
+              สต็อกคงเหลือ: ${(invItem.dryStockKg || 0).toFixed(2)} กก.
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="global-sale-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทสินค้าที่ขาย *</label>
+              <select id="global-sale-type" name="saleType" required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="bulk" selected>วัตถุดิบอบแห้ง (กิโลกรัม)</option>
+                <option value="jar">กระปุกสำเร็จรูป (กระปุก)</option>
+              </select>
+            </div>
+
+            <div>
+              <label id="global-sale-amount-label" for="global-sale-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ขาย (กิโลกรัม) *</label>
+              <input type="number" id="global-sale-amount" name="amount" required min="0.01" max="${invItem.dryStockKg}" step="any" placeholder="เช่น 5.5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label id="global-sale-price-label" for="global-sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาต่อกิโลกรัม (บาท) *</label>
+              <input type="number" id="global-sale-price" name="price" required min="1" placeholder="เช่น 450"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="global-sale-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่จำหน่าย (วัน/เดือน/ปี) *</label>
+              <input type="date" id="global-sale-date" name="date" required value="${todayStr}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Customer Selection with Quick Add Button -->
+            <div class="md:col-span-2 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label for="global-sale-customer-select" class="block text-xs font-semibold text-gray-500 uppercase">เลือกลูกค้า / ช่องทางจัดจำหน่าย *</label>
+                <button type="button" id="global-quick-add-customer-btn" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 hover:underline">
+                  <i class="fas fa-user-plus"></i> + เพิ่มลูกค้าใหม่ทันที
+                </button>
+              </div>
+              <select id="global-sale-customer-select" name="customerId" required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </select>
+              <input type="hidden" id="global-sale-customer" name="customer">
+
+              <div id="global-cust-preview" class="p-3 bg-gray-50 rounded-2xl border border-gray-100 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <span class="text-gray-400 block text-[10px]">ประเภทลูกค้า:</span>
+                    <span id="global-preview-type" class="font-bold text-gray-700 block">-</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400 block text-[10px]">เบอร์โทรศัพท์:</span>
+                    <span id="global-preview-phone" class="font-bold text-gray-700 block">-</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400 block text-[10px]">ที่อยู่จัดส่ง:</span>
+                    <span id="global-preview-address" class="text-gray-600 block truncate">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="md:col-span-2 p-3 bg-green-50 text-green-900 border border-green-100 rounded-xl text-xs leading-relaxed">
+              <i class="fas fa-info-circle mr-1 text-green-600"></i>
+              การบันทึกขายจะหักยอดคลังสินค้าล็อตนี้ และคำนวณบวกรายรับคืนเข้ากับเกษตรกรเจ้าของสิทธิ์ของล็อตโดยอัตโนมัติ
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-check"></i> บันทึกขายและหักยอด
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: 'บันทึกรายการขายสินค้าแปรรูป',
+      icon: 'fas fa-cash-register',
+      size: 'max-w-4xl',
+      content: formHtml,
+      onRender: (dialog) => {
+        const custSelect = dialog.querySelector('#global-sale-customer-select');
+        const hiddenCust = dialog.querySelector('#global-sale-customer');
+        const typeSpan = dialog.querySelector('#global-preview-type');
+        const phoneSpan = dialog.querySelector('#global-preview-phone');
+        const addrSpan = dialog.querySelector('#global-preview-address');
+        const saleTypeSelect = dialog.querySelector('#global-sale-type');
+        const amountLabel = dialog.querySelector('#global-sale-amount-label');
+        const amountInput = dialog.querySelector('#global-sale-amount');
+        const priceLabel = dialog.querySelector('#global-sale-price-label');
+        const priceInput = dialog.querySelector('#global-sale-price');
+        const maxDisplay = dialog.querySelector('#global-sale-max-display');
+
+        const updateCustomerPreview = (cust) => {
+          if (cust) {
+            typeSpan.textContent = cust.customerType || 'ลูกค้าทั่วไป';
+            phoneSpan.textContent = cust.phone || '-';
+            addrSpan.textContent = cust.address || cust.contactChannel || '-';
+            hiddenCust.value = cust.name;
+          } else {
+            typeSpan.textContent = '-';
+            phoneSpan.textContent = '-';
+            addrSpan.textContent = '-';
+            hiddenCust.value = '';
           }
+        };
+
+        const populateCustomers = (selectedId = null) => {
+          const customers = appState.getCustomers();
+          if (customers.length === 0) {
+            custSelect.innerHTML = `<option value="">-- ยังไม่มีรายชื่อลูกค้า กรุณากดเพิ่มลูกค้าใหม่ --</option>`;
+            updateCustomerPreview(null);
+            return;
+          }
+          custSelect.innerHTML = `
+            <option value="">-- กรุณาเลือกลูกค้า --</option>
+            ${customers.map(c => `
+              <option value="${c.id}" ${selectedId === c.id ? 'selected' : ''}>
+                ${c.name} (${c.customerType || 'ลูกค้าทั่วไป'}) - ${c.phone || ''}
+              </option>
+            `).join('')}
+          `;
+          if (selectedId) {
+            custSelect.value = selectedId;
+            const c = customers.find(item => item.id === selectedId);
+            updateCustomerPreview(c);
+          } else {
+            updateCustomerPreview(null);
+          }
+        };
+
+        populateCustomers();
+
+        custSelect.addEventListener('change', (e) => {
+          const cust = appState.getCustomerById(e.target.value);
+          updateCustomerPreview(cust);
+        });
+
+        saleTypeSelect.addEventListener('change', () => {
+          if (saleTypeSelect.value === 'bulk') {
+            amountLabel.textContent = 'ปริมาณที่ขาย (กิโลกรัม) *';
+            amountInput.placeholder = 'เช่น 5.5';
+            amountInput.step = 'any';
+            amountInput.max = invItem.dryStockKg;
+            priceLabel.textContent = 'ราคาต่อกิโลกรัม (บาท) *';
+            priceInput.placeholder = 'เช่น 450';
+            maxDisplay.textContent = `สต็อกคงเหลือ: ${(invItem.dryStockKg || 0).toFixed(2)} กก.`;
+          } else {
+            amountLabel.textContent = 'จำนวนกระปุกที่ขาย (กระปุก) *';
+            amountInput.placeholder = 'เช่น 10';
+            amountInput.step = '1';
+            amountInput.max = maxJars;
+            priceLabel.textContent = 'ราคาต่อกระปุก (บาท) *';
+            priceInput.placeholder = 'เช่น 80';
+            maxDisplay.textContent = `สต็อกคงเหลือสูงสุด: ${maxJars} กระปุก (เทียบเท่าน้ำหนักในคลัง)`;
+          }
+        });
+
+        const quickAddBtn = dialog.querySelector('#global-quick-add-customer-btn');
+        if (quickAddBtn) {
+          quickAddBtn.addEventListener('click', () => {
+            this.openQuickAddCustomerModal((newCust) => {
+              // Re-open sale modal with this new customer pre-selected
+              this.openSaleModal(cropId);
+              setTimeout(() => {
+                const s = document.querySelector('#global-sale-customer-select');
+                if (s && newCust) {
+                  s.value = newCust.id;
+                  s.dispatchEvent(new Event('change'));
+                }
+              }, 50);
+            });
+          });
         }
-      });
-    }
+
+        const form = dialog.querySelector('#global-sale-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const amount = parseFloat(formData.get('amount'));
+            const price = parseFloat(formData.get('price'));
+            const customerId = formData.get('customerId');
+            const customer = formData.get('customer');
+            const date = formData.get('date');
+            const saleType = formData.get('saleType') || 'bulk';
+
+            if (!customerId || !customer) {
+              showToast('กรุณาเลือกลูกค้าหรือเพิ่มลูกค้าใหม่', 'warning');
+              return;
+            }
+
+            try {
+              appState.recordSale(cropId, amount, price, customer, date, saleType, customerId);
+              closeGlobalModal();
+              showToast(`หักยอดสต็อกล็อต ${cropId} และบันทึกขายสำเร็จ`);
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
+  },
+
+  openQuickAddCustomerModal(onCustomerAdded) {
+    const formHtml = `
+      <form id="global-quick-cust-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="q-cust-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อลูกค้า / ร้านค้า *</label>
+              <input type="text" id="q-cust-name" name="name" required placeholder="เช่น ร้านกาแฟช่อผกา, คุณวิภา"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="q-cust-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทลูกค้า *</label>
+              <select id="q-cust-type" name="customerType" required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="ลูกค้าทั่วไป">ลูกค้าทั่วไป</option>
+                <option value="ร้านคาเฟ่/ร้านขายของฝาก">ร้านคาเฟ่/ร้านขายของฝาก</option>
+                <option value="ตัวแทนจำหน่าย">ตัวแทนจำหน่าย</option>
+                <option value="ซื้อส่งโรงงาน">ซื้อส่งโรงงาน</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="q-cust-phone" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
+              <input type="text" id="q-cust-phone" name="phone" required placeholder="เช่น 081-234-5678"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="q-cust-channel" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ช่องทางติดต่ออื่นๆ (Line / Facebook)</label>
+              <input type="text" id="q-cust-channel" name="contactChannel" placeholder="เช่น Line: @coffee, FB: ร้านกาแฟ"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="md:col-span-2">
+              <label for="q-cust-address" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่จัดส่ง / ที่อยู่ร้านค้า</label>
+              <textarea id="q-cust-address" name="address" rows="2" placeholder="ระบุที่อยู่จัดส่งสินค้า"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-save"></i> บันทึกและเลือกลูกค้านี้
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: 'เพิ่มข้อมูลลูกค้าใหม่ทันที',
+      icon: 'fas fa-user-plus',
+      size: 'max-w-3xl',
+      content: formHtml,
+      onRender: (dialog) => {
+        const form = dialog.querySelector('#global-quick-cust-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = {
+              name: formData.get('name').trim(),
+              customerType: formData.get('customerType'),
+              phone: formData.get('phone').trim(),
+              contactChannel: formData.get('contactChannel').trim(),
+              address: formData.get('address').trim()
+            };
+
+            try {
+              const added = appState.addCustomer(data);
+              showToast(`เพิ่มลูกค้า "${added.name}" เรียบร้อยแล้ว`);
+              if (onCustomerAdded) onCustomerAdded(added);
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
+  },
+
+  openEditWeightsModal(cropId) {
+    const invItem = appState.getInventoryByCropId(cropId);
+    const crop = appState.getCropById(cropId);
+    if (!invItem) return;
+
+    const formHtml = `
+      <form id="global-weights-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
+          <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-900 font-bold">
+            ${cropId} (${invItem.herbType}อบแห้ง)
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="global-weights-fresh" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักดอกสด (กก.) *</label>
+              <input type="number" id="global-weights-fresh" name="yieldFresh" required min="0" step="any" value="${crop ? (crop.yield || 0) : 0}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="global-weights-dry" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักแห้งคงคลัง (กก.) *</label>
+              <input type="number" id="global-weights-dry" name="dryStock" required min="0" step="any" value="${invItem.dryStockKg || 0}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-400 leading-relaxed">
+            <i class="fas fa-info-circle mr-1 text-emerald-600"></i>
+            การปรับน้ำหนักนี้จะแก้ไขยอดดอกสดในรอบการเพาะปลูก และยอดสต็อกอบแห้งคงเหลือในคลังสินค้าโดยตรง
+          </p>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-save"></i> บันทึกการแก้ไข
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: 'แก้ไขน้ำหนักผลผลิตสดและแห้ง',
+      icon: 'fas fa-weight-hanging',
+      size: 'max-w-2xl',
+      content: formHtml,
+      onRender: (dialog) => {
+        const form = dialog.querySelector('#global-weights-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const yieldFresh = parseFloat(formData.get('yieldFresh')) || 0;
+            const dryStock = parseFloat(formData.get('dryStock')) || 0;
+            try {
+              appState.updateLotWeights(cropId, yieldFresh, dryStock);
+              closeGlobalModal();
+              showToast(`อัปเดตน้ำหนักล็อต ${cropId} เรียบร้อยแล้ว`);
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
   },
 
   bindLedgerEvents() {
@@ -1023,63 +1053,124 @@ export const InventoryComponent = {
 
   bindSalesEvents() {
     const viewSaleBtns = document.querySelectorAll('.view-sale-btn');
-    const detailModal = document.getElementById('sale-detail-modal');
-    
     viewSaleBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const saleId = btn.getAttribute('data-sale-id');
-        const sale = appState.getSales().find(s => s.id === saleId);
-        if (sale && detailModal) {
-          const crops = appState.getCrops();
-          const plots = appState.getPlots();
-          const members = appState.getMembers();
-          
-          const crop = crops.find(c => c.id === sale.cropId);
-          const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-          const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
-          const ownersNames = owners.map(o => o.name).join(', ') || '-';
-          
-          // Populate details
-          document.getElementById('detail-sale-id').textContent = sale.id;
-          document.getElementById('detail-crop-id').textContent = sale.cropId;
-          document.getElementById('detail-plant-type').textContent = plot ? `${plot.plantType}อบแห้ง` : '-';
-          document.getElementById('detail-plot-name').textContent = plot ? plot.name : '-';
-          document.getElementById('detail-owners').textContent = ownersNames;
-          
-          // Display list of owners with their village details
-          const ownersListContainer = document.getElementById('detail-owners-list');
-          if (ownersListContainer) {
-            ownersListContainer.innerHTML = owners.map(o => `
-              <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
-                <i class="fas fa-user-circle text-lg text-emerald-600"></i>
-                <div>
-                  <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
-                  <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
-                </div>
-              </div>
-            `).join('') || '<div class="text-xs text-gray-500">-</div>';
-          }
-          
-          document.getElementById('detail-quantity').textContent = sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`;
-          document.getElementById('detail-unit-price').textContent = sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`;
-          document.getElementById('detail-total-price').textContent = formatBaht(sale.totalPrice);
-          document.getElementById('detail-customer').textContent = sale.customer || '-';
-          document.getElementById('detail-date').textContent = formatThaiDate(sale.date);
-          
-          // Generate a mockup invoice number if not exists
-          document.getElementById('detail-invoice-no').textContent = sale.invoiceNo || `INV-${sale.id.split('-')[1]}`;
-          
-          detailModal.classList.remove('hidden');
-        }
+        this.openSaleDetailModal(saleId);
       });
     });
+  },
 
-    const closeDetailModalBtn = document.getElementById('close-sale-detail-modal-btn');
-    if (closeDetailModalBtn && detailModal) {
-      closeDetailModalBtn.addEventListener('click', () => {
-        detailModal.classList.add('hidden');
-      });
-    }
+  openSaleDetailModal(saleId) {
+    const sale = appState.getSales().find(s => s.id === saleId);
+    if (!sale) return;
+
+    const crops = appState.getCrops();
+    const plots = appState.getPlots();
+    const members = appState.getMembers();
+    const crop = crops.find(c => c.id === sale.cropId);
+    const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
+    const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
+    const custInfo = sale.customerId ? appState.getCustomerById(sale.customerId) : null;
+
+    const ownersListHtml = owners.map(o => `
+      <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
+        <i class="fas fa-user-circle text-lg text-emerald-600"></i>
+        <div>
+          <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
+          <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
+        </div>
+      </div>
+    `).join('') || '<div class="text-xs text-gray-500">-</div>';
+
+    const customerHtml = custInfo ? `
+      <span class="font-bold text-gray-800">${custInfo.name}</span>
+      <span class="text-xs text-gray-500 font-normal block mt-0.5">${custInfo.customerType} | โทร: ${custInfo.phone || '-'}</span>
+      ${custInfo.address ? `<span class="text-[11px] text-gray-400 font-normal block">${custInfo.address}</span>` : ''}
+    ` : `<span class="font-bold text-gray-800">${sale.customer || '-'}</span>`;
+
+    const detailContent = `
+      <div class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
+          <div class="flex justify-between items-start border-b border-gray-100 pb-4">
+            <div>
+              <span class="text-xs text-gray-400 font-bold block">รหัสรายการขาย:</span>
+              <span class="text-lg font-black text-emerald-800">${sale.id}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-gray-400 font-bold block">วันที่จำหน่าย:</span>
+              <span class="text-sm font-bold text-gray-700">${formatThaiDate(sale.date)}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 md:p-6 rounded-2xl border border-gray-100">
+            <div class="space-y-4">
+              <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider border-b border-gray-200 pb-1">
+                <i class="fas fa-leaf mr-1"></i> ข้อมูลผลผลิตและแหล่งที่มา
+              </h4>
+              <div>
+                <span class="text-xs text-gray-400 block">ล็อตสินค้า / แหล่งปลูก:</span>
+                <span class="text-sm font-bold text-gray-800">${sale.cropId}</span>
+                <span class="text-xs text-gray-500 block mt-0.5">${plot ? plot.name : '-'}</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-400 block">ชนิดสมุนไพร:</span>
+                <span class="text-sm font-bold text-emerald-700">${plot ? `${plot.plantType}อบแห้ง` : '-'}</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-400 block mb-1.5">เกษตรกรเจ้าของแปลง:</span>
+                <div class="space-y-2">
+                  ${ownersListHtml}
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider border-b border-gray-200 pb-1">
+                <i class="fas fa-user-tag mr-1"></i> ข้อมูลการขายและลูกค้า
+              </h4>
+              <div>
+                <span class="text-xs text-gray-400 block">ลูกค้าผู้ซื้อ:</span>
+                <div class="text-sm mt-0.5">${customerHtml}</div>
+              </div>
+              <div>
+                <span class="text-xs text-gray-400 block">เลขอ้างอิง / ใบเสร็จ:</span>
+                <span class="text-xs font-bold text-gray-600">${sale.invoiceNo || `INV-${sale.id.split('-')[1]}`}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
+            <div class="flex justify-between items-center text-xs text-gray-600">
+              <span>จำนวนที่ขาย:</span>
+              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`}</span>
+            </div>
+            <div class="flex justify-between items-center text-xs text-gray-600">
+              <span>ราคาต่อหน่วย:</span>
+              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`}</span>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
+              <span class="text-sm font-bold text-gray-800">ยอดรวมทั้งสิ้น:</span>
+              <span class="text-xl font-black text-emerald-800">${formatBaht(sale.totalPrice)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 md:px-6 bg-gray-50 border-t border-gray-100 text-right flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-6 py-2.5 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ปิดหน้าต่าง
+          </button>
+        </div>
+      </div>
+    `;
+
+    openGlobalModal({
+      title: 'รายละเอียดใบเสร็จการจำหน่าย',
+      icon: 'fas fa-receipt',
+      size: 'max-w-4xl',
+      headerColor: 'bg-[#1e4620]',
+      content: detailContent
+    });
   },
 
   refreshView() {

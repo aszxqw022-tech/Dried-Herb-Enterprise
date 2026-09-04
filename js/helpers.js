@@ -132,3 +132,184 @@ export function showToast(message, type = 'success') {
     toast.remove();
   });
 }
+
+/**
+ * ============================================================================
+ * GLOBAL MODAL MANAGEMENT UTILITY
+ * ============================================================================
+ * Renders modal directly into #global-modal-container under <body>
+ * completely escaping main viewport and sidebar flex bounds.
+ */
+let activeModalCloseHandler = null;
+
+/**
+ * Open a Global Modal
+ * @param {Object} options
+ * @param {string} options.title - Header Title
+ * @param {string} [options.icon] - FontAwesome icon class e.g. "fas fa-user-edit"
+ * @param {string} options.content - Inner modal body HTML
+ * @param {string} [options.size='max-w-5xl'] - Tailwind max width: 'max-w-md', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl'
+ * @param {string} [options.headerColor='bg-emerald-800'] - Tailwind background color for header
+ * @param {boolean} [options.closeOnBackdrop=true] - Close when clicking dark overlay
+ * @param {Function} [options.onRender] - Callback after DOM inserted (for binding inputs/maps)
+ * @param {Function} [options.onClose] - Callback when modal closes
+ */
+export function openGlobalModal({
+  title = '',
+  icon = '',
+  content = '',
+  size = 'max-w-5xl',
+  headerColor = 'bg-emerald-800',
+  closeOnBackdrop = true,
+  onRender = null,
+  onClose = null
+}) {
+  const container = document.getElementById('global-modal-container');
+  if (!container) {
+    console.error('#global-modal-container not found in DOM');
+    return;
+  }
+
+  // Clear any existing modal
+  closeGlobalModal();
+
+  const iconHtml = icon ? `<i class="${icon}"></i>` : '';
+
+  const modalHtml = `
+    <div id="global-modal-backdrop" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8 overflow-y-auto">
+      <div id="global-modal-dialog" class="bg-white rounded-2xl shadow-2xl w-full ${size} max-h-[90vh] flex flex-col overflow-hidden animate-fade-in my-auto border border-gray-100">
+        <!-- Header (Fixed) -->
+        <div class="${headerColor} px-6 py-4 text-white flex justify-between items-center flex-shrink-0">
+          <h3 id="global-modal-title" class="font-bold text-base md:text-lg flex items-center gap-2">
+            ${iconHtml} ${title}
+          </h3>
+          <button type="button" id="global-modal-close-btn" class="text-white opacity-80 hover:opacity-100 text-xl focus:outline-none transition-opacity cursor-pointer p-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Body / Content injected -->
+        <div id="global-modal-body" class="flex flex-col flex-1 overflow-hidden min-h-0">
+          ${content}
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = modalHtml;
+
+  // Prevent background body scrolling when modal is open
+  document.body.classList.add('overflow-hidden');
+
+  const backdrop = document.getElementById('global-modal-backdrop');
+  const dialog = document.getElementById('global-modal-dialog');
+  const closeBtn = document.getElementById('global-modal-close-btn');
+
+  const handleClose = () => {
+    closeGlobalModal();
+    if (typeof onClose === 'function') onClose();
+  };
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', handleClose);
+  }
+
+  if (closeOnBackdrop && backdrop) {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) {
+        handleClose();
+      }
+    });
+  }
+
+  // Close buttons with class .close-global-modal-btn inside content
+  dialog.querySelectorAll('.close-global-modal-btn').forEach(btn => {
+    btn.addEventListener('click', handleClose);
+  });
+
+  // Escape key listener
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  activeModalCloseHandler = () => {
+    document.removeEventListener('keydown', escHandler);
+  };
+
+  // Run onRender callback
+  if (typeof onRender === 'function') {
+    setTimeout(() => {
+      // Auto-initialize Thai datepickers (วัน/เดือน/ปี) for any date inputs in the modal
+      initThaiDatePickers(dialog);
+      onRender(dialog);
+    }, 15);
+  } else {
+    setTimeout(() => {
+      initThaiDatePickers(dialog);
+    }, 15);
+  }
+}
+
+/**
+ * Initialize Flatpickr Thai Date Picker (dd/mm/yyyy - วัน/เดือน/ปี)
+ * Automatically converts native type="date" inputs to display Day/Month/Year first.
+ * @param {HTMLElement|string} rootElement - Container or selector to search for date inputs
+ */
+export function initThaiDatePickers(rootElement = document) {
+  if (typeof window.flatpickr === 'undefined') return;
+
+  const container = typeof rootElement === 'string' 
+    ? document.querySelector(rootElement) 
+    : (rootElement || document);
+
+  if (!container) return;
+
+  const dateInputs = container.querySelectorAll('input[type="date"], input.thai-datepicker');
+  dateInputs.forEach(input => {
+    // Avoid double initialization
+    if (input._flatpickr) return;
+
+    // Read initial value before Flatpickr mutates
+    const initialVal = input.value || input.getAttribute('value') || '';
+
+    // Switch type from "date" to "text" so native browser date controls don't conflict with flatpickr
+    if (input.type === 'date') {
+      input.type = 'text';
+    }
+
+    window.flatpickr(input, {
+      locale: 'th',
+      dateFormat: 'Y-m-d',            // Underlying form value format (YYYY-MM-DD)
+      altInput: true,                 // Creates a user-facing input
+      altFormat: 'd/m/Y',             // Displays strictly วัน/เดือน/ปี (Day/Month/Year)
+      defaultDate: initialVal || undefined,
+      allowInput: true,
+      disableMobile: false,           // Use flatpickr on mobile too so format stays dd/mm/yyyy
+      onChange: (selectedDates, dateStr, instance) => {
+        // Dispatch standard change and input events so custom form listeners react
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  });
+}
+
+/**
+ * Close any active Global Modal
+ */
+export function closeGlobalModal() {
+  const container = document.getElementById('global-modal-container');
+  if (container) {
+    container.innerHTML = '';
+  }
+  document.body.classList.remove('overflow-hidden');
+
+  if (activeModalCloseHandler) {
+    activeModalCloseHandler();
+    activeModalCloseHandler = null;
+  }
+}
+

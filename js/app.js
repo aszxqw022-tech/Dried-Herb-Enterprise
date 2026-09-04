@@ -6,6 +6,7 @@ import { PlotsComponent } from './components/plots.js';
 import { CropsComponent } from './components/crops.js?v=2';
 import { CropHistoryComponent } from './components/cropHistory.js';
 import { SettingsComponent } from './components/settings.js';
+import { CustomersComponent } from './components/customers.js';
 import { InventoryComponent } from './components/inventory.js?v=3'; // Phase 2
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 import { LoginComponent } from './components/login.js';
@@ -19,6 +20,7 @@ class AppController {
       plots: PlotsComponent,
       crops: CropsComponent,
       'crop-history': CropHistoryComponent,
+      customers: CustomersComponent,
       settings: SettingsComponent,
       inventory: InventoryComponent,  // Phase 2
       trace: TraceabilityComponent,   // Phase 2
@@ -111,7 +113,7 @@ class AppController {
     if (isLoggedIn) {
       const currentUser = appState.getCurrentUser();
       if (currentUser && currentUser.role === 'Member') {
-        if (hash === '#members' || hash === '#settings') {
+        if (hash === '#members' || hash === '#settings' || hash === '#customers') {
           window.location.hash = '#dashboard';
           return;
         }
@@ -197,13 +199,16 @@ class AppController {
     // Sidebar link restrictions
     const membersLink = document.querySelector('.sidebar-link[data-view="members"]');
     const settingsLink = document.querySelector('.sidebar-link[data-view="settings"]');
+    const customersLink = document.querySelector('.sidebar-link[data-view="customers"]');
     
     if (user && user.role === 'Member') {
       if (membersLink) membersLink.style.display = 'none';
       if (settingsLink) settingsLink.style.display = 'none';
+      if (customersLink) customersLink.style.display = 'none';
     } else {
       if (membersLink) membersLink.style.display = '';
       if (settingsLink) settingsLink.style.display = '';
+      if (customersLink) customersLink.style.display = '';
     }
 
     if (user) {

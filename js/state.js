@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   CROPS: 'herb_enterprise_crops',
   INVENTORY: 'herb_enterprise_inventory',
   SALES: 'herb_enterprise_sales',
+  CUSTOMERS: 'herb_enterprise_customers',
   AUTH: 'herb_enterprise_auth'
 };
 
@@ -106,10 +107,10 @@ const MOCK_PLOTS = [
   { id: 'PLOT-004', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, lat: 18.9172, lng: 98.9455, status: 'active' }
 ];
 
-// Mock crop seasons for initial plots
+// Mock crop seasons for initial plots (Format: [YearBE2digits][Running2digits], e.g. 6901)
 const MOCK_CROPS = [
   {
-    id: 'CROP-001',
+    id: '6901',
     plotId: 'PLOT-001',
     plantDate: '2026-08-27',
     harvestDateEst: '2026-11-27',
@@ -128,7 +129,7 @@ const MOCK_CROPS = [
     ]
   },
   {
-    id: 'CROP-002',
+    id: '6902',
     plotId: 'PLOT-002',
     plantDate: '2026-08-28',
     harvestDateEst: '2026-11-28',
@@ -147,7 +148,7 @@ const MOCK_CROPS = [
     ]
   },
   {
-    id: 'CROP-003',
+    id: '6903',
     plotId: 'PLOT-003',
     plantDate: '2026-09-01',
     harvestDateEst: '2026-12-01',
@@ -164,7 +165,7 @@ const MOCK_CROPS = [
     fertilizingLog: []
   },
   {
-    id: 'CROP-004',
+    id: '6904',
     plotId: 'PLOT-004',
     plantDate: '2026-09-05',
     harvestDateEst: '2026-12-05',
@@ -181,7 +182,7 @@ const MOCK_CROPS = [
     fertilizingLog: []
   },
   {
-    id: 'CROP-005',
+    id: '6905',
     plotId: 'PLOT-001',
     plantDate: '2026-03-01',
     harvestDateEst: '2026-06-01',
@@ -201,7 +202,7 @@ const MOCK_CROPS = [
     ]
   },
   {
-    id: 'CROP-006',
+    id: '6906',
     plotId: 'PLOT-002',
     plantDate: '2026-03-15',
     harvestDateEst: '2026-06-15',
@@ -221,7 +222,7 @@ const MOCK_CROPS = [
     ]
   },
   {
-    id: 'CROP-007',
+    id: '6907',
     plotId: 'PLOT-003',
     plantDate: '2026-04-01',
     harvestDateEst: '2026-07-01',
@@ -239,7 +240,7 @@ const MOCK_CROPS = [
     fertilizingLog: []
   },
   {
-    id: 'CROP-008',
+    id: '6908',
     plotId: 'PLOT-004',
     plantDate: '2026-04-10',
     harvestDateEst: '2026-07-10',
@@ -260,14 +261,42 @@ const MOCK_CROPS = [
 
 // Mock inventory split by cropId (Phase 2 core feature)
 const MOCK_INVENTORY = [
-  { cropId: 'CROP-005', herbType: 'เก๊กฮวย', dryStockKg: 15.0, processedDate: '2026-06-07' },
-  { cropId: 'CROP-006', herbType: 'คาโมมายล์', dryStockKg: 10.0, processedDate: '2026-06-20' }
+  { cropId: '6905', herbType: 'เก๊กฮวย', dryStockKg: 15.0, processedDate: '2026-06-07' },
+  { cropId: '6906', herbType: 'คาโมมายล์', dryStockKg: 10.0, processedDate: '2026-06-20' }
+];
+
+// Mock Customers
+const MOCK_CUSTOMERS = [
+  {
+    id: 'CUST-001',
+    name: 'ร้านชาสมุนไพรม่อนแจ่ม',
+    customerType: 'ร้านคาเฟ่/ร้านขายของฝาก',
+    phone: '081-998-1122',
+    address: '99 ม.7 ต.แม่แรม อ.แม่ริม จ.เชียงใหม่ 50180',
+    contactChannel: 'Line: @monchamtea'
+  },
+  {
+    id: 'CUST-002',
+    name: 'กลุ่มท่องเที่ยวแม่ริม',
+    customerType: 'ตัวแทนจำหน่าย',
+    phone: '089-776-5544',
+    address: '15/2 ถ.โชตนา ต.ริมใต้ อ.แม่ริม จ.เชียงใหม่ 50180',
+    contactChannel: 'FB: MaerimTravelGroup'
+  },
+  {
+    id: 'CUST-003',
+    name: 'คุณสมหญิง อารีย์พร',
+    customerType: 'ลูกค้าทั่วไป',
+    phone: '084-332-1100',
+    address: '108 ม.2 ต.ศรีดอนมูล อ.เชียงแสน จ.เชียงราย 57150',
+    contactChannel: 'โทรศัพท์'
+  }
 ];
 
 // Mock sales transactions linked to specific cropIds
 const MOCK_SALES = [
-  { id: 'SALE-001', cropId: 'CROP-005', amountKg: 5.0, pricePerKg: 500, totalPrice: 2500, customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-06-15' },
-  { id: 'SALE-002', cropId: 'CROP-006', amountKg: 5.0, pricePerKg: 650, totalPrice: 3250, customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-06-25' }
+  { id: 'SALE-001', cropId: '6905', amountKg: 5.0, pricePerKg: 500, totalPrice: 2500, customerId: 'CUST-001', customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-06-15' },
+  { id: 'SALE-002', cropId: '6906', amountKg: 5.0, pricePerKg: 650, totalPrice: 3250, customerId: 'CUST-002', customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-06-25' }
 ];
 
 export class AppState {
@@ -279,6 +308,7 @@ export class AppState {
     this.cropsCache = [];
     this.inventoryCache = [];
     this.salesCache = [];
+    this.customersCache = [];
     this.init();
   }
 
@@ -600,7 +630,14 @@ export class AppState {
     localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
 
     // 6. Sales (Phase 2)
-    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
+    if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
+    }
+
+    // 7. Customers
+    if (!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) {
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(MOCK_CUSTOMERS));
+    }
 
     // Trigger asynchronous Supabase synchronization if connected
     if (supabaseClient) {
@@ -879,16 +916,32 @@ export class AppState {
 
   addCrop(crop) {
     const crops = this.getCrops();
-    const maxIdNum = crops.reduce((max, c) => {
-      const num = parseInt(c.id.split('-')[1]);
-      return num > max ? num : max;
-    }, 0);
-    const newId = `CROP-${String(maxIdNum + 1).padStart(3, '0')}`;
+    
+    // Determine cropYear (Thai Buddhist Era, e.g. 2569)
+    const plantDateObj = crop.plantDate ? new Date(crop.plantDate) : new Date();
+    const cropYear = parseInt(crop.cropYear) || (plantDateObj.getFullYear() + 543);
+    const yearSuffix = String(cropYear).slice(-2); // e.g. '69' from 2569
+
+    // Find highest running number for this crop year
+    // Handles format '6901' (where prefix is '69' and suffix is 2-digit index) or legacy format 'CROP-XXX'
+    let maxRunning = 0;
+    crops.forEach(c => {
+      if (!c || !c.id) return;
+      const strId = String(c.id);
+      if (strId.startsWith(yearSuffix) && strId.length >= 4) {
+        const num = parseInt(strId.slice(yearSuffix.length));
+        if (!isNaN(num) && num > maxRunning) {
+          maxRunning = num;
+        }
+      }
+    });
+
+    const newId = `${yearSuffix}${String(maxRunning + 1).padStart(2, '0')}`;
     
     let estHarvest = crop.harvestDateEst;
     if (!estHarvest && crop.plantDate) {
       const pDate = new Date(crop.plantDate);
-      pDate.setDate(pDate.getDate() + 100);
+      pDate.setDate(pDate.getDate() + 90);
       estHarvest = pDate.toISOString().split('T')[0];
     }
 
@@ -899,7 +952,7 @@ export class AppState {
       yield: crop.yield ? parseFloat(crop.yield) : null,
       status: crop.status || 'growing',
       harvestDateEst: estHarvest,
-      cropYear: parseInt(crop.cropYear) || (new Date(crop.plantDate || new Date()).getFullYear() + 543),
+      cropYear: cropYear,
       fertilizingLog: crop.fertilizingLog || [],
       isProcessed: false
     };
@@ -1133,7 +1186,7 @@ export class AppState {
    * Record a sale of dry herbs from a specific Crop lot.
    * Decrements stock and logs transaction.
    */
-  recordSale(cropId, amount, price, customer, date, saleType = 'bulk') {
+  recordSale(cropId, amount, price, customer, date, saleType = 'bulk', customerId = null) {
     const amt = parseFloat(amount) || 0;
     const prc = parseFloat(price) || 0;
     if (amt <= 0) throw new Error(saleType === 'bulk' ? 'ปริมาณสมุนไพรอบแห้งที่ขายต้องมากกว่า 0 กก.' : 'จำนวนกระปุกที่ขายต้องมากกว่า 0 กระปุก');
@@ -1187,6 +1240,7 @@ export class AppState {
       amountKg: amt, // for legacy code compatibility
       pricePerKg: prc, // for legacy code compatibility
       totalPrice: parseFloat((amt * prc).toFixed(2)),
+      customerId: customerId || null,
       customer: customer || 'ทั่วไป/ไม่ระบุชื่อ',
       date: date || new Date().toISOString().split('T')[0],
       saleType // 'bulk' or 'jar'
@@ -1254,6 +1308,71 @@ export class AppState {
     }
 
     return { fresh, dry };
+  }
+
+  // --- Customer Methods ---
+  getCustomers() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) || [];
+  }
+
+  getCustomerById(id) {
+    return this.getCustomers().find(c => c.id === id);
+  }
+
+  addCustomer(customerData) {
+    const customers = this.getCustomers();
+    const maxIdNum = customers.reduce((max, c) => {
+      const parts = (c.id || '').split('-');
+      const num = parseInt(parts[1]);
+      return (!isNaN(num) && num > max) ? num : max;
+    }, 0);
+    const newId = `CUST-${String(maxIdNum + 1).padStart(3, '0')}`;
+
+    const newCustomer = {
+      id: newId,
+      name: (customerData.name || '').trim(),
+      customerType: customerData.customerType || 'ลูกค้าทั่วไป',
+      phone: (customerData.phone || '').trim(),
+      address: (customerData.address || '').trim(),
+      contactChannel: (customerData.contactChannel || '').trim()
+    };
+
+    if (!newCustomer.name) throw new Error('กรุณาระบุชื่อลูกค้าหรือชื่อร้านค้า');
+
+    customers.push(newCustomer);
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+    return newCustomer;
+  }
+
+  updateCustomer(id, data) {
+    let customers = this.getCustomers();
+    const index = customers.findIndex(c => c.id === id);
+    if (index !== -1) {
+      customers[index] = {
+        ...customers[index],
+        name: (data.name !== undefined ? data.name : customers[index].name).trim(),
+        customerType: data.customerType || customers[index].customerType,
+        phone: (data.phone !== undefined ? data.phone : customers[index].phone).trim(),
+        address: (data.address !== undefined ? data.address : customers[index].address).trim(),
+        contactChannel: (data.contactChannel !== undefined ? data.contactChannel : customers[index].contactChannel).trim()
+      };
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+      return customers[index];
+    }
+    throw new Error('ไม่พบข้อมูลลูกค้ารายนี้');
+  }
+
+  deleteCustomer(id) {
+    let customers = this.getCustomers();
+    const sales = this.getSales();
+    const hasSales = sales.some(s => s.customerId === id);
+    if (hasSales) {
+      throw new Error('ไม่สามารถลบลูกค้ารายนี้ได้ เนื่องจากมีประวัติการจำหน่ายสินค้าผูกอยู่');
+    }
+
+    const filtered = customers.filter(c => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(filtered));
+    return true;
   }
 
   /**

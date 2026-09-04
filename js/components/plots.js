@@ -1,6 +1,6 @@
 // Plots Management Component with Leaflet Map Pinning & Modal Form
 import { appState } from '../state.js';
-import { formatThaiArea, showToast } from '../helpers.js';
+import { formatThaiArea, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
 
 let mapInstance = null;
 let modalMapInstance = null;
@@ -116,108 +116,6 @@ export const PlotsComponent = {
           </div>
         </div>
       </div>
-
-      <!-- Add/Edit Plot Modal (Hidden by default) -->
-      <div id="plot-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl transform transition-all border border-gray-100">
-          <!-- Modal Header -->
-          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-            <h3 id="plot-modal-title" class="font-bold text-lg flex items-center gap-2">
-              <i class="fas fa-map-pin"></i> ลงทะเบียนแปลงปลูกใหม่
-            </h3>
-            <button type="button" id="close-plot-modal-btn" class="text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body Form -->
-          <form id="plot-modal-form" class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <!-- Left Column: Form Inputs -->
-              <div class="space-y-4">
-                <!-- Owner Member Selection -->
-                <div>
-                  <label for="modal-plot-ownerId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เจ้าของแปลง *</label>
-                  <select id="modal-plot-ownerId" name="ownerId" required ${isMember ? 'disabled' : ''}
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    <option value="">-- เลือกเจ้าของแปลง --</option>
-                    ${memberOptions}
-                  </select>
-                </div>
-
-                <!-- Plot Name -->
-                <div>
-                  <label for="modal-plot-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อเรียกแปลงปลูก *</label>
-                  <input type="text" id="modal-plot-name" name="name" required placeholder="เช่น แปลง 1 ข้างบ้านป้าใจดี"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
-
-                <!-- Area Size Inputs -->
-                <div>
-                  <span class="block text-xs font-semibold text-gray-500 uppercase mb-1">ขนาดพื้นที่แปลงปลูก *</span>
-                  <div class="grid grid-cols-3 gap-2">
-                    <div>
-                      <input type="number" id="modal-plot-rai" name="sizeRai" min="0" value="0" required
-                        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                      <span class="block text-[10px] text-center text-gray-400 mt-1">ไร่</span>
-                    </div>
-                    <div>
-                      <input type="number" id="modal-plot-ngan" name="sizeNgan" min="0" max="3" value="0" required
-                        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                      <span class="block text-[10px] text-center text-gray-400 mt-1">งาน</span>
-                    </div>
-                    <div>
-                      <input type="number" id="modal-plot-sqWah" name="sizeSqWah" min="0" max="99" value="0" required
-                        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                      <span class="block text-[10px] text-center text-gray-400 mt-1">ตร.ว.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Right Column: Map Selection -->
-              <div class="flex flex-col h-full space-y-3">
-                <div>
-                  <span class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปักหมุดตำแหน่งพิกัดแปลง *</span>
-                  <div class="text-[10px] text-gray-450 leading-normal">
-                    <i class="fas fa-info-circle text-emerald-600 mr-0.5"></i>
-                    กรุณาคลิกเลือกตำแหน่งบนแผนที่ด้านล่างเพื่ออัปเดตละติจูดและลองจิจูดลงฟอร์มอัตโนมัติ
-                  </div>
-                </div>
-                
-                <!-- Modal Map Container -->
-                <div id="modal-plots-map" class="w-full flex-grow h-48 md:h-60 rounded-2xl border border-gray-200 overflow-hidden shadow-inner"></div>
-
-                <!-- Lat/Lng Inputs -->
-                <div class="grid grid-cols-2 gap-2 pt-1">
-                  <div>
-                    <label for="modal-plot-lat" class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Latitude *</label>
-                    <input type="number" id="modal-plot-lat" name="lat" step="any" required placeholder="18.9142"
-                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  </div>
-                  <div>
-                    <label for="modal-plot-lng" class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Longitude *</label>
-                    <input type="number" id="modal-plot-lng" name="lng" step="any" required placeholder="98.9442"
-                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  </div>
-                </div>
-              </div>
-              
-            </div>
-
-            <!-- Modal Footer Buttons -->
-            <div class="flex justify-end gap-2 pt-4 border-t border-gray-100 mt-6">
-              <button type="button" id="cancel-plot-modal-btn" class="px-5 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                ยกเลิก
-              </button>
-              <button type="submit" class="px-7 py-2.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-                <i class="fas fa-save"></i> บันทึกข้อมูลแปลง
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
     `;
   },
 
@@ -299,65 +197,6 @@ export const PlotsComponent = {
       });
     }
 
-    // Close Modal buttons
-    const closeBtn = document.getElementById('close-plot-modal-btn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        this.closePlotModal();
-      });
-    }
-
-    const cancelBtn = document.getElementById('cancel-plot-modal-btn');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => {
-        this.closePlotModal();
-      });
-    }
-
-    // Submit Modal Form
-    const form = document.getElementById('plot-modal-form');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const currentUser = appState.getCurrentUser();
-        const isMember = currentUser && currentUser.role === 'Member';
-
-        const ownerSelect = document.getElementById('modal-plot-ownerId');
-        const selectedOwnerId = isMember ? currentUser.memberId : (ownerSelect ? ownerSelect.value : '');
-
-        if (!selectedOwnerId) {
-          showToast('กรุณาเลือกเจ้าของแปลง', 'error');
-          return;
-        }
-
-        const data = {
-          memberIds: [selectedOwnerId],
-          memberId: selectedOwnerId,
-          name: document.getElementById('modal-plot-name').value,
-          sizeRai: parseInt(document.getElementById('modal-plot-rai').value) || 0,
-          sizeNgan: parseInt(document.getElementById('modal-plot-ngan').value) || 0,
-          sizeSqWah: parseInt(document.getElementById('modal-plot-sqWah').value) || 0,
-          lat: parseFloat(document.getElementById('modal-plot-lat').value),
-          lng: parseFloat(document.getElementById('modal-plot-lng').value),
-          status: 'active'
-        };
-
-        try {
-          if (this.editingPlotId) {
-            appState.updatePlot(this.editingPlotId, data);
-            showToast('อัปเดตข้อมูลแปลงปลูกสำเร็จ');
-          } else {
-            appState.addPlot(data);
-            showToast('ลงทะเบียนแปลงปลูกใหม่สำเร็จ');
-          }
-          this.closePlotModal();
-          this.refreshView();
-        } catch (err) {
-          showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลแปลงปลูก', 'error');
-        }
-      });
-    }
-
     // Edit plot details
     const editBtns = document.querySelectorAll('.edit-plot-btn');
     editBtns.forEach(btn => {
@@ -415,42 +254,28 @@ export const PlotsComponent = {
   },
 
   openPlotModal(id = null) {
-    const modal = document.getElementById('plot-modal');
-    if (!modal) return;
-
     const currentUser = appState.getCurrentUser();
     const isMember = currentUser && currentUser.role === 'Member';
     this.editingPlotId = id;
 
-    // Reset form
-    const form = document.getElementById('plot-modal-form');
-    if (form) form.reset();
-
-    const ownerSelect = document.getElementById('modal-plot-ownerId');
+    const members = appState.getMembers();
+    const memberOptions = members
+      .filter(m => m.status === 'active')
+      .map(m => {
+        const isCurrent = isMember && m.id === currentUser.memberId;
+        return `<option value="${m.id}" ${isCurrent ? 'selected' : ''}>${m.name} (${m.villageNumber || 'หมู่ 4'})</option>`;
+      })
+      .join('');
 
     let defaultLat = 18.9142;
     let defaultLng = 98.9442;
     let zoomLevel = 14;
     let hasMarker = false;
 
+    let plot = null;
     if (id) {
-      // Edit mode
-      const plot = appState.getPlotById(id);
+      plot = appState.getPlotById(id);
       if (plot) {
-        document.getElementById('plot-modal-title').innerHTML = `<i class="fas fa-edit"></i> แก้ไขข้อมูลแปลงปลูก (${id})`;
-        
-        const currentOwnerId = (plot.memberIds && plot.memberIds[0]) || plot.memberId || '';
-        if (ownerSelect) {
-          ownerSelect.value = isMember ? currentUser.memberId : currentOwnerId;
-        }
-
-        document.getElementById('modal-plot-name').value = plot.name || '';
-        document.getElementById('modal-plot-rai').value = plot.sizeRai || 0;
-        document.getElementById('modal-plot-ngan').value = plot.sizeNgan || 0;
-        document.getElementById('modal-plot-sqWah').value = plot.sizeSqWah || 0;
-        document.getElementById('modal-plot-lat').value = plot.lat !== undefined ? plot.lat : '';
-        document.getElementById('modal-plot-lng').value = plot.lng !== undefined ? plot.lng : '';
-
         const latVal = parseFloat(plot.lat);
         const lngVal = parseFloat(plot.lng);
         if (!isNaN(latVal) && !isNaN(lngVal)) {
@@ -460,21 +285,166 @@ export const PlotsComponent = {
           hasMarker = true;
         }
       }
-    } else {
-      // Add mode
-      document.getElementById('plot-modal-title').innerHTML = `<i class="fas fa-plus-circle"></i> ลงทะเบียนแปลงปลูกใหม่`;
-      document.getElementById('modal-plot-lat').value = '';
-      document.getElementById('modal-plot-lng').value = '';
     }
 
-    // Toggle Modal Display
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    const title = id ? `แก้ไขข้อมูลแปลงปลูก (${id})` : 'ลงทะเบียนแปลงปลูกใหม่';
+    const currentOwnerId = plot ? ((plot.memberIds && plot.memberIds[0]) || plot.memberId || '') : (isMember ? currentUser.memberId : '');
 
-    // Initialize map in modal with a slight delay to avoid Leaflet rendering dimensions issues
-    setTimeout(() => {
-      this.initModalMap(defaultLat, defaultLng, zoomLevel, hasMarker);
-    }, 150);
+    const formHtml = `
+      <form id="global-plot-modal-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Left Column: Form Inputs -->
+            <div class="space-y-4">
+              <!-- Owner Member Selection -->
+              <div>
+                <label for="modal-plot-ownerId" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เจ้าของแปลง *</label>
+                <select id="modal-plot-ownerId" name="ownerId" required ${isMember ? 'disabled' : ''}
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="">-- เลือกเจ้าของแปลง --</option>
+                  ${memberOptions}
+                </select>
+              </div>
+
+              <!-- Plot Name -->
+              <div>
+                <label for="modal-plot-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อเรียกแปลงปลูก *</label>
+                <input type="text" id="modal-plot-name" name="name" required value="${plot ? (plot.name || '') : ''}" placeholder="เช่น แปลง 1 ข้างบ้านป้าใจดี"
+                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <!-- Area Size Inputs -->
+              <div>
+                <span class="block text-xs font-semibold text-gray-500 uppercase mb-1">ขนาดพื้นที่แปลงปลูก *</span>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <input type="number" id="modal-plot-rai" name="sizeRai" min="0" value="${plot ? (plot.sizeRai || 0) : 0}" required
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <span class="block text-[10px] text-center text-gray-400 mt-1">ไร่</span>
+                  </div>
+                  <div>
+                    <input type="number" id="modal-plot-ngan" name="sizeNgan" min="0" max="3" value="${plot ? (plot.sizeNgan || 0) : 0}" required
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <span class="block text-[10px] text-center text-gray-400 mt-1">งาน</span>
+                  </div>
+                  <div>
+                    <input type="number" id="modal-plot-sqWah" name="sizeSqWah" min="0" max="99" value="${plot ? (plot.sizeSqWah || 0) : 0}" required
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <span class="block text-[10px] text-center text-gray-400 mt-1">ตร.ว.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Map Selection -->
+            <div class="flex flex-col h-full space-y-3">
+              <div>
+                <span class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปักหมุดตำแหน่งพิกัดแปลง *</span>
+                <div class="text-[10px] text-gray-450 leading-normal">
+                  <i class="fas fa-info-circle text-emerald-600 mr-0.5"></i>
+                  คลิกบนแผนที่เพื่ออัปเดตละติจูดและลองจิจูดลงฟอร์มอัตโนมัติ
+                </div>
+              </div>
+              
+              <!-- Modal Map Container -->
+              <div id="modal-plots-map" class="w-full flex-grow h-48 md:h-64 rounded-2xl border border-gray-200 overflow-hidden shadow-inner"></div>
+
+              <!-- Lat/Lng Inputs -->
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <label for="modal-plot-lat" class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Latitude *</label>
+                  <input type="number" id="modal-plot-lat" name="lat" step="any" required value="${plot && plot.lat !== undefined ? plot.lat : ''}" placeholder="18.9142"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                  <label for="modal-plot-lng" class="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Longitude *</label>
+                  <input type="number" id="modal-plot-lng" name="lng" step="any" required value="${plot && plot.lng !== undefined ? plot.lng : ''}" placeholder="98.9442"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        <!-- Modal Footer Buttons (Fixed) -->
+        <div class="flex justify-end gap-2 p-4 md:px-6 bg-gray-50 border-t border-gray-100 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-7 py-2.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 font-bold">
+            <i class="fas fa-save"></i> บันทึกข้อมูลแปลง
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title,
+      icon: 'fas fa-map-pin',
+      size: 'max-w-5xl',
+      content: formHtml,
+      onRender: (dialog) => {
+        const ownerSelect = dialog.querySelector('#modal-plot-ownerId');
+        if (ownerSelect && currentOwnerId) {
+          ownerSelect.value = currentOwnerId;
+        }
+
+        const form = dialog.querySelector('#global-plot-modal-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedOwnerId = isMember ? currentUser.memberId : (ownerSelect ? ownerSelect.value : '');
+
+            if (!selectedOwnerId) {
+              showToast('กรุณาเลือกเจ้าของแปลง', 'error');
+              return;
+            }
+
+            const data = {
+              memberIds: [selectedOwnerId],
+              memberId: selectedOwnerId,
+              name: dialog.querySelector('#modal-plot-name').value,
+              sizeRai: parseInt(dialog.querySelector('#modal-plot-rai').value) || 0,
+              sizeNgan: parseInt(dialog.querySelector('#modal-plot-ngan').value) || 0,
+              sizeSqWah: parseInt(dialog.querySelector('#modal-plot-sqWah').value) || 0,
+              lat: parseFloat(dialog.querySelector('#modal-plot-lat').value),
+              lng: parseFloat(dialog.querySelector('#modal-plot-lng').value),
+              status: 'active'
+            };
+
+            try {
+              if (this.editingPlotId) {
+                appState.updatePlot(this.editingPlotId, data);
+                showToast('อัปเดตข้อมูลแปลงปลูกสำเร็จ');
+              } else {
+                appState.addPlot(data);
+                showToast('ลงทะเบียนแปลงปลูกใหม่สำเร็จ');
+              }
+              closeGlobalModal();
+              this.refreshView();
+            } catch (err) {
+              showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลแปลงปลูก', 'error');
+            }
+          });
+        }
+
+        // Initialize Leaflet map inside global modal
+        setTimeout(() => {
+          this.initModalMap(defaultLat, defaultLng, zoomLevel, hasMarker);
+        }, 80);
+      },
+      onClose: () => {
+        if (modalMapInstance !== null) {
+          try {
+            modalMapInstance.remove();
+          } catch (e) {}
+          modalMapInstance = null;
+          modalMarker = null;
+        }
+      }
+    });
   },
 
   initModalMap(lat, lng, zoom, hasMarker) {
@@ -492,6 +462,9 @@ export const PlotsComponent = {
       modalMapInstance = null;
       modalMarker = null;
     }
+
+    const mapContainer = document.getElementById('modal-plots-map');
+    if (!mapContainer) return;
 
     modalMapInstance = L.map('modal-plots-map').setView([lat, lng], zoom);
 
@@ -513,9 +486,10 @@ export const PlotsComponent = {
 
     modalMapInstance.on('click', (e) => {
       const { lat: clickLat, lng: clickLng } = e.latlng;
-      
-      document.getElementById('modal-plot-lat').value = clickLat.toFixed(6);
-      document.getElementById('modal-plot-lng').value = clickLng.toFixed(6);
+      const latInput = document.getElementById('modal-plot-lat');
+      const lngInput = document.getElementById('modal-plot-lng');
+      if (latInput) latInput.value = clickLat.toFixed(6);
+      if (lngInput) lngInput.value = clickLng.toFixed(6);
 
       if (modalMarker === null) {
         modalMarker = L.marker([clickLat, clickLng], { icon: pinIcon }).addTo(modalMapInstance);
@@ -524,26 +498,7 @@ export const PlotsComponent = {
       }
     });
 
-    // Make sure map updates its width and height rendering bounding box
     modalMapInstance.invalidateSize();
-  },
-
-  closePlotModal() {
-    const modal = document.getElementById('plot-modal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    if (modalMapInstance !== null) {
-      try {
-        modalMapInstance.remove();
-      } catch (e) {
-        console.warn("Modal map close remove warning:", e);
-      }
-      modalMapInstance = null;
-      modalMarker = null;
-    }
   },
 
   refreshView() {

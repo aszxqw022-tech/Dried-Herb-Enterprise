@@ -1,6 +1,6 @@
 // Members Management Component
 import { appState } from '../state.js';
-import { formatThaiDate, showToast } from '../helpers.js';
+import { formatThaiDate, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
 
 export const MembersComponent = {
   currentPage: 1,
@@ -170,140 +170,12 @@ export const MembersComponent = {
       </div>
       
     </div> <!-- Close .fade-in container -->
-
-    <!-- Add/Edit Member Modal (Hidden by default) -->
-    <div id="member-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm transition-opacity">
-      <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl transform transition-all border border-gray-100">
-          <!-- Modal Header -->
-          <div class="bg-emerald-800 px-6 py-4 text-white flex justify-between items-center">
-            <h3 id="modal-title" class="font-bold text-lg flex items-center gap-2">
-              <i class="fas fa-user-edit"></i> เพิ่มสมาชิกใหม่
-            </h3>
-            <button type="button" class="close-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body Form -->
-          <form id="member-modal-form" class="p-6 space-y-4">
-            <!-- Photo Upload Field -->
-            <div class="flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-dashed border-emerald-200">
-              <div id="mem-photo-preview" class="w-16 h-16 rounded-full bg-emerald-100 border border-emerald-250 flex items-center justify-center text-emerald-800 text-xl font-bold overflow-hidden flex-shrink-0">
-                <i class="fas fa-user-circle text-emerald-500 text-4xl"></i>
-              </div>
-              <div class="space-y-1">
-                <label for="mem-photo" class="px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg cursor-pointer transition-colors shadow-sm inline-block">
-                  <i class="fas fa-camera mr-1"></i> เลือกรูปถ่ายสมาชิก
-                </label>
-                <input type="file" id="mem-photo" accept="image/*" class="hidden">
-                <p class="text-[10px] text-gray-400">แนะนำรูปจัตุรัส ขนาดไม่เกิน 1MB</p>
-                <button type="button" id="remove-mem-photo-btn" class="hidden text-[10px] text-red-500 hover:underline font-semibold block">
-                  <i class="fas fa-trash-alt mr-0.5"></i> ลบรูปถ่าย
-                </button>
-              </div>
-            </div>
-            <!-- Name -->
-            <div>
-              <label for="mem-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
-              <input type="text" id="mem-name" name="name" required placeholder="เช่น นายเกษตร มั่นคง"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- House Number (เลขที่บ้าน) -->
-            <div>
-              <label for="mem-houseNumber" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลขที่บ้าน *</label>
-              <input type="text" id="mem-houseNumber" name="houseNumber" required placeholder="เช่น 12/4 หรือ 45/1"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <span class="block text-[10px] text-gray-400 mt-1">ใช้สำหรับเป็นบัญชีเข้าสู่ระบบ (Username)</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Role -->
-              <div>
-                <label for="mem-role" class="block text-xs font-semibold text-gray-500 uppercase mb-1">บทบาทหน้าที่ *</label>
-                <select id="mem-role" name="role" required 
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  <option value="สมาชิกทั่วไป">สมาชิกทั่วไป</option>
-                  <option value="กรรมการ">กรรมการ</option>
-                  <option value="เลขานุการ">เลขานุการ</option>
-                  <option value="เหรัญญิก">เหรัญญิก</option>
-                  <option value="รองประธาน">รองประธาน</option>
-                  <option value="ประธานกลุ่ม">ประธานกลุ่ม</option>
-                </select>
-              </div>
-
-              <!-- Phone -->
-              <div>
-                <label for="mem-phone" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
-                <input type="text" id="mem-phone" name="phone" required placeholder="08X-XXX-XXXX"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-            </div>
-
-            <div>
-              <label for="mem-village" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่หมู่บ้าน/หมู่ที่ *</label>
-              <input type="text" id="mem-village" name="villageNumber" required placeholder="เช่น หมู่ 4"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Join Date -->
-            <div>
-              <label for="mem-joindate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เข้าร่วมเป็นสมาชิก *</label>
-              <input type="date" id="mem-joindate" name="joinDate" required
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Footer Buttons -->
-            <div class="flex justify-end pt-4 gap-2.5">
-              <button type="button" class="close-modal-btn px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-                ยกเลิก
-              </button>
-              <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1">
-                <i class="fas fa-save"></i> บันทึกข้อมูล
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Member Detail Modal (Hidden by default) -->
-      <div id="member-detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-3xl max-w-6xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
-          <!-- Modal Header -->
-          <div class="bg-emerald-850 bg-[#0f2e15] px-6 py-4 text-white flex justify-between items-center flex-shrink-0">
-            <h3 class="font-bold text-sm flex items-center gap-1.5">
-              <i class="fas fa-address-card"></i> รายละเอียดประวัติสมาชิกวิสาหกิจชุมชน
-            </h3>
-            <button type="button" class="close-detail-modal-btn text-white opacity-80 hover:opacity-100 text-xl focus:outline-none">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          
-          <!-- Modal Body (Scrollable) -->
-          <div class="p-6 overflow-y-auto flex-1 bg-gray-50/50 space-y-6 text-left" id="member-detail-body">
-            <!-- Rendered dynamically -->
-          </div>
-          
-          <!-- Modal Footer -->
-          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
-            ${isOfficer ? '' : `
-              <button type="button" id="detail-edit-member-btn" class="px-4 py-2 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all flex items-center gap-1 shadow-sm">
-                <i class="fas fa-edit"></i> แก้ไขข้อมูลสมาชิก
-              </button>
-            `}
-            <button type="button" class="close-detail-modal-btn px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-              ปิดหน้าต่าง
-            </button>
-          </div>
-        </div>
-      </div>
     `;
   },
 
   init() {
     this.bindSearchAndFilters();
     this.bindPagination();
-    this.bindModalEvents();
     this.bindMemberActions();
     this.bindQuickMock();
   },
@@ -350,163 +222,33 @@ export const MembersComponent = {
     }
   },
 
-  bindModalEvents() {
-    const modal = document.getElementById('member-modal');
-    const detailModal = document.getElementById('member-detail-modal');
-    const addBtn = document.getElementById('add-member-btn');
-    const closeBtns = document.querySelectorAll('.close-modal-btn');
-    const closeDetailBtns = document.querySelectorAll('.close-detail-modal-btn');
-    const form = document.getElementById('member-modal-form');
-
-    if (addBtn && modal) {
-      addBtn.addEventListener('click', () => {
-        this.editingMemberId = null;
-        this.currentPhotoBase64 = '';
-        document.getElementById('modal-title').innerHTML = '<i class="fas fa-user-plus"></i> เพิ่มสมาชิกใหม่';
-        if (form) {
-          form.reset();
-          // Pre-fill today's date
-          document.getElementById('mem-joindate').value = new Date().toISOString().split('T')[0];
-          
-          const preview = document.getElementById('mem-photo-preview');
-          const removeBtn = document.getElementById('remove-mem-photo-btn');
-          if (preview) {
-            preview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
-          }
-          if (removeBtn) {
-            removeBtn.classList.add('hidden');
-          }
-        }
-        modal.classList.remove('hidden');
-      });
-    }
-
-    closeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (modal) modal.classList.add('hidden');
-      });
-    });
-
-    closeDetailBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (detailModal) detailModal.classList.add('hidden');
-      });
-    });
-
-    // Handle photo select event
-    const photoInput = document.getElementById('mem-photo');
-    const photoPreview = document.getElementById('mem-photo-preview');
-    const removePhotoBtn = document.getElementById('remove-mem-photo-btn');
-
-    if (photoInput) {
-      photoInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          if (file.size > 1.2 * 1024 * 1024) {
-            showToast('ไฟล์รูปภาพมีขนาดใหญ่เกินไป (แนะนำไม่เกิน 1MB)', 'warning');
-            photoInput.value = '';
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            this.currentPhotoBase64 = event.target.result;
-            if (photoPreview) {
-              photoPreview.innerHTML = `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`;
-            }
-            if (removePhotoBtn) {
-              removePhotoBtn.classList.remove('hidden');
-            }
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-    }
-
-    if (removePhotoBtn) {
-      removePhotoBtn.addEventListener('click', () => {
-        this.currentPhotoBase64 = '';
-        if (photoInput) photoInput.value = '';
-        if (photoPreview) {
-          photoPreview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
-        }
-        removePhotoBtn.classList.add('hidden');
-      });
-    }
-
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const formData = new FormData(form);
-        const houseVal = formData.get('houseNumber').trim();
-
-        if (!houseVal) {
-          showToast('กรุณาระบุเลขที่บ้าน', 'warning');
-          return;
-        }
-
-        const data = {
-          name: formData.get('name'),
-          houseNumber: houseVal,
-          role: formData.get('role'),
-          phone: formData.get('phone'),
-          villageNumber: formData.get('villageNumber'),
-          status: 'active',
-          joinDate: formData.get('joinDate'),
-          photo: this.currentPhotoBase64 || null
-        };
-
-        try {
-          if (this.editingMemberId) {
-            appState.updateMember(this.editingMemberId, data);
-            showToast('อัปเดตข้อมูลสมาชิกเรียบร้อยแล้ว');
-          } else {
-            appState.addMember(data);
-            showToast('เพิ่มสมาชิกรายใหม่สำเร็จ');
-          }
-          if (modal) modal.classList.add('hidden');
-          this.refreshView();
-        } catch (err) {
-          showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
-        }
-      });
-    }
-  },
-
   bindMemberActions() {
-    const modal = document.getElementById('member-modal');
-    const detailModal = document.getElementById('member-detail-modal');
+    // Add Member Button
+    const addBtn = document.getElementById('add-member-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        this.openMemberFormModal(null);
+      });
+    }
 
-    // Click to view member details
+    // View Member Details
     const viewDetailBtns = document.querySelectorAll('.view-member-detail-btn');
     viewDetailBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        // Prevent click bubble if element is nested
+      btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         this.activeDetailMemberId = id;
-        this.showMemberDetail(id);
-        if (detailModal) detailModal.classList.remove('hidden');
+        this.showMemberDetailModal(id);
       });
     });
 
-    // Edit actions
+    // Edit actions from table
     const editBtns = document.querySelectorAll('.edit-member-btn');
     editBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        this.openEditModal(id);
+        this.openMemberFormModal(id);
       });
     });
-
-    // Edit member from inside detail modal
-    const detailEditBtn = document.getElementById('detail-edit-member-btn');
-    if (detailEditBtn) {
-      detailEditBtn.addEventListener('click', () => {
-        if (detailModal) detailModal.classList.add('hidden');
-        if (this.activeDetailMemberId) {
-          this.openEditModal(this.activeDetailMemberId);
-        }
-      });
-    }
 
     // Delete actions
     const deleteBtns = document.querySelectorAll('.delete-member-btn');
@@ -514,7 +256,7 @@ export const MembersComponent = {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const member = appState.getMemberById(id);
-        if (confirm(`คุณต้องการลบข้อมูลของ "${member.name}" ใช่หรือไม่?`)) {
+        if (confirm(`คุณต้องการลบข้อมูลของ "${member ? member.name : id}" ใช่หรือไม่?`)) {
           try {
             appState.deleteMember(id);
             showToast(`ลบข้อมูลสมาชิก ${id} สำเร็จ`);
@@ -527,41 +269,198 @@ export const MembersComponent = {
     });
   },
 
-  openEditModal(id) {
-    const modal = document.getElementById('member-modal');
-    const member = appState.getMemberById(id);
-    
-    if (member && modal) {
-      this.editingMemberId = id;
-      document.getElementById('modal-title').innerHTML = `<i class="fas fa-user-edit"></i> แก้ไขข้อมูลสมาชิก (${id})`;
-      
-      document.getElementById('mem-name').value = member.name;
-      document.getElementById('mem-houseNumber').value = member.houseNumber || '';
-      document.getElementById('mem-role').value = member.role;
-      document.getElementById('mem-phone').value = member.phone;
-      document.getElementById('mem-village').value = member.villageNumber;
-      document.getElementById('mem-joindate').value = member.joinDate;
+  openMemberFormModal(id = null) {
+    this.editingMemberId = id;
+    const member = id ? appState.getMemberById(id) : null;
+    this.currentPhotoBase64 = member && member.photo ? member.photo : '';
 
-      this.currentPhotoBase64 = member.photo || '';
-      const preview = document.getElementById('mem-photo-preview');
-      const removeBtn = document.getElementById('remove-mem-photo-btn');
-      if (preview) {
-        if (member.photo) {
-          preview.innerHTML = `<img src="${member.photo}" class="w-full h-full object-cover">`;
-          if (removeBtn) removeBtn.classList.remove('hidden');
-        } else {
-          preview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
-          if (removeBtn) removeBtn.classList.add('hidden');
+    const isEdit = !!member;
+    const title = isEdit ? `แก้ไขข้อมูลสมาชิก (${id})` : 'เพิ่มสมาชิกใหม่';
+    const icon = isEdit ? 'fas fa-user-edit' : 'fas fa-user-plus';
+
+    const photoPreviewHtml = this.currentPhotoBase64 
+      ? `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`
+      : `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
+
+    const formHtml = `
+      <form id="global-member-modal-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <!-- Photo Upload Field -->
+          <div class="flex items-center gap-4 p-4 bg-emerald-50/60 rounded-2xl border border-dashed border-emerald-200">
+            <div id="mem-photo-preview" class="w-16 h-16 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 text-xl font-bold overflow-hidden flex-shrink-0">
+              ${photoPreviewHtml}
+            </div>
+            <div class="space-y-1">
+              <label for="mem-photo" class="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl cursor-pointer transition-colors shadow-sm inline-block">
+                <i class="fas fa-camera mr-1"></i> เลือกรูปถ่ายสมาชิก
+              </label>
+              <input type="file" id="mem-photo" accept="image/*" class="hidden">
+              <p class="text-[11px] text-gray-400">แนะนำรูปจัตุรัส ขนาดไม่เกิน 1MB</p>
+              <button type="button" id="remove-mem-photo-btn" class="${this.currentPhotoBase64 ? '' : 'hidden'} text-[11px] text-red-500 hover:underline font-semibold block">
+                <i class="fas fa-trash-alt mr-0.5"></i> ลบรูปถ่าย
+              </button>
+            </div>
+          </div>
+
+          <!-- Form Inputs Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Name -->
+            <div>
+              <label for="mem-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
+              <input type="text" id="mem-name" name="name" required value="${member ? member.name : ''}" placeholder="เช่น นายเกษตร มั่นคง"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- House Number -->
+            <div>
+              <label for="mem-houseNumber" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เลขที่บ้าน *</label>
+              <input type="text" id="mem-houseNumber" name="houseNumber" required value="${member ? (member.houseNumber || '') : ''}" placeholder="เช่น 12/4 หรือ 45/1"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <span class="block text-[10px] text-gray-400 mt-1">ใช้สำหรับเป็นบัญชีเข้าสู่ระบบ (Username)</span>
+            </div>
+
+            <!-- Role -->
+            <div>
+              <label for="mem-role" class="block text-xs font-semibold text-gray-500 uppercase mb-1">บทบาทหน้าที่ *</label>
+              <select id="mem-role" name="role" required 
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="สมาชิกทั่วไป" ${member && member.role === 'สมาชิกทั่วไป' ? 'selected' : ''}>สมาชิกทั่วไป</option>
+                <option value="กรรมการ" ${member && member.role === 'กรรมการ' ? 'selected' : ''}>กรรมการ</option>
+                <option value="เลขานุการ" ${member && member.role === 'เลขานุการ' ? 'selected' : ''}>เลขานุการ</option>
+                <option value="เหรัญญิก" ${member && member.role === 'เหรัญญิก' ? 'selected' : ''}>เหรัญญิก</option>
+                <option value="รองประธาน" ${member && member.role === 'รองประธาน' ? 'selected' : ''}>รองประธาน</option>
+                <option value="ประธานกลุ่ม" ${member && member.role === 'ประธานกลุ่ม' ? 'selected' : ''}>ประธานกลุ่ม</option>
+              </select>
+            </div>
+
+            <!-- Phone -->
+            <div>
+              <label for="mem-phone" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
+              <input type="text" id="mem-phone" name="phone" required value="${member ? member.phone : ''}" placeholder="08X-XXX-XXXX"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Village -->
+            <div>
+              <label for="mem-village" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่หมู่บ้าน/หมู่ที่ *</label>
+              <input type="text" id="mem-village" name="villageNumber" required value="${member ? member.villageNumber : 'หมู่ 4'}" placeholder="เช่น หมู่ 4"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Join Date -->
+            <div>
+              <label for="mem-joindate" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่เข้าร่วมเป็นสมาชิก (วัน/เดือน/ปี) *</label>
+              <input type="date" id="mem-joindate" name="joinDate" required value="${member ? member.joinDate : new Date().toISOString().split('T')[0]}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Buttons (Fixed) -->
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-save"></i> บันทึกข้อมูล
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title,
+      icon,
+      size: 'max-w-4xl',
+      content: formHtml,
+      onRender: (dialog) => {
+        const photoInput = dialog.querySelector('#mem-photo');
+        const photoPreview = dialog.querySelector('#mem-photo-preview');
+        const removePhotoBtn = dialog.querySelector('#remove-mem-photo-btn');
+        const form = dialog.querySelector('#global-member-modal-form');
+
+        if (photoInput) {
+          photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              if (file.size > 1.2 * 1024 * 1024) {
+                showToast('ไฟล์รูปภาพมีขนาดใหญ่เกินไป (แนะนำไม่เกิน 1MB)', 'warning');
+                photoInput.value = '';
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                this.currentPhotoBase64 = event.target.result;
+                if (photoPreview) {
+                  photoPreview.innerHTML = `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`;
+                }
+                if (removePhotoBtn) {
+                  removePhotoBtn.classList.remove('hidden');
+                }
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+        }
+
+        if (removePhotoBtn) {
+          removePhotoBtn.addEventListener('click', () => {
+            this.currentPhotoBase64 = '';
+            if (photoInput) photoInput.value = '';
+            if (photoPreview) {
+              photoPreview.innerHTML = `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
+            }
+            removePhotoBtn.classList.add('hidden');
+          });
+        }
+
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const houseVal = formData.get('houseNumber').trim();
+
+            if (!houseVal) {
+              showToast('กรุณาระบุเลขที่บ้าน', 'warning');
+              return;
+            }
+
+            const data = {
+              name: formData.get('name'),
+              houseNumber: houseVal,
+              role: formData.get('role'),
+              phone: formData.get('phone'),
+              villageNumber: formData.get('villageNumber'),
+              status: 'active',
+              joinDate: formData.get('joinDate'),
+              photo: this.currentPhotoBase64 || null
+            };
+
+            try {
+              if (this.editingMemberId) {
+                appState.updateMember(this.editingMemberId, data);
+                showToast('อัปเดตข้อมูลสมาชิกเรียบร้อยแล้ว');
+              } else {
+                appState.addMember(data);
+                showToast('เพิ่มสมาชิกรายใหม่สำเร็จ');
+              }
+              closeGlobalModal();
+              this.refreshView();
+            } catch (err) {
+              showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+            }
+          });
         }
       }
-
-      modal.classList.remove('hidden');
-    }
+    });
   },
 
-  showMemberDetail(id) {
+  showMemberDetailModal(id) {
     const m = appState.getMemberById(id);
     if (!m) return;
+
+    const currentUser = appState.getCurrentUser();
+    const isOfficer = currentUser && currentUser.role === 'Officer';
 
     const mPlots = appState.getPlotsByMemberId(id);
     const mPlotIds = mPlots.map(p => p.id);
@@ -584,111 +483,138 @@ export const MembersComponent = {
       ? `<img src="${m.photo}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md mx-auto">`
       : `<div class="w-24 h-24 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-2xl flex items-center justify-center border-4 border-white shadow-md mx-auto">${m.name.charAt(0) || 'M'}</div>`;
 
-    const bodyEl = document.getElementById('member-detail-body');
-    if (bodyEl) {
-      bodyEl.innerHTML = `
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          <!-- Left Column: Personal info card (4 cols) -->
-          <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-gray-150 shadow-sm text-center space-y-5">
-            <div class="relative">
-              ${avatarHtml}
-              <span class="absolute bottom-0 right-1/2 translate-x-12 px-3 py-1 text-[10px] font-extrabold text-white bg-emerald-700 rounded-full border border-white shadow-md">
-                ${m.id}
-              </span>
-            </div>
-            <div>
-              <h4 class="text-lg font-extrabold text-gray-900 leading-snug">${m.name}</h4>
-              <span class="px-2.5 py-0.5 text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full mt-1.5 inline-block">${m.role}</span>
-            </div>
-
-            <div class="border-t border-gray-100 pt-4 text-left space-y-3.5 text-xs text-gray-600">
-              <div>
-                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เลขที่บ้าน</span>
-                <span id="detail-house-number" class="font-bold text-gray-800 text-sm mt-0.5 block">${houseNumber}</span>
-              </div>
-              <div>
-                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เบอร์โทรศัพท์</span>
-                <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.phone}</span>
-              </div>
-              <div>
-                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">ที่อยู่ / หมู่บ้าน</span>
-                <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.villageNumber || '-'}</span>
-              </div>
-              <div>
-                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">วันที่ลงทะเบียนเข้าร่วม</span>
-                <span class="font-bold text-gray-800 text-sm mt-0.5 block">${formatThaiDate(m.joinDate)}</span>
-              </div>
-              <div>
-                <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-1">สถานะสมาชิก</span>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full ${
-                  m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'
-                }">
-                  <span class="w-2 h-2 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-gray-405'}"></span>
-                  ${m.status === 'active' ? 'กำลังมีกิจกรรม' : 'พักการปลูก'}
+    const detailContent = `
+      <div class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 bg-gray-50/50 space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column: Personal info card (4 cols) -->
+            <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-gray-150 shadow-sm text-center space-y-5">
+              <div class="relative">
+                ${avatarHtml}
+                <span class="absolute bottom-0 right-1/2 translate-x-12 px-3 py-1 text-[10px] font-extrabold text-white bg-emerald-700 rounded-full border border-white shadow-md">
+                  ${m.id}
                 </span>
               </div>
-            </div>
-          </div>
+              <div>
+                <h4 class="text-lg font-extrabold text-gray-900 leading-snug">${m.name}</h4>
+                <span class="px-2.5 py-0.5 text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full mt-1.5 inline-block">${m.role}</span>
+              </div>
 
-          <!-- Right Column: Stats & Plots lists (8 cols) -->
-          <div class="lg:col-span-8 space-y-6 flex flex-col justify-between">
-            
-            <!-- Statistics Cards Grid (4 cols on desktop) -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">แปลงปลูกทั้งหมด</span>
-                <span class="text-2xl font-extrabold text-emerald-800">${mPlots.length} <span class="text-xs text-gray-550 font-semibold">แปลง</span></span>
-              </div>
-              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">รอบการเพาะปลูก</span>
-                <span class="text-2xl font-extrabold text-emerald-800">${mCrops.length} <span class="text-xs text-gray-550 font-semibold">รอบ</span></span>
-              </div>
-              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">อบแห้งในคลัง</span>
-                <span class="text-2xl font-extrabold text-emerald-800">${totalDryStock.toFixed(2)} <span class="text-xs text-gray-550 font-semibold">กก.</span></span>
-              </div>
-              <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">กำไรสุทธิสะสม</span>
-                <span class="text-2xl font-extrabold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+              <div class="border-t border-gray-100 pt-4 text-left space-y-3.5 text-xs text-gray-600">
+                <div>
+                  <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เลขที่บ้าน</span>
+                  <span id="detail-house-number" class="font-bold text-gray-800 text-sm mt-0.5 block">${houseNumber}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">เบอร์โทรศัพท์</span>
+                  <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.phone}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">ที่อยู่ / หมู่บ้าน</span>
+                  <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.villageNumber || '-'}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">วันที่ลงทะเบียนเข้าร่วม</span>
+                  <span class="font-bold text-gray-800 text-sm mt-0.5 block">${formatThaiDate(m.joinDate)}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-1">สถานะสมาชิก</span>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full ${
+                    m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'
+                  }">
+                    <span class="w-2 h-2 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-gray-405'}"></span>
+                    ${m.status === 'active' ? 'กำลังมีกิจกรรม' : 'พักการปลูก'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <!-- Plot Details List -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
-              <h5 class="text-xs font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                <i class="fas fa-map-marked-alt text-emerald-700"></i> รายชื่อแปลงปลูกสมุนไพรในสังกัด (${mPlots.length})
-              </h5>
+            <!-- Right Column: Stats & Plots lists (8 cols) -->
+            <div class="lg:col-span-8 space-y-6 flex flex-col justify-between">
               
-              ${mPlots.length === 0 
-                ? `<p class="text-xs text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
-                : `
-                  <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
-                    ${mPlots.map(p => `
-                      <div class="py-2.5 flex justify-between items-center text-xs">
-                        <div>
-                          <span class="font-bold text-gray-800">${p.name}</span>
-                          <span class="text-gray-400 text-[10px] block mt-0.5">รหัสแปลง: ${p.id}</span>
-                        </div>
-                        <div class="text-right">
-                          <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            p.plantType === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'
-                          }">${p.plantType}</span>
-                          <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
-                        </div>
-                      </div>
-                    `).join('')}
-                  </div>
-                `
-              }
-            </div>
-          </div>
-          
-        </div>
-      `;
+              <!-- Statistics Cards Grid (4 cols on desktop) -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">แปลงปลูกทั้งหมด</span>
+                  <span class="text-2xl font-extrabold text-emerald-800">${mPlots.length} <span class="text-xs text-gray-550 font-semibold">แปลง</span></span>
+                </div>
+                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">รอบการเพาะปลูก</span>
+                  <span class="text-2xl font-extrabold text-emerald-800">${mCrops.length} <span class="text-xs text-gray-550 font-semibold">รอบ</span></span>
+                </div>
+                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">อบแห้งในคลัง</span>
+                  <span class="text-2xl font-extrabold text-emerald-800">${totalDryStock.toFixed(2)} <span class="text-xs text-gray-550 font-semibold">กก.</span></span>
+                </div>
+                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-[10px] text-gray-400 font-extrabold block uppercase mb-1">กำไรสุทธิสะสม</span>
+                  <span class="text-2xl font-extrabold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+                </div>
+              </div>
 
-      // Detail view render complete
-    }
+              <!-- Plot Details List -->
+              <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
+                <h5 class="text-xs font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fas fa-map-marked-alt text-emerald-700"></i> รายชื่อแปลงปลูกสมุนไพรในสังกัด (${mPlots.length})
+                </h5>
+                
+                ${mPlots.length === 0 
+                  ? `<p class="text-xs text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
+                  : `
+                    <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
+                      ${mPlots.map(p => `
+                        <div class="py-2.5 flex justify-between items-center text-xs">
+                          <div>
+                            <span class="font-bold text-gray-800">${p.name}</span>
+                            <span class="text-gray-400 text-[10px] block mt-0.5">รหัสแปลง: ${p.id}</span>
+                          </div>
+                          <div class="text-right">
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                              p.plantType === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                            }">${p.plantType}</span>
+                            <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  `
+                }
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
+          ${isOfficer ? '<div></div>' : `
+            <button type="button" id="global-detail-edit-member-btn" class="px-4 py-2 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+              <i class="fas fa-edit"></i> แก้ไขข้อมูลสมาชิก
+            </button>
+          `}
+          <button type="button" class="close-global-modal-btn px-5 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ปิดหน้าต่าง
+          </button>
+        </div>
+      </div>
+    `;
+
+    openGlobalModal({
+      title: 'รายละเอียดประวัติสมาชิกวิสาหกิจชุมชน',
+      icon: 'fas fa-address-card',
+      size: 'max-w-6xl',
+      headerColor: 'bg-[#0f2e15]',
+      content: detailContent,
+      onRender: (dialog) => {
+        const editBtn = dialog.querySelector('#global-detail-edit-member-btn');
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            this.openMemberFormModal(id);
+          });
+        }
+      }
+    });
   },
 
   bindQuickMock() {
