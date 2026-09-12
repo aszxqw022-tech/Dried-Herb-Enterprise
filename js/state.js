@@ -1274,6 +1274,62 @@ export class AppState {
     return newSale;
   }
 
+  deleteSale(saleId, restoreStock = true) {
+    let sales = this.getSales();
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) throw new Error('ไม่พบรายการขายนี้ในระบบ');
+
+    // 1. Optionally restore stock back into the crop lot
+    if (restoreStock) {
+      let inventory = this.getInventory();
+      const invIndex = inventory.findIndex(inv => inv.cropId === sale.cropId);
+      if (invIndex !== -1) {
+        const inv = inventory[invIndex];
+        const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
+        const jarCapacity = isChrys ? 0.10 : 0.05;
+        const weightToRestore = sale.saleType === 'jar'
+          ? parseFloat((sale.amount * jarCapacity).toFixed(2))
+          : (parseFloat(sale.amount) || parseFloat(sale.amountKg) || 0);
+
+        inv.dryStockKg = parseFloat((inv.dryStockKg + weightToRestore).toFixed(2));
+        if (supabaseClient) {
+          supabaseClient.from('inventory').update({ dry_stock_kg: inv.dryStockKg }).eq('crop_id', sale.cropId).then(({ error }) => {
+            if (error) console.error("Supabase restore inventory error:", error);
+          });
+        } else {
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+        }
+      }
+    }
+
+    // 2. Remove sale from sales cache and storage
+    if (supabaseClient) {
+      this.salesCache = this.salesCache.filter(s => s.id !== saleId);
+      supabaseClient.from('sales').delete().eq('id', saleId).then(({ error }) => {
+        if (error) console.error("Supabase deleteSale error:", error);
+      });
+    } else {
+      const filtered = sales.filter(s => s.id !== saleId);
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(filtered));
+    }
+
+    return true;
+  }
+
+  deleteSales(saleIds, restoreStock = true) {
+    if (!Array.isArray(saleIds) || saleIds.length === 0) return 0;
+    let successCount = 0;
+    saleIds.forEach(id => {
+      try {
+        this.deleteSale(id, restoreStock);
+        successCount++;
+      } catch (e) {
+        console.error(`Failed to delete sale ${id}:`, e);
+      }
+    });
+    return successCount;
+  }
+
   updateLotWeights(cropId, yieldFresh, dryStock) {
     const fresh = parseFloat(yieldFresh) || 0;
     const dry = parseFloat(dryStock) || 0;
