@@ -1,8 +1,33 @@
-$listener = [System.Net.HttpListener]::new()
-$listener.Prefixes.Add('http://localhost:8080/')
-$listener.Start()
-Write-Host 'Local Server running at http://localhost:8080/'
 $baseDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+$port = 8080
+
+$listener = [System.Net.HttpListener]::new()
+$listener.Prefixes.Add("http://localhost:$port/")
+$listener.Prefixes.Add("http://127.0.0.1:$port/")
+
+$localIP = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" -and $_.IPAddress -notlike "169.254.*" } | Select-Object -First 1).IPAddress
+$hasLan = $false
+if ($localIP) {
+    try {
+        $testListener = [System.Net.HttpListener]::new()
+        $testListener.Prefixes.Add("http://${localIP}:${port}/")
+        $testListener.Start()
+        $testListener.Stop()
+        $testListener.Close()
+        $listener.Prefixes.Add("http://${localIP}:${port}/")
+        $hasLan = $true
+    } catch {}
+}
+
+$listener.Start()
+Write-Host "==========================================" -ForegroundColor Green
+Write-Host " [Web Simulator] Server is running!" -ForegroundColor Green
+Write-Host " Local URL:   http://localhost:$port/" -ForegroundColor Cyan
+if ($hasLan) {
+    Write-Host " Network URL: http://${localIP}:${port}/" -ForegroundColor Cyan
+}
+Write-Host " Press Ctrl+C to stop the server." -ForegroundColor Yellow
+Write-Host "==========================================" -ForegroundColor Green
 
 try {
     while ($listener.IsListening) {

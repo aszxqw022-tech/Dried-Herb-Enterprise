@@ -1,13 +1,18 @@
 // Main App Controller and Router for Single Page Application
-import { appState } from './state.js';
-import { DashboardComponent } from './components/dashboard.js?v=2';
-import { MembersComponent } from './components/members.js?v=2';
-import { PlotsComponent } from './components/plots.js';
-import { CropsComponent } from './components/crops.js?v=2';
-import { CropHistoryComponent } from './components/cropHistory.js';
-import { SettingsComponent } from './components/settings.js';
-import { CustomersComponent } from './components/customers.js';
-import { InventoryComponent } from './components/inventory.js?v=5'; // Phase 2
+import { appState } from './state.js?v=42';
+import { DashboardComponent } from './components/dashboard.js?v=20';
+import { MembersComponent } from './components/members.js?v=4';
+import { PlotsComponent } from './components/plots.js?v=3';
+import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=19';
+import { CropsComponent } from './components/crops.js?v=28';
+import { CropHistoryComponent } from './components/cropHistory.js?v=10';
+import { FreshProduceComponent } from './components/freshProduce.js?v=33';
+import { SettingsComponent } from './components/settings.js?v=7';
+import { CustomersComponent } from './components/customers.js?v=5';
+import { InventoryComponent } from './components/inventory.js?v=26'; // Phase 2
+import { FinanceComponent } from './components/finance.js?v=2';
+import { CostRevenueComponent } from './components/costRevenue.js?v=16';
+import { SalesComponent } from './components/sales.js?v=16';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 import { LoginComponent } from './components/login.js';
 
@@ -18,11 +23,16 @@ class AppController {
       dashboard: DashboardComponent,
       members: MembersComponent,
       plots: PlotsComponent,
+      roadmap: PlantingRoadmapComponent,
       crops: CropsComponent,
       'crop-history': CropHistoryComponent,
+      'fresh-produce': FreshProduceComponent,
       customers: CustomersComponent,
       settings: SettingsComponent,
       inventory: InventoryComponent,  // Phase 2
+      finance: FinanceComponent,
+      'cost-revenue': CostRevenueComponent,
+      sales: SalesComponent,
       trace: TraceabilityComponent,   // Phase 2
       login: LoginComponent
     };
@@ -33,6 +43,10 @@ class AppController {
     const navLinks = document.querySelectorAll('.sidebar-link');
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href') || '';
+        if (href.startsWith('#trace')) {
+          return; // Let native hash change handle trace
+        }
         e.preventDefault();
         const targetView = link.getAttribute('data-view');
         window.location.hash = `#${targetView}`; // Update hash for router
@@ -92,10 +106,15 @@ class AppController {
     const header = document.querySelector('header');
     const isLoggedIn = appState.isLoggedIn();
 
-    // Traceability Consumer Route (Public)
-    if (hash.startsWith('#trace/')) {
-      const cropId = hash.split('/')[1];
-      TraceabilityComponent.currentCropId = cropId;
+    // Traceability Consumer Route (Public & QR Code Verification)
+    if (hash.startsWith('#trace')) {
+      let rawCropId = '2568/P001-R1';
+      if (hash.includes('/')) {
+        const parts = hash.split('/');
+        rawCropId = decodeURIComponent(parts.slice(1).join('/'));
+      }
+      const existingCrop = appState.getCropById(rawCropId) || appState.getCrops()[0];
+      TraceabilityComponent.currentCropId = existingCrop ? existingCrop.id : '2568/P001-R1';
 
       if (sidebar) sidebar.style.display = 'none';
       if (header) header.style.display = 'none';
@@ -151,6 +170,12 @@ class AppController {
       return;
     }
 
+    if (this.currentView === 'dashboard' && viewKey !== 'dashboard') {
+      if (DashboardComponent && typeof DashboardComponent.destroyCharts === 'function') {
+        DashboardComponent.destroyCharts();
+      }
+    }
+
     this.currentView = viewKey;
 
     // Update active state in navigation
@@ -159,8 +184,6 @@ class AppController {
       const linkView = link.getAttribute('data-view');
       if (linkView === viewKey) {
         link.classList.add('active');
-        const icon = link.querySelector('i');
-        if (icon) icon.className = icon.className.replace('text-emerald-700', 'text-white');
       } else {
         link.classList.remove('active');
       }
@@ -173,6 +196,8 @@ class AppController {
       // Initialize view event listeners
       this.views[viewKey].init();
     }
+
+    this.updateHeaderAndTitles(appState.getEnterprise());
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -188,6 +213,16 @@ class AppController {
     villages.forEach(el => {
       el.textContent = `${profile.village} ต.${profile.subdistrict}`;
     });
+
+    const cropsDisplays = document.querySelectorAll('.enterprise-crops-display');
+    if (cropsDisplays.length > 0) {
+      const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
+      const herbNames = Object.keys(roadmaps);
+      const text = herbNames.length > 0 ? herbNames.join(' / ') : 'เก๊กฮวย / คาโมมายล์';
+      cropsDisplays.forEach(el => {
+        el.textContent = text;
+      });
+    }
   }
 
   updateUserSessionUI(user) {
@@ -200,15 +235,18 @@ class AppController {
     const membersLink = document.querySelector('.sidebar-link[data-view="members"]');
     const settingsLink = document.querySelector('.sidebar-link[data-view="settings"]');
     const customersLink = document.querySelector('.sidebar-link[data-view="customers"]');
+    const masterSettingsHeader = document.getElementById('nav-section-master-settings');
     
     if (user && user.role === 'Member') {
       if (membersLink) membersLink.style.display = 'none';
       if (settingsLink) settingsLink.style.display = 'none';
       if (customersLink) customersLink.style.display = 'none';
+      if (masterSettingsHeader) masterSettingsHeader.style.display = 'none';
     } else {
       if (membersLink) membersLink.style.display = '';
       if (settingsLink) settingsLink.style.display = '';
       if (customersLink) customersLink.style.display = '';
+      if (masterSettingsHeader) masterSettingsHeader.style.display = '';
     }
 
     if (user) {
@@ -224,6 +262,11 @@ class AppController {
               <span class="text-xs font-bold text-gray-800 block leading-tight">${user.name}</span>
               <span class="text-[10px] text-emerald-700 font-semibold block leading-tight">${displayRole}</span>
             </div>
+            <button id="quick-reset-sim-btn" title="จำลองเว็บใหม่ (รีเซ็ตข้อมูลจำลองทั้งหมด)"
+              class="ml-1 px-2.5 py-1.5 text-amber-800 hover:text-amber-950 bg-amber-100/80 hover:bg-amber-200/80 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold focus:outline-none border border-amber-300/70 shadow-xs">
+              <i class="fas fa-arrows-rotate text-xs"></i>
+              <span class="hidden md:inline">จำลองเว็บใหม่</span>
+            </button>
             <button id="logout-btn" title="ออกจากระบบ"
               class="ml-1 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold focus:outline-none">
               <i class="fas fa-sign-out-alt text-sm"></i>
@@ -231,6 +274,16 @@ class AppController {
             </button>
           </div>
         `;
+
+        const quickResetBtn = document.getElementById('quick-reset-sim-btn');
+        if (quickResetBtn) {
+          quickResetBtn.addEventListener('click', () => {
+            if (confirm('ต้องการรีเซ็ตและจำลองข้อมูลเว็บใหม่ทั้งหมดใช่หรือไม่? ข้อมูลสาธิตทุกส่วนจะถูกสร้างใหม่ตามการตั้งค่าล่าสุด')) {
+              appState.resetAllSimulationData();
+              window.location.reload();
+            }
+          });
+        }
 
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
@@ -244,7 +297,7 @@ class AppController {
       }
 
       // Sidebar Footer
-      if (avatarDisplay) avatarDisplay.textContent = user.avatarText || 'U';
+      if (avatarDisplay) avatarDisplay.textContent = user.avatarText || 'น';
       if (nameDisplay) nameDisplay.textContent = user.name;
       if (roleDisplay) roleDisplay.textContent = displayRole;
 
@@ -261,9 +314,9 @@ class AppController {
       }
 
       // Sidebar Footer
-      if (avatarDisplay) avatarDisplay.textContent = 'G';
-      if (nameDisplay) nameDisplay.textContent = 'ผู้ใช้งานทั่วไป';
-      if (roleDisplay) roleDisplay.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
+      if (avatarDisplay) avatarDisplay.textContent = 'น';
+      if (nameDisplay) nameDisplay.textContent = 'นายสมเกียรติ พึ่งตน';
+      if (roleDisplay) roleDisplay.textContent = 'ประธานกลุ่ม';
     }
   }
 }

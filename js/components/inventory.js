@@ -1,316 +1,369 @@
-// Inventory and Cost-Profit Ledger Component
+// Warehouse / Product Inventory Table Component (คลังสินค้า - ตารางสินค้าและสต็อกคงเหลือ)
 import { appState } from '../state.js';
-import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
+import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModal, getHerbDefaultIcon } from '../helpers.js';
+
+const THAI_MONTHS_SELECT = [
+  { val: '01', name: 'มกราคม' },
+  { val: '02', name: 'กุมภาพันธ์' },
+  { val: '03', name: 'มีนาคม' },
+  { val: '04', name: 'เมษายน' },
+  { val: '05', name: 'พฤษภาคม' },
+  { val: '06', name: 'มิถุนายน' },
+  { val: '07', name: 'กรกฎาคม' },
+  { val: '08', name: 'สิงหาคม' },
+  { val: '09', name: 'กันยายน' },
+  { val: '10', name: 'ตุลาคม' },
+  { val: '11', name: 'พฤศจิกายน' },
+  { val: '12', name: 'ธันวาคม' }
+];
 
 export const InventoryComponent = {
-  activeTab: 'fresh', // 'fresh' | 'stock' | 'ledger' | 'sales'
-  searchMemberQuery: '',
-  searchSaleQuery: '',
-  searchStockQuery: '',
-  sellingCropId: null,
-  selectedFreshCropIds: [],
-  selectedSaleIds: [],
-  selectedStockCropIds: [],
+  searchQuery: '',
+  unitFilter: 'all',
+  monthFilter: 'all',
+  yearFilter: 'all',
 
   render() {
     const currentUser = appState.getCurrentUser();
     const isMember = currentUser && currentUser.role === 'Member';
 
-    const stats = appState.getStats();
-    
-    let plots = appState.getPlots();
-    let crops = appState.getCrops();
-    if (isMember) {
-      plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
-      const plotIds = plots.map(p => p.id);
-      crops = crops.filter(c => plotIds.includes(c.plotId));
-    }
-    const cropIds = crops.map(c => c.id);
-    
-    const inventory = appState.getInventory().filter(i => cropIds.includes(i.cropId));
-    const members = appState.getMembers();
-    const sales = appState.getSales().filter(s => cropIds.includes(s.cropId));
-    const financialReport = appState.getFinancialReport();
+    const allProducts = appState.getProducts();
 
-    // 1. Filtered report for members tab
-    let filteredReport = financialReport.filter(r => 
-      r.name.toLowerCase().includes(this.searchMemberQuery.toLowerCase()) ||
-      r.id.toLowerCase().includes(this.searchMemberQuery.toLowerCase())
-    );
-    if (isMember) {
-      filteredReport = filteredReport.filter(r => r.id === currentUser.memberId);
-    }
+    // Collect all distinct years from products
+    const availableYears = [...new Set(allProducts.map(p => (p.updatedDate || '').substring(0, 4)).filter(Boolean))];
+    if (!availableYears.includes('2026')) availableYears.push('2026');
+    if (!availableYears.includes('2025')) availableYears.push('2025');
+    availableYears.sort().reverse();
 
-    // 2. Build Inventory Stock Tab HTML (With Checkbox Batch Management)
-    let activeInventoryLots = inventory.filter(inv => inv.dryStockKg > 0);
-    if (this.searchStockQuery) {
-      const q = this.searchStockQuery.toLowerCase();
-      activeInventoryLots = activeInventoryLots.filter(inv => {
-        const crop = appState.getCropById(inv.cropId);
-        const plot = crop ? appState.getPlotById(crop.plotId) : null;
-        const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-        const ownersNames = owners.map(o => o.name).join(', ').toLowerCase();
-        const plotName = plot ? plot.name.toLowerCase() : '';
-        const herbType = (inv.herbType || '').toLowerCase();
-        return (
-          inv.cropId.toLowerCase().includes(q) ||
-          plotName.includes(q) ||
-          ownersNames.includes(q) ||
-          herbType.includes(q)
-        );
-      });
-    }
-
-    // Clean up selectedStockCropIds that might no longer exist
-    this.selectedStockCropIds = this.selectedStockCropIds.filter(id => inventory.some(i => i.cropId === id && i.dryStockKg > 0));
-    const allStockChecked = activeInventoryLots.length > 0 && activeInventoryLots.every(inv => this.selectedStockCropIds.includes(inv.cropId));
-    const selectedStockCount = this.selectedStockCropIds.length;
-    const selectedStockWeight = inventory
-      .filter(inv => this.selectedStockCropIds.includes(inv.cropId))
-      .reduce((sum, inv) => sum + (inv.dryStockKg || 0), 0);
-
-    const stockCardsHtml = activeInventoryLots.length === 0
-      ? `<div class="col-span-full p-8 text-center text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">ไม่พบสินค้าอบแห้งที่ตรงกับเงื่อนไขการค้นหาในคลัง</div>`
-      : activeInventoryLots.map(inv => {
-          const crop = appState.getCropById(inv.cropId);
-          const plot = crop ? appState.getPlotById(crop.plotId) : null;
-          const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-          const ownersNames = owners.map(o => o.name).join(', ') || '-';
-          const herbType = inv.herbType || (crop ? crop.seedlingSource : 'สมุนไพร');
-          const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
-          const isChecked = this.selectedStockCropIds.includes(inv.cropId);
-          
-          return `
-            <div class="glass-card bg-white rounded-3xl p-5 border ${isChecked ? 'border-emerald-500 ring-2 ring-emerald-300/40 bg-emerald-50/20' : 'border-gray-100'} flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
-              <div>
-                <div class="flex justify-between items-start mb-2">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <input type="checkbox" data-crop-id="${inv.cropId}" ${isChecked ? 'checked' : ''} 
-                      class="stock-batch-checkbox rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 cursor-pointer">
-                    <span class="text-xs font-bold text-gray-400">ล็อต: ${inv.cropId}</span>
-                    <button data-crop-id="${inv.cropId}" class="edit-lot-weights-btn text-emerald-600 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md transition-colors text-[10px] font-bold flex items-center gap-0.5 border border-emerald-100 shadow-sm" title="แก้ไขข้อมูลน้ำหนักสด/แห้ง">
-                      <i class="fas fa-weight-hanging"></i> แก้ไขน้ำหนัก
-                    </button>
-                  </div>
-                  <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
-                    isChrys ? 'badge-chrysanthemum text-amber-800 bg-amber-100' : 'badge-chamomile text-sky-800 bg-sky-100'
-                  }">
-                    ${herbType}อบแห้ง
-                  </span>
-                </div>
-                <h4 class="text-base font-bold text-gray-800 pl-6">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
-                <p class="text-xs text-gray-500 mt-1 pl-6">เกษตรกรเจ้าของ: <b>${ownersNames}</b></p>
-                
-                <div class="mt-4 p-4 bg-gray-50 rounded-2xl flex justify-between items-center border border-gray-100">
-                  <span class="text-xs text-gray-500 font-medium">สต็อกคงเหลือล็อตนี้:</span>
-                  <span class="text-2xl font-black text-emerald-800">${inv.dryStockKg.toFixed(2)} <span class="text-xs font-bold text-gray-400">กก.</span></span>
-                </div>
-                <div class="text-[10px] text-gray-400 mt-2 text-right">
-                  อบแห้งเสร็จเมื่อ: ${formatThaiDate(inv.processedDate)}
-                </div>
-              </div>
-
-              <div class="pt-2">
-                <button data-crop-id="${inv.cropId}" class="sell-stock-btn w-full py-2.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold">
-                  <i class="fas fa-shopping-cart"></i> บันทึกการขาย
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-    const stockTabHtml = `
-      <div class="space-y-4">
-        <!-- Top Control Header for Batch Dry Stock Management -->
-        <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div class="flex items-center gap-3 flex-wrap">
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="select-all-stock-checkbox" ${allStockChecked ? 'checked' : ''} 
-                class="rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 cursor-pointer">
-              <label for="select-all-stock-checkbox" class="text-xs font-bold text-gray-700 cursor-pointer">
-                เลือกทั้งหมด (${selectedStockCount}/${activeInventoryLots.length} ล็อต)
-              </label>
-            </div>
-
-            ${selectedStockCount > 0 ? `
-              <span class="h-4 w-px bg-gray-200 hidden sm:block"></span>
-              <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                สต็อกที่เลือกรวม: ${selectedStockWeight.toFixed(2)} กก.
-              </span>
-              <button id="clear-selected-stock-btn" class="text-xs text-gray-400 hover:text-gray-600 underline cursor-pointer">
-                ยกเลิกการเลือก
-              </button>
-            ` : ''}
-          </div>
-
-          <div class="flex items-center gap-2.5 w-full md:w-auto flex-wrap justify-end">
-            <!-- Search bar -->
-            <div class="relative flex-1 md:w-56">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                <i class="fas fa-search text-xs"></i>
-              </span>
-              <input type="text" id="stock-search-input" value="${this.searchStockQuery}" placeholder="ค้นหาล็อต/แปลง/เกษตรกร..." 
-                class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Print / Export Stock Report Button -->
-            <button id="batch-print-stock-btn" ${selectedStockCount === 0 ? 'disabled' : ''} 
-              class="px-3.5 py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-emerald-200 transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-print"></i> พิมพ์ใบสต็อก (${selectedStockCount})
-            </button>
-
-            <!-- Batch Sale Button -->
-            <button id="batch-sell-stock-btn" ${selectedStockCount === 0 ? 'disabled' : ''} 
-              class="px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-shopping-cart"></i> บันทึกขายพร้อมกัน (${selectedStockCount})
-            </button>
-          </div>
-        </div>
-
-        <!-- Stock Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          ${stockCardsHtml}
-        </div>
-      </div>
-    `;
-
-    // 3. Build Finance Ledger Tab HTML
-    const ledgerRowsHtml = filteredReport.length === 0
-      ? `<tr><td colspan="7" class="px-6 py-6 text-center text-sm text-gray-500">ไม่พบรายงานการเงินของสมาชิกรายที่ระบุ</td></tr>`
-      : filteredReport.map(r => {
-          const statusBadge = r.netProfit > 0 
-            ? `<span class="px-2.5 py-1 text-xs font-bold bg-green-50 text-green-700 rounded-full border border-green-200"><i class="fas fa-arrow-up mr-0.5"></i> กำไร</span>`
-            : r.netProfit < 0
-              ? `<span class="px-2.5 py-1 text-xs font-bold bg-red-50 text-red-700 rounded-full border border-red-200"><i class="fas fa-arrow-down mr-0.5"></i> ขาดทุน</span>`
-              : `<span class="px-2.5 py-1 text-xs font-bold bg-gray-50 text-gray-600 rounded-full border border-gray-200">เท่าทุน</span>`;
-          
-          return `
-            <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-              <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${r.id}</td>
-              <td class="px-6 py-4">
-                <div class="text-sm font-bold text-gray-900">${r.name}</div>
-                <div class="text-[10px] text-gray-400">บทบาท: ${r.role} (${r.villageNumber})</div>
-              </td>
-              <td class="px-6 py-4 text-center text-sm text-gray-700 font-medium">${r.totalCrops} รอบ</td>
-              <td class="px-6 py-4 text-sm text-gray-600 font-medium">${formatBaht(r.totalCost)}</td>
-              <td class="px-6 py-4 text-sm text-emerald-800 font-bold">${formatBaht(r.totalRevenue)}</td>
-              <td class="px-6 py-4 text-sm font-extrabold ${r.netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">
-                ${r.netProfit > 0 ? '+' : ''}${formatBaht(r.netProfit)}
-              </td>
-              <td class="px-6 py-4 text-center">${statusBadge}</td>
-            </tr>
-          `;
-        }).join('');
-
-    const ledgerTabHtml = `
-      <div class="space-y-4">
-        <!-- Search and filters -->
-        <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="relative flex-1 max-w-md">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-              <i class="fas fa-search text-xs"></i>
-            </span>
-            <input type="text" id="member-ledger-search" value="${this.searchMemberQuery}" placeholder="ค้นหาชื่อสมาชิกหรือรหัสทะเบียน..." 
-              class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          </div>
-          <div class="text-xs text-gray-400">
-            * สรุปยอดสะสมคำนวณจาก (รายได้จากการขายสมุนไพรอบแห้งของล็อตสมาชิก) - (ต้นทุนสะสมรอบการเพาะปลูก)
-          </div>
-        </div>
-
-        <!-- Table Card -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
-                  <th class="px-6 py-4">รหัสสมาชิก</th>
-                  <th class="px-6 py-4">ชื่อ - นามสกุล</th>
-                  <th class="px-6 py-4 text-center">จำนวนรอบปลูก</th>
-                  <th class="px-6 py-4">ต้นทุนสะสม</th>
-                  <th class="px-6 py-4">รายได้สะสม</th>
-                  <th class="px-6 py-4">กำไรสุทธิสะสม</th>
-                  <th class="px-6 py-4 text-center">สถานะการเงิน</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${ledgerRowsHtml}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // 4. Build Sales Log Tab HTML (With Checkbox Batch Management)
-    let filteredSales = sales.filter(s => {
-      if (!this.searchSaleQuery) return true;
-      const q = this.searchSaleQuery.toLowerCase();
-      const crop = appState.getCropById(s.cropId);
-      const plot = crop ? appState.getPlotById(crop.plotId) : null;
-      const plotName = plot ? plot.name.toLowerCase() : '';
-      return (
-        s.id.toLowerCase().includes(q) ||
-        s.cropId.toLowerCase().includes(q) ||
-        (s.customer && s.customer.toLowerCase().includes(q)) ||
-        (s.customerId && s.customerId.toLowerCase().includes(q)) ||
-        (s.date && s.date.includes(q)) ||
-        plotName.includes(q)
-      );
+    // 1. Calculate Summary Totals and Monetary Values grouped by Unit
+    const unitTotals = {};
+    const unitValues = {};
+    allProducts.forEach(p => {
+      const u = p.unit || 'ชิ้น';
+      const st = (parseFloat(p.stock) || 0);
+      const pr = (parseFloat(p.price) || 0);
+      if (!unitTotals[u]) unitTotals[u] = 0;
+      if (!unitValues[u]) unitValues[u] = 0;
+      unitTotals[u] += st;
+      unitValues[u] += (st * pr);
     });
 
-    // Clean up selectedSaleIds that might no longer exist
-    this.selectedSaleIds = this.selectedSaleIds.filter(id => sales.some(s => s.id === id));
-    const allSalesChecked = filteredSales.length > 0 && filteredSales.every(s => this.selectedSaleIds.includes(s.id));
-    const selectedCount = this.selectedSaleIds.length;
-    const selectedTotalPrice = sales
-      .filter(s => this.selectedSaleIds.includes(s.id))
-      .reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+    const activeUnits = Object.keys(unitTotals);
 
-    const salesRowsHtml = filteredSales.length === 0
-      ? `<tr><td colspan="11" class="px-6 py-8 text-center text-sm text-gray-500 bg-white">ยังไม่พบข้อมูลการจำหน่ายผลผลิตในระบบ</td></tr>`
-      : filteredSales.map(s => {
-          const crop = appState.getCropById(s.cropId);
-          const plot = crop ? appState.getPlotById(crop.plotId) : null;
-          const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-          const ownersNames = owners.map(o => o.name).join(', ') || '-';
-          const herbType = crop ? (crop.seedlingSource || (plot ? plot.plantType : '-') || '-') : '-';
-          const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
-          const isChecked = this.selectedSaleIds.includes(s.id);
-          
+    // 2. Filter products based on search query, unit filter, month filter, and year filter
+    let filteredProducts = allProducts.filter(p => {
+      if (this.unitFilter !== 'all' && p.unit !== this.unitFilter) {
+        return false;
+      }
+
+      const dateStr = p.updatedDate || '';
+      const pYear = dateStr.substring(0, 4);
+      const pMonth = dateStr.substring(5, 7);
+
+      if (this.yearFilter !== 'all' && pYear !== this.yearFilter) {
+        return false;
+      }
+
+      if (this.monthFilter !== 'all' && pMonth !== this.monthFilter) {
+        return false;
+      }
+
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase().trim();
+        const idMatch = (p.id || '').toLowerCase().includes(q);
+        const nameMatch = (p.name || '').toLowerCase().includes(q);
+        const catMatch = (p.category || '').toLowerCase().includes(q);
+        return idMatch || nameMatch || catMatch;
+      }
+      return true;
+    });
+
+    // 3. Generate Summary Cards (แยกสรุปตามหน่วยเรียกชัดเจน สบายตา อ่านง่าย)
+    const summaryCardsHtml = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(activeUnits.length + 1, 4)} gap-4">
+        ${activeUnits.map(unit => {
+          const totalVal = unitTotals[unit];
+          const estVal = unitValues[unit] || 0;
+          const isKg = unit === 'กก.';
+          const isJar = unit === 'กระป๋อง';
+
+          let icon = 'fas fa-boxes-stacked';
+          let iconBg = 'bg-emerald-100 text-emerald-800';
+          let textColor = 'text-emerald-950';
+          let title = `สินค้ารวมทั้งหมด (${unit})`;
+          let subtext = `มูลค่ารวมในคลัง: <b class="text-emerald-800">${formatBaht(estVal)}</b>`;
+
+          if (isKg) {
+            icon = 'fas fa-leaf';
+            iconBg = 'bg-amber-100 text-amber-800';
+            textColor = 'text-amber-950';
+            title = 'สต๊อกดอกแห้งพร้อมจำหน่าย';
+            subtext = `มูลค่ารวมในคลัง: <b class="text-amber-900">${formatBaht(estVal)}</b>`;
+          } else if (isJar) {
+            icon = 'fa-solid fa-jar';
+            iconBg = 'bg-teal-100 text-teal-800';
+            textColor = 'text-teal-950';
+            title = 'สต๊อกสินค้ากระป๋อง 50 G';
+            subtext = `มูลค่ารวมในคลัง: <b class="text-teal-900">${formatBaht(estVal)}</b>`;
+          }
+
+          const displayValue = isKg ? totalVal.toFixed(2) : totalVal.toLocaleString();
+
           return `
-            <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors ${isChecked ? 'bg-emerald-50/50' : ''}">
-              <td class="px-4 py-3.5 text-center">
-                <input type="checkbox" data-sale-id="${s.id}" ${isChecked ? 'checked' : ''}
-                  class="sale-batch-checkbox rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 cursor-pointer">
+            <div class="p-5 bg-white border border-gray-200/80 shadow-sm rounded-2xl flex items-center justify-between transition-all hover:shadow-md">
+              <div class="space-y-1">
+                <span class="text-sm font-bold text-gray-600 block">${title}</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-3xl font-bold ${textColor} font-mono">${displayValue}</span>
+                  <span class="text-sm font-bold text-gray-500">${unit}</span>
+                </div>
+                <span class="text-sm text-gray-500 block pt-0.5">${subtext}</span>
+              </div>
+              <div class="w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center text-xl shrink-0 shadow-2xs">
+                <i class="${icon}"></i>
+              </div>
+            </div>
+          `;
+        }).join('')}
+
+        <div class="p-5 bg-white border border-gray-200/80 shadow-sm rounded-2xl flex items-center justify-between transition-all hover:shadow-md">
+          <div class="space-y-1">
+            <span class="text-sm font-bold text-gray-600 block">รายการสินค้าทั้งหมดในระบบ</span>
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-3xl font-bold text-gray-900 font-mono">${allProducts.length}</span>
+              <span class="text-sm font-bold text-gray-500">รายการ</span>
+            </div>
+            <span class="text-sm text-emerald-800 font-semibold block pt-0.5">ครอบคลุม ${activeUnits.length} หน่วยเรียก (กก. และ กระป๋อง)</span>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-xl shrink-0 shadow-2xs">
+            <i class="fas fa-list-check"></i>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 3.5 Generate Standard Price Reference Bar (เกณฑ์ราคาขายผลผลิตมาตรฐานวิสาหกิจ - ครอบคลุมพืชสมุนไพรทุกชนิดในระบบ)
+    const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
+    const herbList = Object.keys(roadmaps);
+    if (!herbList.includes('เก๊กฮวย')) herbList.unshift('เก๊กฮวย');
+    if (!herbList.includes('คาโมมายล์')) herbList.splice(1, 0, 'คาโมมายล์');
+
+    const standardPriceItems = [];
+    herbList.forEach((herb, hIdx) => {
+      const isChrys = herb.includes('เก๊กฮวย');
+      const isCham = herb.includes('คาโมมายล์');
+      const herbIcon = roadmaps[herb]?.icon || getHerbDefaultIcon(herb);
+
+      // Find bulk product (กก.)
+      const bulkPrd = allProducts.find(p => (p.category === herb || (p.name || '').includes(herb)) && (p.unit === 'กก.' || p.unit === 'kg'));
+      // Find jar/can product (กระป๋อง)
+      const jarPrd = allProducts.find(p => (p.category === herb || (p.name || '').includes(herb)) && (p.unit === 'กระป๋อง' || p.unit === 'กระปุก'));
+
+      const palette = [
+        { bulkStripe: 'bg-amber-500', bulkBorder: 'border-amber-200', bulkBadge: 'bg-amber-100 text-amber-900 border-amber-300', bulkPrice: 'text-amber-800', bulkBtn: 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300',
+          jarStripe: 'bg-teal-500', jarBorder: 'border-teal-200', jarBadge: 'bg-teal-100 text-teal-900 border-teal-300', jarPrice: 'text-teal-800', jarBtn: 'bg-teal-50 hover:bg-teal-100 text-teal-900 border-teal-300' },
+        { bulkStripe: 'bg-emerald-600', bulkBorder: 'border-emerald-200', bulkBadge: 'bg-emerald-100 text-emerald-900 border-emerald-300', bulkPrice: 'text-emerald-800', bulkBtn: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300',
+          jarStripe: 'bg-sky-500', jarBorder: 'border-sky-200', jarBadge: 'bg-sky-100 text-sky-900 border-sky-300', jarPrice: 'text-sky-800', jarBtn: 'bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-300' },
+        { bulkStripe: 'bg-indigo-600', bulkBorder: 'border-indigo-200', bulkBadge: 'bg-indigo-100 text-indigo-900 border-indigo-300', bulkPrice: 'text-indigo-800', bulkBtn: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-indigo-300',
+          jarStripe: 'bg-purple-500', jarBorder: 'border-purple-200', jarBadge: 'bg-purple-100 text-purple-900 border-purple-300', jarPrice: 'text-purple-800', jarBtn: 'bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-300' },
+        { bulkStripe: 'bg-rose-500', bulkBorder: 'border-rose-200', bulkBadge: 'bg-rose-100 text-rose-900 border-rose-300', bulkPrice: 'text-rose-800', bulkBtn: 'bg-rose-50 hover:bg-rose-100 text-rose-900 border-rose-300',
+          jarStripe: 'bg-orange-500', jarBorder: 'border-orange-200', jarBadge: 'bg-orange-100 text-orange-900 border-orange-300', jarPrice: 'text-orange-800', jarBtn: 'bg-orange-50 hover:bg-orange-100 text-orange-900 border-orange-300' }
+      ];
+      const theme = isChrys ? palette[0] : (isCham ? palette[1] : palette[2 + (hIdx % 2)]);
+
+      if (bulkPrd) {
+        standardPriceItems.push({
+          id: bulkPrd.id,
+          name: bulkPrd.name,
+          spec: 'ขนาด 1 กก.',
+          price: bulkPrd.price,
+          unit: bulkPrd.unit,
+          stock: bulkPrd.stock,
+          icon: herbIcon,
+          stripe: theme.bulkStripe,
+          cardBorder: theme.bulkBorder,
+          iconBg: 'bg-gray-50',
+          badgeBg: theme.bulkBadge,
+          priceColor: theme.bulkPrice,
+          editBtnStyle: theme.bulkBtn
+        });
+      }
+
+      if (jarPrd) {
+        standardPriceItems.push({
+          id: jarPrd.id,
+          name: jarPrd.name,
+          spec: 'ขนาด 50 G',
+          price: jarPrd.price,
+          unit: jarPrd.unit,
+          stock: jarPrd.stock,
+          icon: herbIcon,
+          stripe: theme.jarStripe,
+          cardBorder: theme.jarBorder,
+          iconBg: 'bg-gray-50',
+          badgeBg: theme.jarBadge,
+          priceColor: theme.jarPrice,
+          editBtnStyle: theme.jarBtn
+        });
+      }
+    });
+
+    const standardPriceBarHtml = `
+      <div class="rounded-2xl border border-emerald-800/20 shadow-md overflow-hidden">
+
+        <!-- Header bar -->
+        <div class="bg-emerald-800 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center text-lg shrink-0">
+              <i class="fas fa-tags"></i>
+            </div>
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">
+                เกณฑ์ราคาจำหน่ายผลผลิต — วิสาหกิจชุมชน
+              </h2>
+              <p class="text-sm text-emerald-200 mt-0.5">
+                กดปุ่ม <b class="text-white">"✏ แก้ไขราคา"</b> บนการ์ดเพื่อปรับราคาได้ทันที · ราคาเชื่อมโยงกับทุกส่วนในระบบ
+              </p>
+            </div>
+          </div>
+          <span class="inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-emerald-100 self-start sm:self-auto shrink-0">
+            <i class="fas fa-link text-emerald-300"></i> เชื่อมโยงระบบคำนวณมูลค่าอัตโนมัติ
+          </span>
+        </div>
+
+        <!-- Price cards grid -->
+        <div class="bg-gradient-to-b from-emerald-50/60 to-white p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          ${standardPriceItems.map(item => `
+            <div class="group relative bg-white rounded-2xl border-2 ${item.cardBorder} shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col overflow-hidden">
+
+              <!-- Colored top stripe -->
+              <div class="h-1.5 w-full ${item.stripe}"></div>
+
+              <div class="p-4 flex flex-col flex-1">
+                <!-- Icon + spec badge -->
+                <div class="flex items-start justify-between mb-3">
+                  <div class="w-11 h-11 rounded-xl ${item.iconBg} flex items-center justify-center text-2xl shadow-xs shrink-0">
+                    ${item.icon}
+                  </div>
+                  <span class="text-sm font-bold px-2.5 py-1 rounded-lg border ${item.badgeBg} whitespace-nowrap">
+                    ${item.spec}
+                  </span>
+                </div>
+
+                <!-- Product name -->
+                <h3 class="text-base font-bold text-gray-900 leading-snug mb-0.5">${item.name}</h3>
+                <span class="text-sm text-gray-500 font-medium mb-3">รหัส: <span class="font-bold text-gray-700">${item.id}</span></span>
+
+                <!-- Price display -->
+                <div class="mt-auto pt-3 border-t-2 border-dashed border-gray-100">
+                  <span class="text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">ราคาขายปัจจุบัน</span>
+                  <div class="flex items-baseline gap-1 mb-1">
+                    <span class="text-3xl font-bold ${item.priceColor} tabular-nums">${item.price.toLocaleString()}</span>
+                    <span class="text-sm font-bold text-gray-600">บาท</span>
+                    <span class="text-sm text-gray-500 font-medium">/ ${item.unit}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">คงเหลือ: <b class="text-gray-900 font-bold font-mono text-base">${typeof item.stock === 'number' ? (item.unit === 'กก.' ? item.stock.toFixed(2) : item.stock.toLocaleString()) : item.stock}</b> ${item.unit}</span>
+                    <button class="quick-edit-price-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${item.editBtnStyle} text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 border cursor-pointer"
+                      data-id="${item.id}" title="แก้ไขราคาขายนี้">
+                      <i class="fas fa-pen-to-square text-sm"></i>
+                      <span>แก้ไขราคา</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // 4.5 ตารางสินค้ากระป๋อง (dedicated section)
+    const canProducts = allProducts.filter(p => {
+      if (p.unit !== 'กระป๋อง') return false;
+      const dateStr = p.updatedDate || '';
+      const pYear = dateStr.substring(0, 4);
+      const pMonth = dateStr.substring(5, 7);
+      if (this.yearFilter !== 'all' && pYear !== this.yearFilter) return false;
+      if (this.monthFilter !== 'all' && pMonth !== this.monthFilter) return false;
+      return true;
+    });
+    const totalCanStock = canProducts.reduce((s, p) => s + (parseFloat(p.stock) || 0), 0);
+    const totalCanValue = canProducts.reduce((s, p) => s + ((parseFloat(p.stock) || 0) * p.price), 0);
+
+    const canTableRowsHtml = canProducts.length === 0
+      ? `<tr><td colspan="6" class="py-10 text-center text-sm text-gray-400">
+           <div class="w-10 h-10 rounded-xl bg-gray-50 text-gray-300 flex items-center justify-center mx-auto text-xl mb-2"><i class="fas fa-jar"></i></div>
+           ยังไม่มีสินค้ากระป๋อง — กดปุ่ม "เพิ่มสินค้ากระป๋องใหม่" ด้านบน
+         </td></tr>`
+      : canProducts.map(p => {
+          const isChrys = (p.category || p.name || '').includes('เก๊กฮวย');
+          const isCham  = (p.category || p.name || '').includes('คาโมมายล์');
+          const herbRoadmap = roadmaps[p.category] || null;
+          const emoji   = herbRoadmap?.icon || getHerbDefaultIcon(p.category || p.name);
+          const stripeBg = isChrys ? 'bg-amber-400' : (isCham ? 'bg-sky-500' : 'bg-purple-500');
+          const badgeStyle = isChrys
+            ? 'bg-amber-50 text-amber-800 border-amber-200'
+            : isCham
+              ? 'bg-sky-50 text-sky-800 border-sky-200'
+              : 'bg-purple-50 text-purple-800 border-purple-200';
+          const stockNum = parseFloat(p.stock) || 0;
+          const canValue = stockNum * p.price;
+          const isLow = stockNum < 10 && stockNum > 0;
+          const stockColor = stockNum === 0 ? 'text-red-600' : isLow ? 'text-orange-600' : 'text-gray-900';
+          const stockBadge = stockNum === 0
+            ? `<span class="text-sm font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">หมดสต็อก</span>`
+            : isLow
+              ? `<span class="text-sm font-bold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-md">เหลือน้อย</span>`
+              : `<span class="text-sm font-medium text-emerald-600">พร้อมจำหน่าย</span>`;
+          return `
+            <tr class="border-b border-gray-100 last:border-0 hover:bg-teal-50/20 transition-colors group">
+              <td class="py-4 px-4 text-center align-middle w-10">
+                <div class="w-2 h-10 rounded-full ${stripeBg} mx-auto opacity-80"></div>
               </td>
-              <td class="px-4 py-3.5 text-sm font-semibold text-emerald-800">${s.id}</td>
-              <td class="px-4 py-3.5 text-sm font-medium text-emerald-900">${s.cropId}</td>
-              <td class="px-4 py-3.5 text-sm text-gray-800">${ownersNames}</td>
-              <td class="px-4 py-3.5">
-                <span class="px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${
-                  isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
-                }">${herbType}อบแห้ง</span>
+              <td class="py-4 px-4 align-middle w-28">
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 font-bold text-gray-700 text-sm">
+                  <i class="fas fa-barcode text-sm text-gray-400"></i> ${p.id}
+                </span>
               </td>
-              <td class="px-4 py-3.5 text-sm text-gray-700 font-bold text-center">
-                ${s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`}
+              <td class="py-4 px-4 align-middle">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-2xl">${emoji}</span>
+                  <div>
+                    <div class="font-bold text-gray-900 text-base leading-snug">${p.name}</div>
+                    <span class="text-sm font-bold px-2 py-0.5 rounded-md border ${badgeStyle} mt-0.5 inline-block">${p.category || 'ทั่วไป'}</span>
+                  </div>
+                </div>
               </td>
-              <td class="px-4 py-3.5 text-sm text-gray-500">
-                ${s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระปุก` : `${formatBaht(s.pricePerKg || s.price)}/กก.`}
-              </td>
-              <td class="px-4 py-3.5 text-sm font-black text-emerald-800">${formatBaht(s.totalPrice)}</td>
-              <td class="px-4 py-3.5 text-sm text-gray-800">
-                <div class="font-bold truncate max-w-[140px]" title="${s.customer}">${s.customer}</div>
-                ${s.customerId ? `<span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">${s.customerId}</span>` : ''}
-              </td>
-              <td class="px-4 py-3.5 text-xs text-gray-400">${formatThaiDate(s.date)}</td>
-              <td class="px-4 py-3.5 text-center">
-                <div class="flex items-center justify-center gap-1.5">
-                  <button class="view-sale-btn text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1" data-sale-id="${s.id}" title="ดูใบเสร็จ">
-                    <i class="fas fa-eye text-[10px]"></i> ใบเสร็จ
+              <td class="py-4 px-4 text-right align-middle">
+                <div class="inline-flex items-center gap-1">
+                  <span class="text-lg font-bold text-emerald-700">${p.price.toLocaleString()}</span>
+                  <span class="text-sm text-gray-400 font-medium">บาท/กระป๋อง</span>
+                  <button class="quick-edit-price-btn ml-1 p-1 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors border border-transparent hover:border-emerald-200 opacity-0 group-hover:opacity-100"
+                    data-id="${p.id}" title="แก้ไขราคา"><i class="fas fa-pen-to-square text-sm"></i>
                   </button>
-                  <button class="delete-sale-btn text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-1 rounded-lg text-xs font-bold transition-all" data-sale-id="${s.id}" title="ลบรายการขายนี้">
-                    <i class="fas fa-trash text-xs"></i>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center align-middle">
+                <div class="flex flex-col items-center gap-0.5">
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-2xl font-bold ${stockColor} tabular-nums">${stockNum.toLocaleString()}</span>
+                    <span class="text-sm font-bold text-gray-500">กระป๋อง</span>
+                  </div>
+                  ${stockBadge}
+                  <div class="text-sm text-indigo-600 font-medium">~${formatBaht(canValue)}</div>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-right align-middle">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button class="deduct-stock-btn px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-all shadow-sm flex items-center gap-1"
+                    data-id="${p.id}"><i class="fas fa-cart-arrow-down text-sm"></i><span>ตัดสต็อก</span>
+                  </button>
+                  <button class="edit-product-btn px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-sm font-bold transition-all flex items-center gap-1"
+                    data-id="${p.id}"><i class="fas fa-edit text-sm text-amber-700"></i><span>แก้ไข</span>
+                  </button>
+                  <button class="delete-product-btn p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-sm font-bold transition-all"
+                    data-id="${p.id}"><i class="fas fa-trash text-sm"></i>
                   </button>
                 </div>
               </td>
@@ -318,171 +371,158 @@ export const InventoryComponent = {
           `;
         }).join('');
 
-    const salesTabHtml = `
-      <div class="space-y-4">
-        <!-- Control Header for Batch Sales Management -->
-        <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div class="flex items-center gap-3 flex-wrap">
-            <div class="flex items-center gap-2">
-              <input type="checkbox" id="select-all-sales-checkbox" ${allSalesChecked ? 'checked' : ''} 
-                class="rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 cursor-pointer">
-              <label for="select-all-sales-checkbox" class="text-xs font-bold text-gray-700 cursor-pointer">
-                เลือกทั้งหมด (${selectedCount}/${filteredSales.length} รายการ)
-              </label>
+    const canProductsSectionHtml = `
+      <div class="rounded-2xl border border-teal-700/20 shadow-md overflow-hidden">
+        <div class="bg-teal-800 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center text-lg shrink-0">
+              <i class="fas fa-jar"></i>
             </div>
-
-            ${selectedCount > 0 ? `
-              <span class="h-4 w-px bg-gray-200 hidden sm:block"></span>
-              <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                รวมยอดขายที่เลือก: ${formatBaht(selectedTotalPrice)}
-              </span>
-              <button id="clear-selected-sales-btn" class="text-xs text-gray-400 hover:text-gray-600 underline cursor-pointer">
-                ยกเลิกการเลือก
-              </button>
-            ` : ''}
-          </div>
-
-          <div class="flex items-center gap-2.5 w-full md:w-auto flex-wrap justify-end">
-            <!-- Search bar -->
-            <div class="relative flex-1 md:w-56">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                <i class="fas fa-search text-xs"></i>
-              </span>
-              <input type="text" id="sales-search-input" value="${this.searchSaleQuery}" placeholder="ค้นหาการขาย/ลูกค้า..." 
-                class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">
+                ตารางสินค้ากระป๋อง — ผลผลิตสมุนไพรอบแห้ง
+              </h2>
+              <p class="text-sm text-teal-200 mt-0.5">
+                ${canProducts.length} รายการ · คงเหลือ <b class="text-white">${totalCanStock.toLocaleString()}</b> กระป๋อง · มูลค่ารวม <b class="text-white">${formatBaht(totalCanValue)}</b>
+              </p>
             </div>
-
-            <!-- Print / Summary Button -->
-            <button id="batch-summary-sales-btn" ${selectedCount === 0 ? 'disabled' : ''} 
-              class="px-3.5 py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-emerald-200 transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-print"></i> พิมพ์ใบสรุป (${selectedCount})
-            </button>
-
-            <!-- Batch Delete Button -->
-            <button id="batch-delete-sales-btn" ${selectedCount === 0 ? 'disabled' : ''} 
-              class="px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-trash-alt"></i> ลบที่เลือก (${selectedCount})
-            </button>
           </div>
+          <button id="open-add-can-product-btn"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white text-sm font-bold transition-all shadow-xs self-start sm:self-auto shrink-0">
+            <i class="fas fa-plus"></i> + เพิ่มสินค้ากระป๋องใหม่
+          </button>
         </div>
 
-        <!-- Sales Table Card -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
-                  <th class="px-4 py-3.5 text-center w-10">
-                    <input type="checkbox" id="header-table-sales-checkbox" ${allSalesChecked ? 'checked' : ''} 
-                      class="rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 w-4 h-4 cursor-pointer" title="เลือกทั้งหมด">
-                  </th>
-                  <th class="px-4 py-3.5">รหัสรายการ</th>
-                  <th class="px-4 py-3.5">ล็อตผลผลิต (Crop)</th>
-                  <th class="px-4 py-3.5">เกษตรกรเจ้าของ</th>
-                  <th class="px-4 py-3.5">ประเภทพืช</th>
-                  <th class="px-4 py-3.5 text-center">จำนวนขาย</th>
-                  <th class="px-4 py-3.5">ราคาต่อหน่วย</th>
-                  <th class="px-4 py-3.5">ยอดรวมเงิน</th>
-                  <th class="px-4 py-3.5">ผู้ซื้อ / ลูกค้า</th>
-                  <th class="px-4 py-3.5">วันที่จำหน่าย</th>
-                  <th class="px-4 py-3.5 text-center">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${salesRowsHtml}
-              </tbody>
-            </table>
-          </div>
+        <div class="bg-white overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-teal-50 text-sm font-bold text-teal-900 uppercase tracking-wide border-b-2 border-teal-200">
+                <th class="py-3.5 px-4 w-10"></th>
+                <th class="py-3.5 px-4 w-28">รหัสสินค้า</th>
+                <th class="py-3.5 px-4">ชื่อสินค้า / ประเภท</th>
+                <th class="py-3.5 px-4 text-right">ราคาขาย</th>
+                <th class="py-3.5 px-4 text-center">คงเหลือในคลัง</th>
+                <th class="py-3.5 px-4 text-right">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>${canTableRowsHtml}</tbody>
+            ${canProducts.length > 0 ? `
+            <tfoot>
+              <tr class="bg-teal-50/70 border-t-2 border-teal-600 font-bold text-sm">
+                <td colspan="4" class="py-3 px-4 text-right text-teal-900">รวมทั้งหมด (${canProducts.length} รายการ):</td>
+                <td class="py-3 px-4 text-center text-teal-800 text-base">${totalCanStock.toLocaleString()} <span class="text-sm font-medium">กระป๋อง</span></td>
+                <td class="py-3 px-4 text-right text-emerald-700">${formatBaht(totalCanValue)}</td>
+              </tr>
+            </tfoot>` : ''}
+          </table>
+        </div>
+
+        <div class="bg-teal-50/60 border-t border-teal-100 px-6 py-2.5 flex items-center gap-2 text-sm text-teal-700">
+          <i class="fas fa-circle-info text-teal-500"></i>
+          <span>เพิ่มสินค้ากระป๋องรูปแบบใหม่ได้ทุกเมื่อ · กด <b>"+ เพิ่มสินค้ากระป๋องใหม่"</b> แล้วตั้งหน่วยเป็น <b>กระป๋อง</b> · ระบบจะแสดงที่นี่โดยอัตโนมัติ</span>
         </div>
       </div>
     `;
 
-    // 1. Unprocessed fresh harvested crops
-    const unprocessedCrops = crops.filter(c => c.status === 'harvested' && !c.isProcessed);
-
-    // Build Fresh Harvested Tab HTML
-    const freshTabHtml = unprocessedCrops.length === 0
-      ? `<div class="p-8 text-center text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm">ยังไม่มีผลผลิตดอกสดที่รอเข้าอบแห้งในขณะนี้</div>`
-      : `
-        <div class="space-y-4">
-          <!-- Top Control Header for Batch Dry Process -->
-          <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <input type="checkbox" id="select-all-fresh-checkbox" ${this.selectedFreshCropIds.length === unprocessedCrops.length && unprocessedCrops.length > 0 ? 'checked' : ''} 
-                class="rounded text-amber-600 focus:ring-amber-500 border-gray-300 w-4 h-4 cursor-pointer">
-              <label for="select-all-fresh-checkbox" class="text-xs font-bold text-gray-700 cursor-pointer">
-                เลือกทั้งหมด (${this.selectedFreshCropIds.length}/${unprocessedCrops.length} แปลง)
-              </label>
+    // 5. Generate Rows for the 5-Column Table (All Products)
+    const tableRowsHtml = filteredProducts.length === 0
+      ? `
+        <tr>
+          <td colspan="5" class="py-12 px-6 text-center text-sm text-gray-400 bg-white">
+            <div class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto text-xl mb-2">
+              <i class="fas fa-box-open"></i>
             </div>
+            <p class="font-bold text-gray-600">ไม่พบรายการสินค้าที่ตรงกับเงื่อนไขการค้นหา</p>
+            <p class="text-sm text-gray-400 mt-1">สามารถกดปุ่ม "+ เพิ่มรายการสินค้าใหม่" ด้านบนเพื่อเพิ่มสินค้าเข้าสู่คลัง</p>
+          </td>
+        </tr>
+      `
+      : filteredProducts.map(p => {
+          const isKg = p.unit === 'กก.';
+          const isJar = p.unit === 'กระป๋อง';
+          
 
-            <button id="batch-dry-process-btn" ${this.selectedFreshCropIds.length === 0 ? 'disabled' : ''} 
-              class="px-4 py-2.5 text-xs font-bold text-gray-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:hover:bg-amber-400 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
-              <i class="fas fa-fire-alt"></i> บันทึกอบแห้งพร้อมกัน (${this.selectedFreshCropIds.length} แปลง)
-            </button>
-          </div>
+          let unitBadgeStyle = 'bg-gray-100 text-gray-700 border-gray-200';
+          if (isKg) unitBadgeStyle = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+          else if (isJar) unitBadgeStyle = 'bg-sky-50 text-sky-800 border-sky-200';
+          
 
-          <!-- Fresh Crop Cards Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            ${unprocessedCrops.map(c => {
-              const plot = appState.getPlotById(c.plotId);
-              const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-              const ownersNames = owners.map(o => o.name).join(', ') || '-';
-              const herbType = c.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
-              const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
-              const isChecked = this.selectedFreshCropIds.includes(c.id);
+          const stockDisplay = isKg ? parseFloat(p.stock || 0).toFixed(2) : (p.stock || 0).toLocaleString();
 
-              return `
-                <div class="glass-card bg-white rounded-3xl p-5 border border-amber-200/70 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
-                  <div>
-                    <div class="flex justify-between items-start mb-2">
-                      <div class="flex items-center gap-2">
-                        <input type="checkbox" data-crop-id="${c.id}" ${isChecked ? 'checked' : ''} 
-                          class="fresh-batch-checkbox rounded text-amber-600 focus:ring-amber-500 border-gray-300 w-4 h-4 cursor-pointer">
-                        <span class="text-xs font-bold text-gray-400">ล็อต: ${c.id}</span>
-                      </div>
-                      <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
-                        isChrys ? 'badge-chrysanthemum text-amber-800 bg-amber-100' : 'badge-chamomile text-sky-800 bg-sky-100'
-                      }">
-                        ${herbType} (ดอกสด)
-                      </span>
-                    </div>
-                    <h4 class="text-base font-bold text-gray-800 pl-6">${plot ? plot.name : 'ไม่พบแปลงปลูก'}</h4>
-                    <p class="text-xs text-gray-500 mt-1 pl-6">เกษตรกรเจ้าของ: <b>${ownersNames}</b></p>
-                    
-                    <div class="mt-4 p-4 bg-amber-50/70 rounded-2xl border border-amber-100 flex justify-between items-center">
-                      <div>
-                        <span class="text-[10px] text-amber-700 font-bold block">น้ำหนักดอกสดเก็บเกี่ยวได้</span>
-                        <span class="text-2xl font-black text-amber-900 mt-0.5 block">${(c.yield || 0).toFixed(2)} <span class="text-xs font-bold text-amber-700">กก.</span></span>
-                      </div>
-                      <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm">
-                        <i class="fas fa-seedling"></i>
-                      </div>
-                    </div>
-                    
-                    <div class="text-[10px] text-gray-400 mt-2 flex justify-between items-center">
-                      <span>วันที่เก็บเกี่ยว: ${formatThaiDate(c.harvestDateActual)}</span>
-                      <span class="text-amber-700 font-bold"><i class="fas fa-fire mr-1"></i>รออบแห้ง</span>
-                    </div>
+          return `
+            <tr class="border-b border-gray-100 last:border-0 even:bg-gray-50/60 hover:bg-emerald-50/40 transition-colors">
+              <!-- คอลัมน์ที่ 1: รหัสสินค้า -->
+              <td class="py-4 px-6 text-left align-middle font-bold text-emerald-800 text-base tracking-wide">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80">
+                  <i class="fas fa-barcode text-sm text-emerald-600"></i>
+                  ${p.id}
+                </span>
+              </td>
+
+              <!-- คอลัมน์ที่ 2: สินค้า -->
+              <td class="py-4 px-6 text-left align-middle">
+                <div class="text-base font-bold text-gray-900 leading-snug">${p.name}</div>
+                <div class="text-sm text-gray-400 mt-0.5 flex items-center gap-2">
+                  <span>หมวด: <b class="text-gray-600 font-medium">${p.category || 'ทั่วไป'}</b></span>
+                  <span class="text-gray-300">•</span>
+                  <span>อัปเดต: ${formatThaiDate(p.updatedDate)}</span>
+                </div>
+              </td>
+
+              <!-- คอลัมน์ที่ 3: ราคา พร้อมปุ่มแก้ไขราคาด่วน -->
+              <td class="py-4 px-6 text-right align-middle">
+                <div class="inline-flex flex-col items-end">
+                  <div class="flex items-center gap-1.5 justify-end">
+                    <span class="text-base font-bold text-emerald-800">${formatBaht(p.price)}</span>
+                    <button class="quick-edit-price-btn p-1.5 rounded-lg text-emerald-700 hover:text-emerald-950 hover:bg-emerald-100 transition-colors border border-transparent hover:border-emerald-200"
+                      data-id="${p.id}" title="แก้ไขราคาขายนี้">
+                      <i class="fas fa-pen-to-square text-sm"></i>
+                    </button>
+                  </div>
+                  <span class="text-sm text-gray-500 font-medium block mt-0.5">ต่อ ${p.unit}</span>
+                </div>
+              </td>
+
+              <!-- คอลัมน์ที่ 4: หน่วยเรียก -->
+              <td class="py-4 px-6 text-center align-middle">
+                <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold border ${unitBadgeStyle}">
+                  ${p.unit}
+                </span>
+              </td>
+
+              <!-- คอลัมน์ที่ 5: จำนวนที่มีอยู่ พร้อมปุ่มจัดการตัดสต็อก/แก้ไข -->
+              <td class="py-4 px-6 text-right align-middle">
+                <div class="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-3">
+                  <!-- ตัวเลขสต็อก -->
+                  <div class="text-right">
+                    <span class="text-lg font-bold text-gray-900">${stockDisplay}</span>
+                    <span class="text-sm font-bold text-gray-500 ml-0.5">${p.unit}</span>
                   </div>
 
-                  <div class="pt-2">
-                    <button data-crop-id="${c.id}" class="open-dry-modal-btn w-full py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5">
-                      <i class="fas fa-fire-alt"></i> กรอกข้อมูลการอบแห้ง
+                  <!-- ปุ่มจัดการ (ตัดสต็อก, แก้ไข, ลบ) -->
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button class="deduct-stock-btn px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-all shadow-2xs flex items-center gap-1"
+                      data-id="${p.id}" title="บันทึกจำหน่าย / ตัดสต็อก">
+                      <i class="fas fa-cart-arrow-down text-sm"></i>
+                      <span>ตัดสต็อก</span>
+                    </button>
+
+                    <button class="edit-product-btn px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-sm font-bold transition-all flex items-center gap-1"
+                      data-id="${p.id}" title="แก้ไขข้อมูลสินค้า / ปรับปรุงจำนวนสต็อก">
+                      <i class="fas fa-edit text-sm text-amber-700"></i>
+                      <span>แก้ไข</span>
+                    </button>
+
+                    <button class="delete-product-btn p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-sm font-bold transition-all"
+                      data-id="${p.id}" title="ลบรายการสินค้านี้">
+                      <i class="fas fa-trash text-sm"></i>
                     </button>
                   </div>
                 </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
-
-    // 5. Select tab layout content
-    let tabContentHtml = '';
-    if (this.activeTab === 'fresh') tabContentHtml = freshTabHtml;
-    else if (this.activeTab === 'stock') tabContentHtml = stockTabHtml;
-    else if (this.activeTab === 'ledger') tabContentHtml = ledgerTabHtml;
-    else if (this.activeTab === 'sales') tabContentHtml = salesTabHtml;
+              </td>
+            </tr>
+          `;
+        }).join('');
 
     return `
       <div class="fade-in space-y-6">
@@ -490,826 +530,289 @@ export const InventoryComponent = {
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <i class="fas fa-warehouse text-emerald-700"></i>
-              ระบบบริหารคลังสินค้าและการเงินรายสมาชิก
+              <i class="fa-solid fa-boxes-stacked text-emerald-700"></i>
+              คลังสินค้า
             </h1>
-            <p class="text-sm text-gray-500 mt-1">คลังอบแห้งแยกสิทธิ์ตามล็อตเพาะปลูก และบัญชีวิเคราะห์ทุน-กำไรรายบุคคล</p>
+            <p class="text-sm text-gray-500 mt-1">บริหารจัดการรายการสินค้า สต็อกคงเหลือ และบันทึกตัดสต็อกจำหน่าย</p>
+          </div>
+
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button id="open-add-product-btn" class="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm flex items-center gap-2 transition-all shadow-sm">
+              <i class="fas fa-plus"></i>
+              <span>+ เพิ่มรายการสินค้าใหม่</span>
+            </button>
+
+            <a href="#fresh-produce" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
+              <i class="fa-solid fa-box-open text-amber-600"></i>
+              <span>ผลผลิตดอกสด &rarr;</span>
+            </a>
+            <a href="#finance" class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
+              <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i>
+              <span>การเงินรายสมาชิก &rarr;</span>
+            </a>
           </div>
         </div>
 
-        <!-- Mini Stats Summary Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div class="p-5 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-            <div class="space-y-1">
-              <span class="text-xs text-gray-400 block font-medium">สต็อกอบแห้งคงเหลือรวม</span>
-              <span class="text-2xl font-bold text-emerald-800">${stats.totalDryStock} <span class="text-sm text-gray-500 font-normal">กิโลกรัม</span></span>
+        <!-- กระป๋องสรุปภาพรวม: แสดงจำนวนสินค้ารวมทั้งหมดในคลัง แยกตามหน่วยเรียกชัดเจน -->
+        ${summaryCardsHtml}
+
+
+
+        <!-- แถบเกณฑ์ราคาจำหน่ายผลผลิตมาตรฐานวิสาหกิจชุมชน -->
+        ${standardPriceBarHtml}
+
+        <!-- ===== ตารางสินค้ากระป๋อง ===== -->
+        ${canProductsSectionHtml}
+
+        <!-- Search and Filter Bar (พร้อมตัวกรองเดือนและปี) -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm space-y-3">
+          <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            
+            <!-- Search Input -->
+            <div class="relative flex-1 min-w-[240px]">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                <i class="fas fa-search text-sm"></i>
+              </span>
+              <input type="text" id="inventory-search-input" value="${this.searchQuery}" placeholder="ค้นหารหัสสินค้า (PRD-XXX) หรือชื่อสินค้า..." 
+                class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fas fa-dolly"></i></div>
-          </div>
-          
-          <div class="p-5 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-            <div class="space-y-1">
-              <span class="text-xs text-gray-400 block font-medium">รายได้จากการขายสะสม</span>
-              <span class="text-2xl font-bold text-emerald-800">${formatBaht(stats.totalSalesRevenue)}</span>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-green-50 text-green-700 flex items-center justify-center"><i class="fas fa-cash-register"></i></div>
-          </div>
 
-          <div class="p-5 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-            <div class="space-y-1">
-              <span class="text-xs text-gray-400 block font-medium">อัตราส่วนอบแห้ง (เฉลี่ย)</span>
-              <span class="text-sm font-semibold text-gray-700 block">เก๊กฮวย 8:1 | คาโมมายล์ 6:1</span>
-              <span class="text-[10px] text-gray-400 block">คำนวณลดทอนน้ำหนักจากดอกสด</span>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fas fa-fire"></i></div>
-          </div>
-        </div>
-
-        <!-- Dynamic Navigation Tabs -->
-        <div class="flex border-b border-gray-200 overflow-x-auto">
-          <button id="tab-fresh-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
-            this.activeTab === 'fresh' 
-              ? 'border-emerald-700 text-emerald-700 font-bold' 
-              : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
-          }">
-            <i class="fas fa-leaf mr-1.5 text-amber-600"></i> ผลผลิตดอกสด (${unprocessedCrops.length})
-          </button>
-
-          <button id="tab-stock-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
-            this.activeTab === 'stock' 
-              ? 'border-emerald-700 text-emerald-700 font-bold' 
-              : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
-          }">
-            <i class="fas fa-dolly-flatbed mr-1.5"></i> สมุนไพรอบแห้งพร้อมขาย (${activeInventoryLots.length})
-          </button>
-          
-          <button id="tab-ledger-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
-            this.activeTab === 'ledger' 
-              ? 'border-emerald-700 text-emerald-700 font-bold' 
-              : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
-          }">
-            <i class="fas fa-calculator mr-1.5"></i> สรุปต้นทุน-กำไรรายสมาชิก
-          </button>
-
-          <button id="tab-sales-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
-            this.activeTab === 'sales' 
-              ? 'border-emerald-700 text-emerald-700 font-bold' 
-              : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
-          }">
-            <i class="fas fa-clipboard-list mr-1.5"></i> ประวัติการจำหน่าย (${sales.length})
-          </button>
-        </div>
-
-        ${tabContentHtml}
-      </div>
-    `;
-  },
-
-  init() {
-    this.bindTabEvents();
-    
-    if (this.activeTab === 'fresh') {
-      this.bindFreshEvents();
-    } else if (this.activeTab === 'stock') {
-      this.bindStockEvents();
-    } else if (this.activeTab === 'ledger') {
-      this.bindLedgerEvents();
-    } else if (this.activeTab === 'sales') {
-      this.bindSalesEvents();
-    }
-  },
-
-  bindTabEvents() {
-    const freshBtn = document.getElementById('tab-fresh-btn');
-    const stockBtn = document.getElementById('tab-stock-btn');
-    const ledgerBtn = document.getElementById('tab-ledger-btn');
-    const salesBtn = document.getElementById('tab-sales-btn');
-
-    if (freshBtn) {
-      freshBtn.addEventListener('click', () => {
-        this.activeTab = 'fresh';
-        this.refreshView();
-      });
-    }
-
-    if (stockBtn) {
-      stockBtn.addEventListener('click', () => {
-        this.activeTab = 'stock';
-        this.refreshView();
-      });
-    }
-
-    if (ledgerBtn) {
-      ledgerBtn.addEventListener('click', () => {
-        this.activeTab = 'ledger';
-        this.refreshView();
-      });
-    }
-
-    if (salesBtn) {
-      salesBtn.addEventListener('click', () => {
-        this.activeTab = 'sales';
-        this.refreshView();
-      });
-    }
-  },
-
-  bindFreshEvents() {
-    const dryModalBtns = document.querySelectorAll('.open-dry-modal-btn');
-    const modalDry = document.getElementById('dry-process-modal');
-    const closeDryBtns = document.querySelectorAll('.close-dry-modal-btn');
-    const formDry = document.getElementById('dry-process-form');
-
-    let processingCropId = null;
-
-    // Checkbox batch selections for fresh crops
-    const freshCheckboxes = document.querySelectorAll('.fresh-batch-checkbox');
-    freshCheckboxes.forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        const id = cb.getAttribute('data-crop-id');
-        if (cb.checked) {
-          if (!this.selectedFreshCropIds.includes(id)) this.selectedFreshCropIds.push(id);
-        } else {
-          this.selectedFreshCropIds = this.selectedFreshCropIds.filter(i => i !== id);
-        }
-        this.refreshView();
-      });
-    });
-
-    // Select All Fresh Checkbox
-    const selectAllFreshCb = document.getElementById('select-all-fresh-checkbox');
-    if (selectAllFreshCb) {
-      selectAllFreshCb.addEventListener('change', (e) => {
-        const currentUser = appState.getCurrentUser();
-        const isMember = currentUser && currentUser.role === 'Member';
-        let plots = appState.getPlots();
-        let crops = appState.getCrops();
-        if (isMember) {
-          plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
-          const plotIds = plots.map(p => p.id);
-          crops = crops.filter(c => plotIds.includes(c.plotId));
-        }
-        const unprocessedCrops = crops.filter(c => c.status === 'harvested' && !c.isProcessed);
-
-        if (selectAllFreshCb.checked) {
-          this.selectedFreshCropIds = unprocessedCrops.map(c => c.id);
-        } else {
-          this.selectedFreshCropIds = [];
-        }
-        this.refreshView();
-      });
-    }
-
-    // Batch Dry Process Button click
-    const batchDryBtn = document.getElementById('batch-dry-process-btn');
-    if (batchDryBtn) {
-      batchDryBtn.addEventListener('click', () => {
-        if (this.selectedFreshCropIds.length === 0) return;
-        if (confirm(`คุณต้องการบันทึกการอบแห้งและแปรรูปนำเข้าคลังสินค้าพร้อมกันทั้งหมด ${this.selectedFreshCropIds.length} แปลง ใช่หรือไม่?`)) {
-          try {
-            let totalAdded = 0;
-            this.selectedFreshCropIds.forEach(cropId => {
-              const crop = appState.getCropById(cropId);
-              if (crop && !crop.isProcessed) {
-                const added = appState.processDryHerbStock(cropId, crop.yield);
-                totalAdded += added;
-              }
-            });
-            showToast(`แปรรูปอบแห้งกลุ่มสำเร็จ! นำเข้าคลังสินค้าพร้อมขายรวมทั้งสิ้น ${totalAdded.toFixed(2)} กก.`, 'success');
-            this.selectedFreshCropIds = []; // reset batch selection
-            this.activeTab = 'stock'; // Switch automatically to stock tab to view dry stock
-            this.refreshView();
-          } catch (err) {
-            showToast('เกิดข้อผิดพลาดในการอบแห้งกลุ่ม: ' + err.message, 'error');
-          }
-        }
-      });
-    }
-
-    dryModalBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cropId = btn.getAttribute('data-crop-id');
-        this.openDryProcessModal(cropId);
-      });
-    });
-  },
-
-  openDryProcessModal(cropId) {
-    const crop = appState.getCropById(cropId);
-    if (!crop) return;
-
-    const plot = appState.getPlotById(crop.plotId);
-    const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
-    const ratio = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย') ? 8 : 6;
-    const estDry = ((crop.yield || 0) / ratio).toFixed(2);
-
-    const formHtml = `
-      <form id="global-dry-form" class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
-          <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex justify-between items-center">
-            <div>
-              <span class="block text-xs font-semibold text-gray-400 uppercase">ล็อตผลผลิตดอกสด</span>
-              <span class="block text-base font-extrabold text-amber-900 mt-0.5">${crop.id} (${herbType})</span>
-            </div>
-            <div class="text-right">
-              <span class="text-xs text-amber-800 font-bold block">น้ำหนักดอกสดเดิม:</span>
-              <span class="text-base font-black text-amber-900 block">${(crop.yield || 0).toFixed(2)} กก.</span>
-            </div>
-          </div>
-
-          <div>
-            <label for="global-dry-weight" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักสมุนไพรอบแห้งที่ได้จริง (กิโลกรัม) *</label>
-            <input type="number" id="global-dry-weight" name="dryWeight" required min="0.01" step="any" value="${estDry}" placeholder="เช่น 20.5"
-              class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-emerald-800">
-            <span class="block text-[10px] text-gray-400 mt-1">* หากกรอกแล้ว ระบบจะนำยอดไปเพิ่มใน "สมุนไพรอบแห้งพร้อมขาย" อัตโนมัติ</span>
-          </div>
-        </div>
-
-        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
-          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-            ยกเลิก
-          </button>
-          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-check"></i> บันทึกและนำเข้าคลังสินค้า
-          </button>
-        </div>
-      </form>
-    `;
-
-    openGlobalModal({
-      title: 'บันทึกข้อมูลการอบแห้งผลผลิต',
-      icon: 'fas fa-fire-alt',
-      size: 'max-w-2xl',
-      headerColor: 'bg-amber-600',
-      content: formHtml,
-      onRender: (dialog) => {
-        const form = dialog.querySelector('#global-dry-form');
-        if (form) {
-          form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = dialog.querySelector('#global-dry-weight');
-            const customDryWeight = parseFloat(input ? input.value : 0) || 0;
-            if (customDryWeight <= 0) {
-              showToast('กรุณากรอกน้ำหนักสมุนไพรอบแห้งที่ได้จริง', 'warning');
-              return;
-            }
-            try {
-              const addedDryWeight = appState.processDryHerbStock(cropId, null, customDryWeight);
-              closeGlobalModal();
-              showToast(`บันทึกข้อมูลการอบแห้งสำเร็จ! นำเข้าคลังสินค้าพร้อมขายจำนวน ${addedDryWeight} กก.`, 'success');
-              this.selectedFreshCropIds = this.selectedFreshCropIds.filter(i => i !== cropId);
-              this.activeTab = 'stock';
-              this.refreshView();
-            } catch (err) {
-              showToast(err.message, 'error');
-            }
-          });
-        }
-      }
-    });
-  },
-
-  bindStockEvents() {
-    // 1. Checkbox per card
-    const stockCheckboxes = document.querySelectorAll('.stock-batch-checkbox');
-    stockCheckboxes.forEach(cb => {
-      cb.addEventListener('change', () => {
-        const id = cb.getAttribute('data-crop-id');
-        if (cb.checked) {
-          if (!this.selectedStockCropIds.includes(id)) this.selectedStockCropIds.push(id);
-        } else {
-          this.selectedStockCropIds = this.selectedStockCropIds.filter(i => i !== id);
-        }
-        this.refreshView();
-      });
-    });
-
-    // 2. Select All Checkbox
-    const selectAllStockCb = document.getElementById('select-all-stock-checkbox');
-    if (selectAllStockCb) {
-      selectAllStockCb.addEventListener('change', (e) => {
-        const currentUser = appState.getCurrentUser();
-        const isMember = currentUser && currentUser.role === 'Member';
-        let plots = appState.getPlots();
-        let crops = appState.getCrops();
-        if (isMember) {
-          plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
-          const plotIds = plots.map(p => p.id);
-          crops = crops.filter(c => plotIds.includes(c.plotId));
-        }
-        const cropIds = crops.map(c => c.id);
-        let inventory = appState.getInventory().filter(i => cropIds.includes(i.cropId) && i.dryStockKg > 0);
-        const members = appState.getMembers();
-
-        if (this.searchStockQuery) {
-          const q = this.searchStockQuery.toLowerCase();
-          inventory = inventory.filter(inv => {
-            const crop = appState.getCropById(inv.cropId);
-            const plot = crop ? appState.getPlotById(crop.plotId) : null;
-            const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-            const ownersNames = owners.map(o => o.name).join(', ').toLowerCase();
-            const plotName = plot ? plot.name.toLowerCase() : '';
-            const herbType = (inv.herbType || '').toLowerCase();
-            return (
-              inv.cropId.toLowerCase().includes(q) ||
-              plotName.includes(q) ||
-              ownersNames.includes(q) ||
-              herbType.includes(q)
-            );
-          });
-        }
-
-        if (e.target.checked) {
-          this.selectedStockCropIds = inventory.map(i => i.cropId);
-        } else {
-          this.selectedStockCropIds = [];
-        }
-        this.refreshView();
-      });
-    }
-
-    // 3. Clear selected button
-    const clearBtn = document.getElementById('clear-selected-stock-btn');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        this.selectedStockCropIds = [];
-        this.refreshView();
-      });
-    }
-
-    // 4. Search input
-    const searchInput = document.getElementById('stock-search-input');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.searchStockQuery = e.target.value;
-        this.refreshView();
-      });
-    }
-
-    // 5. Batch Print Stock Button
-    const batchPrintBtn = document.getElementById('batch-print-stock-btn');
-    if (batchPrintBtn) {
-      batchPrintBtn.addEventListener('click', () => {
-        if (this.selectedStockCropIds.length === 0) return;
-        this.openStockSummaryModal(this.selectedStockCropIds);
-      });
-    }
-
-    // 6. Batch Sell Stock Button
-    const batchSellBtn = document.getElementById('batch-sell-stock-btn');
-    if (batchSellBtn) {
-      batchSellBtn.addEventListener('click', () => {
-        if (this.selectedStockCropIds.length === 0) return;
-        this.openBatchSaleModal(this.selectedStockCropIds);
-      });
-    }
-
-    // 7. Single lot sell button
-    const sellBtns = document.querySelectorAll('.sell-stock-btn');
-    sellBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cropId = btn.getAttribute('data-crop-id');
-        this.openSaleModal(cropId);
-      });
-    });
-
-    // 8. Single lot edit weights button
-    const editWeightsBtns = document.querySelectorAll('.edit-lot-weights-btn');
-    editWeightsBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cropId = btn.getAttribute('data-crop-id');
-        this.openEditWeightsModal(cropId);
-      });
-    });
-  },
-
-  openBatchSaleModal(cropIds) {
-    const inventory = appState.getInventory().filter(i => cropIds.includes(i.cropId) && i.dryStockKg > 0);
-    if (inventory.length === 0) return;
-
-    const customers = appState.getCustomers();
-    const crops = appState.getCrops();
-    const plots = appState.getPlots();
-    const members = appState.getMembers();
-
-    const totalAvailableWeight = inventory.reduce((sum, inv) => sum + (inv.dryStockKg || 0), 0);
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    const custOptionsHtml = customers.map(c => `
-      <option value="${c.id}">${c.name} (${c.customerType})</option>
-    `).join('');
-
-    const lotsRowsHtml = inventory.map(inv => {
-      const crop = crops.find(c => c.id === inv.cropId);
-      const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-      const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-      const ownersNames = owners.map(o => o.name).join(', ') || '-';
-      const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
-
-      return `
-        <tr class="border-b border-gray-100 text-xs hover:bg-gray-50">
-          <td class="py-2.5 px-3">
-            <span class="font-bold text-emerald-800">${inv.cropId}</span>
-            <span class="text-[10px] text-gray-400 block">${plot ? plot.name : ''} (${ownersNames})</span>
-          </td>
-          <td class="py-2.5 px-3">
-            <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full ${isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'}">
-              ${inv.herbType}อบแห้ง
-            </span>
-          </td>
-          <td class="py-2.5 px-3 text-right font-medium text-gray-700">
-            ${inv.dryStockKg.toFixed(2)} กก.
-          </td>
-          <td class="py-2.5 px-3 text-right">
-            <div class="inline-flex items-center gap-1">
-              <input type="number" step="any" min="0.01" max="${inv.dryStockKg}" value="${inv.dryStockKg.toFixed(2)}"
-                data-crop-id="${inv.cropId}" class="batch-sale-qty-input w-24 px-2 py-1 border border-gray-200 rounded-lg text-right font-bold text-emerald-800 focus:ring-1 focus:ring-emerald-500">
-              <span class="text-[10px] text-gray-400">กก.</span>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    const formHtml = `
-      <form id="global-batch-sale-form" class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
-          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
-            <div>
-              <span class="block text-xs font-semibold text-emerald-800 uppercase">บันทึกขายแบบกลุ่ม (Batch Sale)</span>
-              <span class="block text-base font-black text-emerald-950 mt-0.5">จำหน่ายพร้อมกัน ${inventory.length} ล็อตผลผลิต</span>
-            </div>
-            <div class="text-right">
-              <span class="text-xs text-emerald-700 font-bold block">สต็อกคงเหลือรวม:</span>
-              <span class="text-base font-black text-emerald-900 block" id="batch-sale-total-available">${totalAvailableWeight.toFixed(2)} กก.</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <label for="batch-sale-customer" class="block text-xs font-semibold text-gray-500 uppercase">เลือกลูกค้าผู้ซื้อ *</label>
-                <button type="button" id="quick-add-cust-batch-btn" class="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 cursor-pointer">
-                  <i class="fas fa-user-plus text-[10px]"></i> เพิ่มลูกค้าใหม่
-                </button>
+            <!-- Filter Controls Group: Unit, Month, Year -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Unit Filter -->
+              <div class="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
+                <span class="text-sm font-bold text-gray-500 whitespace-nowrap"><i class="fas fa-filter text-emerald-600 mr-1"></i>หน่วย:</span>
+                <select id="inventory-unit-filter" class="px-1.5 py-0.5 rounded-lg border-0 text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer">
+                  <option value="all" ${this.unitFilter === 'all' ? 'selected' : ''}>ทุกหน่วย (${allProducts.length})</option>
+                  ${activeUnits.map(u => `
+                    <option value="${u}" ${this.unitFilter === u ? 'selected' : ''}>${u}</option>
+                  `).join('')}
+                </select>
               </div>
-              <select id="batch-sale-customer" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="">-- เลือกลูกค้าจากทะเบียน --</option>
-                ${custOptionsHtml}
-                <option value="guest">-- ลูกค้าทั่วไป / ไม่ระบุชื่อ --</option>
-              </select>
+
+              <!-- Month Filter (ตัวกรองเดือน) -->
+              <div class="flex items-center gap-1.5 bg-emerald-50/70 px-3 py-1.5 rounded-xl border border-emerald-200/80">
+                <span class="text-sm font-bold text-emerald-800 whitespace-nowrap"><i class="fas fa-calendar-days text-emerald-600 mr-1"></i>เดือน:</span>
+                <select id="inventory-month-filter" class="px-1.5 py-0.5 rounded-lg border-0 text-sm font-bold text-emerald-900 bg-transparent focus:outline-none cursor-pointer">
+                  <option value="all" ${this.monthFilter === 'all' ? 'selected' : ''}>ทุกเดือน</option>
+                  ${THAI_MONTHS_SELECT.map(m => `
+                    <option value="${m.val}" ${this.monthFilter === m.val ? 'selected' : ''}>${m.name}</option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <!-- Year Filter (ตัวกรองปี) -->
+              <div class="flex items-center gap-1.5 bg-emerald-50/70 px-3 py-1.5 rounded-xl border border-emerald-200/80">
+                <span class="text-sm font-bold text-emerald-800 whitespace-nowrap"><i class="fas fa-calendar text-emerald-600 mr-1"></i>ปี:</span>
+                <select id="inventory-year-filter" class="px-1.5 py-0.5 rounded-lg border-0 text-sm font-bold text-emerald-900 bg-transparent focus:outline-none cursor-pointer">
+                  <option value="all" ${this.yearFilter === 'all' ? 'selected' : ''}>ทุกปี</option>
+                  ${availableYears.map(y => `
+                    <option value="${y}" ${this.yearFilter === y ? 'selected' : ''}>พ.ศ. ${parseInt(y) + 543} (${y})</option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <!-- Reset Filters Button -->
+              ${(this.unitFilter !== 'all' || this.monthFilter !== 'all' || this.yearFilter !== 'all' || this.searchQuery) ? `
+                <button id="inventory-reset-filters-btn" class="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95" title="ล้างตัวกรองทั้งหมด">
+                  <i class="fas fa-rotate-left text-sm text-gray-500"></i>
+                  <span>ล้างตัวกรอง</span>
+                </button>
+              ` : ''}
             </div>
 
-            <div>
-              <label for="batch-sale-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่ทำรายการจำหน่าย *</label>
-              <input type="date" id="batch-sale-date" required value="${todayStr}"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="batch-sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาจำหน่าย (บาท/กก.) *</label>
-              <input type="number" id="batch-sale-price" required min="1" step="any" value="500" placeholder="เช่น 500"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-800">
-            </div>
-
-            <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 flex flex-col justify-center">
-              <span class="text-xs text-gray-500 font-medium">รวมยอดเงินทั้งสิ้น:</span>
-              <span id="batch-sale-grand-total" class="text-xl font-black text-emerald-800 mt-0.5">
-                ${formatBaht(totalAvailableWeight * 500)}
+          <!-- Active Filter Status Line -->
+          <div class="flex items-center justify-between text-sm text-gray-500 pt-2.5 border-t border-gray-100 flex-wrap gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-gray-400">สถานะตัวกรอง:</span>
+              <span class="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-sm">
+                ${this.yearFilter === 'all' ? 'ทุกปี' : `ปี พ.ศ. ${parseInt(this.yearFilter)+543}`} · 
+                ${this.monthFilter === 'all' ? 'ทุกเดือน' : `เดือน${THAI_MONTHS_SELECT.find(m => m.val === this.monthFilter)?.name || this.monthFilter}`} · 
+                ${this.unitFilter === 'all' ? 'ทุกหน่วยเรียก' : `หน่วย ${this.unitFilter}`}
               </span>
             </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <label class="block text-xs font-semibold text-gray-500 uppercase">กำหนดปริมาณที่ตัดขายในแต่ละล็อต</label>
-              <button type="button" id="fill-max-batch-btn" class="text-xs text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer">
-                ใส่สต็อกเต็มจำนวนทุกล็อต
-              </button>
-            </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-200">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="bg-gray-50 text-[11px] font-bold text-gray-600 uppercase border-b border-gray-200">
-                    <th class="py-2.5 px-3">ล็อตสินค้า / แปลง</th>
-                    <th class="py-2.5 px-3">ประเภทพืช</th>
-                    <th class="py-2.5 px-3 text-right">สต็อกคงเหลือ</th>
-                    <th class="py-2.5 px-3 text-right">จำนวนที่ต้องการขาย</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${lotsRowsHtml}
-                </tbody>
-              </table>
+            <div class="text-right">
+              แสดงผล <b>${filteredProducts.length}</b> จากทั้งหมด <b>${allProducts.length}</b> รายการ
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
-          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-            ยกเลิก
-          </button>
-          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-check-double"></i> บันทึกขายทั้ง ${inventory.length} ล็อต
-          </button>
-        </div>
-      </form>
-    `;
 
-    openGlobalModal({
-      title: `บันทึกจำหน่ายผลผลิตพร้อมกัน (${inventory.length} ล็อต)`,
-      icon: 'fas fa-shopping-cart',
-      size: 'max-w-3xl',
-      headerColor: 'bg-[#1e4620]',
-      content: formHtml,
-      onRender: (dialog) => {
-        const form = dialog.querySelector('#global-batch-sale-form');
-        const priceInput = dialog.querySelector('#batch-sale-price');
-        const qtyInputs = dialog.querySelectorAll('.batch-sale-qty-input');
-        const grandTotalSpan = dialog.querySelector('#batch-sale-grand-total');
-
-        const updateGrandTotal = () => {
-          const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
-          let sumQty = 0;
-          qtyInputs.forEach(inp => {
-            sumQty += parseFloat(inp.value) || 0;
-          });
-          if (grandTotalSpan) {
-            grandTotalSpan.textContent = formatBaht(sumQty * price);
-          }
-        };
-
-        if (priceInput) priceInput.addEventListener('input', updateGrandTotal);
-        qtyInputs.forEach(inp => inp.addEventListener('input', updateGrandTotal));
-
-        const fillMaxBtn = dialog.querySelector('#fill-max-batch-btn');
-        if (fillMaxBtn) {
-          fillMaxBtn.addEventListener('click', () => {
-            qtyInputs.forEach(inp => {
-              inp.value = inp.getAttribute('max');
-            });
-            updateGrandTotal();
-          });
-        }
-
-        const quickAddCustBtn = dialog.querySelector('#quick-add-cust-batch-btn');
-        if (quickAddCustBtn) {
-          quickAddCustBtn.addEventListener('click', () => {
-            this.openQuickAddCustomerModal((newCust) => {
-              const custSelect = dialog.querySelector('#batch-sale-customer');
-              if (custSelect) {
-                const opt = document.createElement('option');
-                opt.value = newCust.id;
-                opt.textContent = `${newCust.name} (${newCust.customerType})`;
-                opt.selected = true;
-                custSelect.prepend(opt);
-              }
-            });
-          });
-        }
-
-        if (form) {
-          form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const custSelect = dialog.querySelector('#batch-sale-customer');
-            const custVal = custSelect ? custSelect.value : '';
-            const saleDate = dialog.querySelector('#batch-sale-date').value;
-            const unitPrice = parseFloat(priceInput.value) || 0;
-
-            if (unitPrice <= 0) {
-              showToast('กรุณากรอกราคาจำหน่ายที่ถูกต้อง', 'warning');
-              return;
-            }
-
-            let customerName = 'ลูกค้าทั่วไป / ไม่ระบุชื่อ';
-            let customerId = null;
-            if (custVal && custVal !== 'guest') {
-              const c = appState.getCustomerById(custVal);
-              if (c) {
-                customerName = c.name;
-                customerId = c.id;
-              }
-            }
-
-            try {
-              let successCount = 0;
-              let totalAmount = 0;
-              qtyInputs.forEach(inp => {
-                const cropId = inp.getAttribute('data-crop-id');
-                const qty = parseFloat(inp.value) || 0;
-                if (qty > 0) {
-                  appState.recordSale(cropId, qty, unitPrice, customerName, saleDate, 'bulk', customerId);
-                  successCount++;
-                  totalAmount += (qty * unitPrice);
-                }
-              });
-
-              closeGlobalModal();
-              this.selectedStockCropIds = [];
-              showToast(`บันทึกการจำหน่ายสำเร็จ ${successCount} ล็อต ยอดรวม ${formatBaht(totalAmount)} เรียบร้อยแล้ว`, 'success');
-              this.activeTab = 'sales';
-              this.refreshView();
-            } catch (err) {
-              showToast(err.message, 'error');
-            }
-          });
-        }
-      }
-    });
-  },
-
-  openStockSummaryModal(cropIds) {
-    const inventory = appState.getInventory().filter(i => cropIds.includes(i.cropId));
-    const enterprise = appState.getEnterprise();
-    const crops = appState.getCrops();
-    const plots = appState.getPlots();
-    const members = appState.getMembers();
-
-    const totalWeight = inventory.reduce((sum, inv) => sum + (inv.dryStockKg || 0), 0);
-    const todayThai = formatThaiDate(new Date().toISOString().split('T')[0]);
-
-    const tableRowsHtml = inventory.map((inv, idx) => {
-      const crop = crops.find(c => c.id === inv.cropId);
-      const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-      const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
-      const ownersNames = owners.map(o => o.name).join(', ') || '-';
-
-      return `
-        <tr class="border-b border-gray-200 text-xs">
-          <td class="py-2.5 px-3 text-gray-500">${idx + 1}</td>
-          <td class="py-2.5 px-3 font-semibold text-gray-800">${inv.cropId}</td>
-          <td class="py-2.5 px-3 font-medium text-gray-700">${inv.herbType}อบแห้ง</td>
-          <td class="py-2.5 px-3 text-gray-600">${plot ? plot.name : '-'}</td>
-          <td class="py-2.5 px-3 text-gray-600">${ownersNames}</td>
-          <td class="py-2.5 px-3 text-gray-500">${formatThaiDate(inv.processedDate)}</td>
-          <td class="py-2.5 px-3 text-right font-black text-emerald-800">${inv.dryStockKg.toFixed(2)} กก.</td>
-        </tr>
-      `;
-    }).join('');
-
-    const modalContent = `
-      <div class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
-          <!-- Header for printing -->
-          <div class="border-b border-gray-200 pb-4 text-center">
-            <h2 class="text-xl font-extrabold text-gray-800">${enterprise.name}</h2>
-            <p class="text-xs text-gray-500 mt-1">${enterprise.village} ต.${enterprise.subdistrict} อ.${enterprise.district} จ.${enterprise.province}</p>
-            <h3 class="text-base font-bold text-emerald-800 mt-3 flex items-center justify-center gap-1.5">
-              <i class="fas fa-boxes"></i> รายงานการตรวจนับสต็อกสมุนไพรอบแห้งพร้อมขาย
-            </h3>
-            <div class="flex justify-between items-center text-xs text-gray-500 mt-3 pt-2 border-t border-dashed border-gray-200">
-              <span>จำนวนล็อตที่เลือก: <b>${inventory.length} ล็อต</b></span>
-              <span>วันที่พิมพ์รายงาน: <b>${todayThai}</b></span>
-            </div>
-          </div>
-
-          <!-- Table -->
+        <!-- ตารางคลังสินค้า 5 คอลัมน์ (Strict 5-Column Table) -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
-                <tr class="bg-gray-100 text-[11px] font-bold text-gray-600 uppercase border-b border-gray-300">
-                  <th class="py-2.5 px-3">#</th>
-                  <th class="py-2.5 px-3">รหัสล็อต</th>
-                  <th class="py-2.5 px-3">ชนิดสมุนไพร</th>
-                  <th class="py-2.5 px-3">แปลงปลูก</th>
-                  <th class="py-2.5 px-3">เกษตรกรเจ้าของ</th>
-                  <th class="py-2.5 px-3">วันที่อบเสร็จ</th>
-                  <th class="py-2.5 px-3 text-right">สต็อกคงเหลือ</th>
+                <tr class="bg-gray-50 text-sm font-bold text-gray-600 border-b border-gray-200">
+                  <th class="py-4 px-6 text-left w-36 uppercase tracking-wider">รหัสสินค้า</th>
+                  <th class="py-4 px-6 text-left uppercase tracking-wider">สินค้า</th>
+                  <th class="py-4 px-6 text-right w-44 uppercase tracking-wider">ราคา</th>
+                  <th class="py-4 px-6 text-center w-36 uppercase tracking-wider">หน่วยเรียก</th>
+                  <th class="py-4 px-6 text-right w-72 uppercase tracking-wider">จำนวนที่มีอยู่</th>
                 </tr>
               </thead>
               <tbody>
                 ${tableRowsHtml}
               </tbody>
-              <tfoot>
-                <tr class="bg-emerald-50/70 border-t-2 border-emerald-600 text-sm font-bold">
-                  <td colspan="6" class="py-3 px-3 text-right text-emerald-950 font-bold">รวมน้ำหนักสต็อกอบแห้งทั้งสิ้น (${inventory.length} ล็อต):</td>
-                  <td class="py-3 px-3 text-right font-black text-emerald-900 text-base">${totalWeight.toFixed(2)} กก.</td>
-                </tr>
-              </tfoot>
             </table>
           </div>
-
-          <div class="pt-6 border-t border-gray-100 text-xs text-gray-400 flex justify-between items-center">
-            <span>พิมพ์จากระบบบริหารจัดการวิสาหกิจชุมชนสมุนไพรอบแห้ง</span>
-            <span>เจ้าหน้าที่คลังสินค้า / ผู้ตรวจสอบ: .................................................</span>
-          </div>
-        </div>
-
-        <div class="p-4 md:px-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
-          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-xs font-bold text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl transition-colors">
-            ปิดหน้าต่าง
-          </button>
-          <button type="button" id="print-stock-summary-action-btn" class="px-6 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-print"></i> พิมพ์รายงานสต็อกนี้
-          </button>
         </div>
       </div>
     `;
+  },
 
-    openGlobalModal({
-      title: `ใบสรุปสต็อกสมุนไพรอบแห้ง (${inventory.length} ล็อต)`,
-      icon: 'fas fa-print',
-      size: 'max-w-4xl',
-      headerColor: 'bg-[#1e4620]',
-      content: modalContent,
-      onRender: (dialog) => {
-        const printBtn = dialog.querySelector('#print-stock-summary-action-btn');
-        if (printBtn) {
-          printBtn.addEventListener('click', () => {
-            window.print();
-          });
-        }
-      }
+  init() {
+    // 1. Button + เพิ่มรายการสินค้าใหม่
+    const addProductBtn = document.getElementById('open-add-product-btn');
+    if (addProductBtn) {
+      addProductBtn.addEventListener('click', () => {
+        this.openAddProductModal();
+      });
+    }
+
+    // 1b. Button + เพิ่มสินค้ากระป๋องใหม่ (pre-fill unit as กระป๋อง)
+    const addCanProductBtn = document.getElementById('open-add-can-product-btn');
+    if (addCanProductBtn) {
+      addCanProductBtn.addEventListener('click', () => {
+        this.openAddProductModal('กระป๋อง');
+      });
+    }
+
+    // 2. Search input
+    const searchInput = document.getElementById('inventory-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value;
+        this.refreshView();
+      });
+    }
+
+    // 3. Unit filter dropdown
+    const unitFilter = document.getElementById('inventory-unit-filter');
+    if (unitFilter) {
+      unitFilter.addEventListener('change', (e) => {
+        this.unitFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+
+    // 3b. Month filter dropdown (ตัวกรองเดือน)
+    const monthFilter = document.getElementById('inventory-month-filter');
+    if (monthFilter) {
+      monthFilter.addEventListener('change', (e) => {
+        this.monthFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+
+    // 3c. Year filter dropdown (ตัวกรองปี)
+    const yearFilter = document.getElementById('inventory-year-filter');
+    if (yearFilter) {
+      yearFilter.addEventListener('change', (e) => {
+        this.yearFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+
+    // 3d. Reset filters button
+    const resetBtn = document.getElementById('inventory-reset-filters-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        this.searchQuery = '';
+        this.unitFilter = 'all';
+        this.monthFilter = 'all';
+        this.yearFilter = 'all';
+        this.refreshView();
+      });
+    }
+
+    // 4. Action buttons: ตัดสต็อก
+    const deductBtns = document.querySelectorAll('.deduct-stock-btn');
+    deductBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        this.openDeductStockModal(id);
+      });
+    });
+
+    // 5. Action buttons: แก้ไข
+    const editBtns = document.querySelectorAll('.edit-product-btn');
+    editBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        this.openEditProductModal(id);
+      });
+    });
+
+    // 6. Action buttons: ลบ
+    const deleteBtns = document.querySelectorAll('.delete-product-btn');
+    deleteBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        this.openDeleteProductModal(id);
+      });
+    });
+
+    // 7. Action buttons: แก้ไขราคาด่วน (Quick Edit Price)
+    const quickPriceBtns = document.querySelectorAll('.quick-edit-price-btn');
+    quickPriceBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        this.openQuickEditPriceModal(id);
+      });
     });
   },
 
-  openSaleModal(cropId) {
-    const invItem = appState.getInventoryByCropId(cropId);
-    if (!invItem) return;
-    this.sellingCropId = cropId;
+  openQuickEditPriceModal(productId) {
+    const product = appState.getProductById(productId);
+    if (!product) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isChrys = invItem.herbType === 'เก๊กฮวย' || invItem.herbType.includes('เก๊กฮวย');
-    const jarCapacity = isChrys ? 0.10 : 0.05;
-    const maxJars = Math.floor(invItem.dryStockKg / jarCapacity);
-
-    const formHtml = `
-      <form id="global-sale-form" class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
-          <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
-            <div>
-              <span class="block text-xs font-semibold text-emerald-800 uppercase">จำหน่ายจากรหัสล็อตสินค้า</span>
-              <span class="block text-lg font-black text-emerald-950 mt-0.5">${cropId} (${invItem.herbType}อบแห้ง)</span>
+    const modalHtml = `
+      <form id="global-quick-price-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <!-- Product Info Header Box -->
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+            <div class="space-y-0.5">
+              <span class="text-sm font-bold text-emerald-800 uppercase block">กำหนดราคาจำหน่ายผลผลิต</span>
+              <h3 class="text-base font-bold text-emerald-950">${product.name}</h3>
+              <span class="text-sm text-emerald-700 font-medium">รหัสสินค้า: <b>${product.id}</b> | หมวดหมู่: <b>${product.category || 'ทั่วไป'}</b></span>
             </div>
-            <span id="global-sale-max-display" class="text-xs font-bold text-emerald-700 bg-white px-3 py-1.5 rounded-xl border border-emerald-200">
-              สต็อกคงเหลือ: ${(invItem.dryStockKg || 0).toFixed(2)} กก.
-            </span>
+            <div class="text-right">
+              <span class="text-sm text-gray-500 block">ราคาปัจจุบัน:</span>
+              <span class="text-xl font-bold text-emerald-800">${formatBaht(product.price)}</span>
+              <span class="text-sm text-gray-500 font-medium block">ต่อ ${product.unit}</span>
+            </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="global-sale-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทสินค้าที่ขาย *</label>
-              <select id="global-sale-type" name="saleType" required
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="bulk" selected>วัตถุดิบอบแห้ง (กิโลกรัม)</option>
-                <option value="jar">กระปุกสำเร็จรูป (กระปุก)</option>
-              </select>
+          <!-- Price Input Field -->
+          <div class="space-y-1.5">
+            <label for="quick-price-input" class="block text-sm font-bold text-gray-700 uppercase">
+              ระบุราคาขายใหม่ (บาท / ${product.unit}) *
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold text-base">฿</span>
+              <input type="number" id="quick-price-input" name="price" required min="0" step="any" value="${product.price}"
+                class="w-full pl-9 pr-16 py-3 rounded-xl border-2 border-emerald-400 text-2xl font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+              <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-bold text-gray-500 pointer-events-none">
+                บาท / ${product.unit}
+              </span>
             </div>
+            <p class="text-sm text-gray-400">
+              ราคาที่แก้ไขจะถูกนำไปใช้อ้างอิงการตัดสต็อก การคำนวณมูลค่าในคลัง และการสรุปรายงานการเงินโดยอัตโนมัติ
+            </p>
+          </div>
 
-            <div>
-              <label id="global-sale-amount-label" for="global-sale-amount" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ปริมาณที่ขาย (กิโลกรัม) *</label>
-              <input type="number" id="global-sale-amount" name="amount" required min="0.01" max="${invItem.dryStockKg}" step="any" placeholder="เช่น 5.5"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <div>
-              <label id="global-sale-price-label" for="global-sale-price" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ราคาต่อกิโลกรัม (บาท) *</label>
-              <input type="number" id="global-sale-price" name="price" required min="1" placeholder="เช่น 450"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <div>
-              <label for="global-sale-date" class="block text-xs font-semibold text-gray-500 uppercase mb-1">วันที่จำหน่าย (วัน/เดือน/ปี) *</label>
-              <input type="date" id="global-sale-date" name="date" required value="${todayStr}"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Customer Selection with Quick Add Button -->
-            <div class="md:col-span-2 space-y-1.5">
-              <div class="flex items-center justify-between">
-                <label for="global-sale-customer-select" class="block text-xs font-semibold text-gray-500 uppercase">เลือกลูกค้า / ช่องทางจัดจำหน่าย *</label>
-                <button type="button" id="global-quick-add-customer-btn" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 hover:underline">
-                  <i class="fas fa-user-plus"></i> + เพิ่มลูกค้าใหม่ทันที
-                </button>
-              </div>
-              <select id="global-sale-customer-select" name="customerId" required
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </select>
-              <input type="hidden" id="global-sale-customer" name="customer">
-
-              <div id="global-cust-preview" class="p-3 bg-gray-50 rounded-2xl border border-gray-100 text-xs">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <span class="text-gray-400 block text-[10px]">ประเภทลูกค้า:</span>
-                    <span id="global-preview-type" class="font-bold text-gray-700 block">-</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-400 block text-[10px]">เบอร์โทรศัพท์:</span>
-                    <span id="global-preview-phone" class="font-bold text-gray-700 block">-</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-400 block text-[10px]">ที่อยู่จัดส่ง:</span>
-                    <span id="global-preview-address" class="text-gray-600 block truncate">-</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="md:col-span-2 p-3 bg-green-50 text-green-900 border border-green-100 rounded-xl text-xs leading-relaxed">
-              <i class="fas fa-info-circle mr-1 text-green-600"></i>
-              การบันทึกขายจะหักยอดคลังสินค้าล็อตนี้ และคำนวณบวกรายรับคืนเข้ากับเกษตรกรเจ้าของสิทธิ์ของล็อตโดยอัตโนมัติ
+          <!-- Live Calculation Preview Card -->
+          <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
+            <span class="text-sm font-bold text-gray-700 block uppercase">
+              <i class="fas fa-calculator text-emerald-700 mr-1"></i> ตัวอย่างการคำนวณมูลค่าตามราคาใหม่
+            </span>
+            <div id="quick-price-preview-calc" class="grid grid-cols-3 gap-2.5 pt-1 text-center">
+              ${this.renderPriceCalculationGrid(product.unit, product.price)}
             </div>
           </div>
         </div>
@@ -1318,134 +821,43 @@ export const InventoryComponent = {
           <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
             ยกเลิก
           </button>
-          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-check"></i> บันทึกขายและหักยอด
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 active:scale-95">
+            <i class="fas fa-save"></i> บันทึกราคาใหม่
           </button>
         </div>
       </form>
     `;
 
     openGlobalModal({
-      title: 'บันทึกรายการขายสินค้าแปรรูป',
-      icon: 'fas fa-cash-register',
-      size: 'max-w-4xl',
-      content: formHtml,
+      title: `แก้ไขราคาขาย: ${product.name}`,
+      icon: 'fas fa-pen-to-square',
+      size: 'max-w-lg',
+      headerColor: 'bg-emerald-700',
+      content: modalHtml,
       onRender: (dialog) => {
-        const custSelect = dialog.querySelector('#global-sale-customer-select');
-        const hiddenCust = dialog.querySelector('#global-sale-customer');
-        const typeSpan = dialog.querySelector('#global-preview-type');
-        const phoneSpan = dialog.querySelector('#global-preview-phone');
-        const addrSpan = dialog.querySelector('#global-preview-address');
-        const saleTypeSelect = dialog.querySelector('#global-sale-type');
-        const amountLabel = dialog.querySelector('#global-sale-amount-label');
-        const amountInput = dialog.querySelector('#global-sale-amount');
-        const priceLabel = dialog.querySelector('#global-sale-price-label');
-        const priceInput = dialog.querySelector('#global-sale-price');
-        const maxDisplay = dialog.querySelector('#global-sale-max-display');
-
-        const updateCustomerPreview = (cust) => {
-          if (cust) {
-            typeSpan.textContent = cust.customerType || 'ลูกค้าทั่วไป';
-            phoneSpan.textContent = cust.phone || '-';
-            addrSpan.textContent = cust.address || cust.contactChannel || '-';
-            hiddenCust.value = cust.name;
-          } else {
-            typeSpan.textContent = '-';
-            phoneSpan.textContent = '-';
-            addrSpan.textContent = '-';
-            hiddenCust.value = '';
-          }
-        };
-
-        const populateCustomers = (selectedId = null) => {
-          const customers = appState.getCustomers();
-          if (customers.length === 0) {
-            custSelect.innerHTML = `<option value="">-- ยังไม่มีรายชื่อลูกค้า กรุณากดเพิ่มลูกค้าใหม่ --</option>`;
-            updateCustomerPreview(null);
-            return;
-          }
-          custSelect.innerHTML = `
-            <option value="">-- กรุณาเลือกลูกค้า --</option>
-            ${customers.map(c => `
-              <option value="${c.id}" ${selectedId === c.id ? 'selected' : ''}>
-                ${c.name} (${c.customerType || 'ลูกค้าทั่วไป'}) - ${c.phone || ''}
-              </option>
-            `).join('')}
-          `;
-          if (selectedId) {
-            custSelect.value = selectedId;
-            const c = customers.find(item => item.id === selectedId);
-            updateCustomerPreview(c);
-          } else {
-            updateCustomerPreview(null);
-          }
-        };
-
-        populateCustomers();
-
-        custSelect.addEventListener('change', (e) => {
-          const cust = appState.getCustomerById(e.target.value);
-          updateCustomerPreview(cust);
-        });
-
-        saleTypeSelect.addEventListener('change', () => {
-          if (saleTypeSelect.value === 'bulk') {
-            amountLabel.textContent = 'ปริมาณที่ขาย (กิโลกรัม) *';
-            amountInput.placeholder = 'เช่น 5.5';
-            amountInput.step = 'any';
-            amountInput.max = invItem.dryStockKg;
-            priceLabel.textContent = 'ราคาต่อกิโลกรัม (บาท) *';
-            priceInput.placeholder = 'เช่น 450';
-            maxDisplay.textContent = `สต็อกคงเหลือ: ${(invItem.dryStockKg || 0).toFixed(2)} กก.`;
-          } else {
-            amountLabel.textContent = 'จำนวนกระปุกที่ขาย (กระปุก) *';
-            amountInput.placeholder = 'เช่น 10';
-            amountInput.step = '1';
-            amountInput.max = maxJars;
-            priceLabel.textContent = 'ราคาต่อกระปุก (บาท) *';
-            priceInput.placeholder = 'เช่น 80';
-            maxDisplay.textContent = `สต็อกคงเหลือสูงสุด: ${maxJars} กระปุก (เทียบเท่าน้ำหนักในคลัง)`;
-          }
-        });
-
-        const quickAddBtn = dialog.querySelector('#global-quick-add-customer-btn');
-        if (quickAddBtn) {
-          quickAddBtn.addEventListener('click', () => {
-            this.openQuickAddCustomerModal((newCust) => {
-              // Re-open sale modal with this new customer pre-selected
-              this.openSaleModal(cropId);
-              setTimeout(() => {
-                const s = document.querySelector('#global-sale-customer-select');
-                if (s && newCust) {
-                  s.value = newCust.id;
-                  s.dispatchEvent(new Event('change'));
-                }
-              }, 50);
-            });
+        const priceInput = dialog.querySelector('#quick-price-input');
+        const previewContainer = dialog.querySelector('#quick-price-preview-calc');
+        if (priceInput && previewContainer) {
+          priceInput.addEventListener('input', () => {
+            const p = parseFloat(priceInput.value) || 0;
+            previewContainer.innerHTML = this.renderPriceCalculationGrid(product.unit, p);
           });
         }
 
-        const form = dialog.querySelector('#global-sale-form');
+        const form = dialog.querySelector('#global-quick-price-form');
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
-            const formData = new FormData(form);
-            const amount = parseFloat(formData.get('amount'));
-            const price = parseFloat(formData.get('price'));
-            const customerId = formData.get('customerId');
-            const customer = formData.get('customer');
-            const date = formData.get('date');
-            const saleType = formData.get('saleType') || 'bulk';
-
-            if (!customerId || !customer) {
-              showToast('กรุณาเลือกลูกค้าหรือเพิ่มลูกค้าใหม่', 'warning');
+            const newPrice = parseFloat(priceInput ? priceInput.value : 0);
+            if (isNaN(newPrice) || newPrice < 0) {
+              showToast('กรุณาระบุราคาที่ถูกต้องและไม่ติดลบ', 'error');
               return;
             }
 
             try {
-              appState.recordSale(cropId, amount, price, customer, date, saleType, customerId);
+              appState.updateProductPrice(productId, newPrice);
               closeGlobalModal();
-              showToast(`หักยอดสต็อกล็อต ${cropId} และบันทึกขายสำเร็จ`);
+              showToast(`อัปเดตราคาขาย ${product.name} เป็น ${formatBaht(newPrice)} / ${product.unit} เรียบร้อยแล้ว`, 'success');
               this.refreshView();
             } catch (err) {
               showToast(err.message, 'error');
@@ -1456,44 +868,99 @@ export const InventoryComponent = {
     });
   },
 
-  openQuickAddCustomerModal(onCustomerAdded) {
+  renderPriceCalculationGrid(unit, price) {
+    const isKg = unit === 'กก.' || unit === 'kg';
+    if (isKg) {
+      return `
+        <div class="p-2.5 bg-white rounded-xl border border-gray-200">
+          <span class="text-sm text-gray-500 font-semibold block">1 กก.</span>
+          <span class="text-sm font-bold text-emerald-800 font-mono">${(price * 1).toLocaleString()} บ.</span>
+        </div>
+        <div class="p-2.5 bg-white rounded-xl border border-gray-200">
+          <span class="text-sm text-gray-500 font-semibold block">5 กก.</span>
+          <span class="text-sm font-bold text-emerald-800 font-mono">${(price * 5).toLocaleString()} บ.</span>
+        </div>
+        <div class="p-2.5 bg-white rounded-xl border border-gray-200">
+          <span class="text-sm text-gray-500 font-semibold block">10 กก.</span>
+          <span class="text-sm font-bold text-emerald-800 font-mono">${(price * 10).toLocaleString()} บ.</span>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="p-2.5 bg-white rounded-xl border border-gray-200">
+          <span class="text-sm text-gray-500 font-semibold block">1 กระป๋อง</span>
+          <span class="text-sm font-bold text-emerald-800 font-mono">${(price * 1).toLocaleString()} บ.</span>
+        </div>
+        <div class="p-2.5 bg-white rounded-xl border border-gray-200">
+          <span class="text-sm text-gray-500 font-semibold block">5 กระป๋อง</span>
+          <span class="text-sm font-bold text-emerald-800 font-mono">${(price * 5).toLocaleString()} บ.</span>
+        </div>
+        <div class="p-2.5 bg-white rounded-xl border border-gray-200">
+          <span class="text-sm text-gray-500 font-semibold block">20 กระป๋อง (~1 กก.)</span>
+          <span class="text-sm font-bold text-emerald-800 font-mono">${(price * 20).toLocaleString()} บ.</span>
+        </div>
+      `;
+    }
+  },
+
+  openAddProductModal(defaultUnit = 'กก.') {
+    const products = appState.getProducts();
+    const maxIdNum = products.reduce((max, p) => {
+      const parts = (p.id || '').split('-');
+      const num = parseInt(parts[1]);
+      return (!isNaN(num) && num > max) ? num : max;
+    }, 0);
+    const nextId = `PRD-${String(maxIdNum + 1).padStart(3, '0')}`;
+    const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
+    const herbCategories = Array.from(new Set(['เก๊กฮวย', 'คาโมมายล์', ...Object.keys(roadmaps)]));
+
     const formHtml = `
-      <form id="global-quick-cust-form" class="flex flex-col flex-1 overflow-hidden">
+      <form id="global-add-product-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="q-cust-name" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ชื่อลูกค้า / ร้านค้า *</label>
-              <input type="text" id="q-cust-name" name="name" required placeholder="เช่น ร้านกาแฟช่อผกา, คุณวิภา"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <label for="prod-id" class="block text-sm font-semibold text-gray-500 uppercase mb-1">รหัสสินค้า *</label>
+              <input type="text" id="prod-id" name="id" required value="${nextId}" placeholder="เช่น PRD-001"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <span class="text-sm text-gray-400 block mt-0.5">ระบบรันรหัสอัตโนมัติให้ สามารถปรับเปลี่ยนได้</span>
             </div>
 
             <div>
-              <label for="q-cust-type" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ประเภทลูกค้า *</label>
-              <select id="q-cust-type" name="customerType" required
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="ลูกค้าทั่วไป">ลูกค้าทั่วไป</option>
-                <option value="ร้านคาเฟ่/ร้านขายของฝาก">ร้านคาเฟ่/ร้านขายของฝาก</option>
-                <option value="ตัวแทนจำหน่าย">ตัวแทนจำหน่าย</option>
-                <option value="ซื้อส่งโรงงาน">ซื้อส่งโรงงาน</option>
+              <label for="prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช / ประเภทสินค้า</label>
+              <select id="prod-category" name="category"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
+                ${herbCategories.map(h => `<option value="${h}">${h}</option>`).join('')}
               </select>
             </div>
 
-            <div>
-              <label for="q-cust-phone" class="block text-xs font-semibold text-gray-500 uppercase mb-1">เบอร์โทรศัพท์ *</label>
-              <input type="text" id="q-cust-phone" name="phone" required placeholder="เช่น 081-234-5678"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="md:col-span-2">
+              <label for="prod-name" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ชื่อสินค้า *</label>
+              <input type="text" id="prod-name" name="name" required placeholder="เช่น ดอกเก๊กฮวยอบแห้ง, ชาคาโมมายล์แบบกระป๋อง"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
             <div>
-              <label for="q-cust-channel" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ช่องทางติดต่ออื่นๆ (Line / Facebook)</label>
-              <input type="text" id="q-cust-channel" name="contactChannel" placeholder="เช่น Line: @coffee, FB: ร้านกาแฟ"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <label for="prod-price" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ราคาขายต่อหน่วย (บาท) *</label>
+              <input type="number" id="prod-price" name="price" required min="0" step="any" placeholder="เช่น 120, 450"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
+
+            <div>
+              <label for="prod-unit" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หน่วยเรียก *</label>
+              <div class="flex items-center gap-2">
+                <select id="prod-unit" name="unit" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                  <option value="กก." ${defaultUnit === 'กก.' ? 'selected' : ''}>กก.</option>
+                  <option value="กระป๋อง" ${defaultUnit === 'กระป๋อง' ? 'selected' : ''}>กระป๋อง</option>
+                </select>
+              </div>
+            </div>
+
 
             <div class="md:col-span-2">
-              <label for="q-cust-address" class="block text-xs font-semibold text-gray-500 uppercase mb-1">ที่อยู่จัดส่ง / ที่อยู่ร้านค้า</label>
-              <textarea id="q-cust-address" name="address" rows="2" placeholder="ระบุที่อยู่จัดส่งสินค้า"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+              <label for="prod-stock" class="block text-sm font-semibold text-gray-500 uppercase mb-1">จำนวนสต็อกเริ่มต้นที่มีอยู่ *</label>
+              <input type="number" id="prod-stock" name="stock" required min="0" step="any" value="0" placeholder="เช่น 125, 15.5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <span class="text-sm text-gray-400 block mt-0.5">ระบุยอดสินค้าที่มีอยู่จริงในคลังสินค้า</span>
             </div>
           </div>
         </div>
@@ -1503,35 +970,40 @@ export const InventoryComponent = {
             ยกเลิก
           </button>
           <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-save"></i> บันทึกและเลือกลูกค้านี้
+            <i class="fas fa-save"></i> บันทึกรายการสินค้า
           </button>
         </div>
       </form>
     `;
 
     openGlobalModal({
-      title: 'เพิ่มข้อมูลลูกค้าใหม่ทันที',
-      icon: 'fas fa-user-plus',
-      size: 'max-w-3xl',
+      title: 'เพิ่มรายการสินค้าใหม่ในคลัง',
+      icon: 'fas fa-plus',
+      size: 'max-w-2xl',
+      headerColor: 'bg-[#1e4620]',
       content: formHtml,
       onRender: (dialog) => {
-        const form = dialog.querySelector('#global-quick-cust-form');
+        
+
+        const form = dialog.querySelector('#global-add-product-form');
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(form);
             const data = {
-              name: formData.get('name').trim(),
-              customerType: formData.get('customerType'),
-              phone: formData.get('phone').trim(),
-              contactChannel: formData.get('contactChannel').trim(),
-              address: formData.get('address').trim()
+              id: formData.get('id'),
+              name: formData.get('name'),
+              category: formData.get('category'),
+              price: formData.get('price'),
+              unit: formData.get('unit'),
+              stock: formData.get('stock')
             };
 
             try {
-              const added = appState.addCustomer(data);
-              showToast(`เพิ่มลูกค้า "${added.name}" เรียบร้อยแล้ว`);
-              if (onCustomerAdded) onCustomerAdded(added);
+              appState.addProduct(data);
+              closeGlobalModal();
+              showToast(`เพิ่มสินค้า "${data.name}" (${data.id}) เข้าคลังเรียบร้อยแล้ว`, 'success');
+              this.refreshView();
             } catch (err) {
               showToast(err.message, 'error');
             }
@@ -1541,36 +1013,62 @@ export const InventoryComponent = {
     });
   },
 
-  openEditWeightsModal(cropId) {
-    const invItem = appState.getInventoryByCropId(cropId);
-    const crop = appState.getCropById(cropId);
-    if (!invItem) return;
+  openEditProductModal(productId) {
+    const product = appState.getProductById(productId);
+    if (!product) return;
+
+    const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
+    const herbCategories = Array.from(new Set(['เก๊กฮวย', 'คาโมมายล์', ...Object.keys(roadmaps)]));
 
     const formHtml = `
-      <form id="global-weights-form" class="flex flex-col flex-1 overflow-hidden">
+      <form id="global-edit-product-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
-          <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-900 font-bold">
-            ${cropId} (${invItem.herbType}อบแห้ง)
+          <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+            <div>
+              <span class="text-sm font-semibold text-emerald-800 uppercase block">รหัสสินค้า</span>
+              <span class="text-lg font-bold text-emerald-950 mt-0.5 block">${product.id}</span>
+            </div>
+            <span class="text-sm font-bold text-emerald-700 bg-white px-3 py-1 rounded-xl border border-emerald-200">
+              หมวดหมู่ปัจจุบัน: ${product.category || 'ทั่วไป'}
+            </span>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="global-weights-fresh" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักดอกสด (กก.) *</label>
-              <input type="number" id="global-weights-fresh" name="yieldFresh" required min="0" step="any" value="${crop ? (crop.yield || 0) : 0}"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <label for="edit-prod-name" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ชื่อสินค้า *</label>
+              <input type="text" id="edit-prod-name" name="name" required value="${product.name}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
             <div>
-              <label for="global-weights-dry" class="block text-xs font-semibold text-gray-500 uppercase mb-1">น้ำหนักแห้งคงคลัง (กก.) *</label>
-              <input type="number" id="global-weights-dry" name="dryStock" required min="0" step="any" value="${invItem.dryStockKg || 0}"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <label for="edit-prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช / ประเภทสินค้า</label>
+              <select id="edit-prod-category" name="category"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
+                ${herbCategories.map(h => `<option value="${h}" ${product.category === h ? 'selected' : ''}>${h}</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label for="edit-prod-price" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ราคาขายต่อหน่วย (บาท) *</label>
+              <input type="number" id="edit-prod-price" name="price" required min="0" step="any" value="${product.price}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="edit-prod-unit" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หน่วยเรียก *</label>
+              <select id="edit-prod-unit" name="unit" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                <option value="กก." ${product.unit === 'กก.' ? 'selected' : ''}>กก.</option>
+                <option value="กระป๋อง" ${product.unit === 'กระป๋อง' ? 'selected' : ''}>กระป๋อง</option>
+              </select>
+            </div>
+
+            <div class="md:col-span-2">
+              <label for="edit-prod-stock" class="block text-sm font-semibold text-gray-500 uppercase mb-1">จำนวนสต็อกคงเหลือปัจจุบัน (${product.unit}) *</label>
+              <input type="number" id="edit-prod-stock" name="stock" required min="0" step="any" value="${product.stock}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xl font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <span class="text-sm text-gray-400 block mt-0.5">การปรับยอดจำนวนที่นี่จะอัปเดตสต็อกคงเหลือของคลังสินค้าโดยตรง</span>
             </div>
           </div>
-
-          <p class="text-xs text-gray-400 leading-relaxed">
-            <i class="fas fa-info-circle mr-1 text-emerald-600"></i>
-            การปรับน้ำหนักนี้จะแก้ไขยอดดอกสดในรอบการเพาะปลูก และยอดสต็อกอบแห้งคงเหลือในคลังสินค้าโดยตรง
-          </p>
         </div>
 
         <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
@@ -1585,22 +1083,29 @@ export const InventoryComponent = {
     `;
 
     openGlobalModal({
-      title: 'แก้ไขน้ำหนักผลผลิตสดและแห้ง',
-      icon: 'fas fa-weight-hanging',
+      title: `แก้ไขข้อมูลสินค้า ${product.id}`,
+      icon: 'fas fa-edit',
       size: 'max-w-2xl',
+      headerColor: 'bg-amber-600',
       content: formHtml,
       onRender: (dialog) => {
-        const form = dialog.querySelector('#global-weights-form');
+        const form = dialog.querySelector('#global-edit-product-form');
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(form);
-            const yieldFresh = parseFloat(formData.get('yieldFresh')) || 0;
-            const dryStock = parseFloat(formData.get('dryStock')) || 0;
+            const data = {
+              name: formData.get('name'),
+              category: formData.get('category') || product.category,
+              price: formData.get('price'),
+              unit: formData.get('unit'),
+              stock: formData.get('stock')
+            };
+
             try {
-              appState.updateLotWeights(cropId, yieldFresh, dryStock);
+              appState.updateProduct(productId, data);
               closeGlobalModal();
-              showToast(`อัปเดตน้ำหนักล็อต ${cropId} เรียบร้อยแล้ว`);
+              showToast(`อัปเดตข้อมูลสินค้า ${productId} เรียบร้อยแล้ว`, 'success');
               this.refreshView();
             } catch (err) {
               showToast(err.message, 'error');
@@ -1611,239 +1116,118 @@ export const InventoryComponent = {
     });
   },
 
-  bindLedgerEvents() {
-    const searchInput = document.getElementById('member-ledger-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.searchMemberQuery = e.target.value;
-        // Simple update without losing cursor focus
-        const financialReport = appState.getFinancialReport();
-        const filteredReport = financialReport.filter(r => 
-          r.name.toLowerCase().includes(this.searchMemberQuery.toLowerCase()) ||
-          r.id.toLowerCase().includes(this.searchMemberQuery.toLowerCase())
-        );
+  openDeductStockModal(productId) {
+    const product = appState.getProductById(productId);
+    if (!product) return;
 
-        const rowsHtml = filteredReport.length === 0
-          ? `<tr><td colspan="7" class="px-6 py-6 text-center text-sm text-gray-500">ไม่พบรายงานการเงินของสมาชิกรายที่ระบุ</td></tr>`
-          : filteredReport.map(r => {
-              const statusBadge = r.netProfit > 0 
-                ? `<span class="px-2.5 py-1 text-xs font-bold bg-green-50 text-green-700 rounded-full border border-green-200"><i class="fas fa-arrow-up mr-0.5"></i> กำไร</span>`
-                : r.netProfit < 0
-                  ? `<span class="px-2.5 py-1 text-xs font-bold bg-red-50 text-red-700 rounded-full border border-red-200"><i class="fas fa-arrow-down mr-0.5"></i> ขาดทุน</span>`
-                  : `<span class="px-2.5 py-1 text-xs font-bold bg-gray-50 text-gray-600 rounded-full border border-gray-200">เท่าทุน</span>`;
-              
-              return `
-                <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-                  <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${r.id}</td>
-                  <td class="px-6 py-4">
-                    <div class="text-sm font-bold text-gray-900">${r.name}</div>
-                    <div class="text-[10px] text-gray-400">บทบาท: ${r.role} (${r.villageNumber})</div>
-                  </td>
-                  <td class="px-6 py-4 text-center text-sm text-gray-700 font-medium">${r.totalCrops} รอบ</td>
-                  <td class="px-6 py-4 text-sm text-gray-600 font-medium">${formatBaht(r.totalCost)}</td>
-                  <td class="px-6 py-4 text-sm text-emerald-800 font-bold">${formatBaht(r.totalRevenue)}</td>
-                  <td class="px-6 py-4 text-sm font-extrabold ${r.netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">
-                    ${r.netProfit > 0 ? '+' : ''}${formatBaht(r.netProfit)}
-                  </td>
-                  <td class="px-6 py-4 text-center">${statusBadge}</td>
-                </tr>
-              `;
-            }).join('');
-        
-        const tbody = document.querySelector('table tbody');
-        if (tbody) tbody.innerHTML = rowsHtml;
-      });
-    }
-  },
+    const customers = appState.getCustomers();
+    const todayStr = new Date().toISOString().split('T')[0];
 
-  bindSalesEvents() {
-    // 1. Checkboxes per row
-    const saleCheckboxes = document.querySelectorAll('.sale-batch-checkbox');
-    saleCheckboxes.forEach(cb => {
-      cb.addEventListener('change', () => {
-        const id = cb.getAttribute('data-sale-id');
-        if (cb.checked) {
-          if (!this.selectedSaleIds.includes(id)) this.selectedSaleIds.push(id);
-        } else {
-          this.selectedSaleIds = this.selectedSaleIds.filter(i => i !== id);
-        }
-        this.refreshView();
-      });
-    });
+    const custOptionsHtml = customers.map(c => `
+      <option value="${c.id}">${c.name} (${c.customerType})</option>
+    `).join('');
 
-    // 2. Select All Checkbox (Toolbar and Header)
-    const selectAllCb = document.getElementById('select-all-sales-checkbox');
-    const headerSelectAllCb = document.getElementById('header-table-sales-checkbox');
-    const toggleSelectAll = (checked) => {
-      const currentUser = appState.getCurrentUser();
-      const isMember = currentUser && currentUser.role === 'Member';
-      let plots = appState.getPlots();
-      let crops = appState.getCrops();
-      if (isMember) {
-        plots = plots.filter(p => p.memberIds && p.memberIds.includes(currentUser.memberId));
-        const plotIds = plots.map(p => p.id);
-        crops = crops.filter(c => plotIds.includes(c.plotId));
-      }
-      const cropIds = crops.map(c => c.id);
-      let sales = appState.getSales().filter(s => cropIds.includes(s.cropId));
-      if (this.searchSaleQuery) {
-        const q = this.searchSaleQuery.toLowerCase();
-        sales = sales.filter(s => {
-          const crop = appState.getCropById(s.cropId);
-          const plot = crop ? appState.getPlotById(crop.plotId) : null;
-          const plotName = plot ? plot.name.toLowerCase() : '';
-          return (
-            s.id.toLowerCase().includes(q) ||
-            s.cropId.toLowerCase().includes(q) ||
-            (s.customer && s.customer.toLowerCase().includes(q)) ||
-            (s.customerId && s.customerId.toLowerCase().includes(q)) ||
-            (s.date && s.date.includes(q)) ||
-            plotName.includes(q)
-          );
-        });
-      }
-
-      if (checked) {
-        this.selectedSaleIds = sales.map(s => s.id);
-      } else {
-        this.selectedSaleIds = [];
-      }
-      this.refreshView();
-    };
-
-    if (selectAllCb) {
-      selectAllCb.addEventListener('change', (e) => toggleSelectAll(e.target.checked));
-    }
-    if (headerSelectAllCb) {
-      headerSelectAllCb.addEventListener('change', (e) => toggleSelectAll(e.target.checked));
-    }
-
-    // 3. Clear selected sales
-    const clearBtn = document.getElementById('clear-selected-sales-btn');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        this.selectedSaleIds = [];
-        this.refreshView();
-      });
-    }
-
-    // 4. Search input
-    const searchInput = document.getElementById('sales-search-input');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.searchSaleQuery = e.target.value;
-        this.refreshView();
-      });
-    }
-
-    // 5. Batch Delete Sales Button
-    const batchDeleteBtn = document.getElementById('batch-delete-sales-btn');
-    if (batchDeleteBtn) {
-      batchDeleteBtn.addEventListener('click', () => {
-        if (this.selectedSaleIds.length === 0) return;
-        this.openConfirmDeleteSalesModal(this.selectedSaleIds);
-      });
-    }
-
-    // 6. Batch Summary / Print Button
-    const batchSummaryBtn = document.getElementById('batch-summary-sales-btn');
-    if (batchSummaryBtn) {
-      batchSummaryBtn.addEventListener('click', () => {
-        if (this.selectedSaleIds.length === 0) return;
-        this.openSalesSummaryModal(this.selectedSaleIds);
-      });
-    }
-
-    // 7. Single Row View Receipt
-    const viewSaleBtns = document.querySelectorAll('.view-sale-btn');
-    viewSaleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const saleId = btn.getAttribute('data-sale-id');
-        this.openSaleDetailModal(saleId);
-      });
-    });
-
-    // 8. Single Row Delete
-    const deleteSaleBtns = document.querySelectorAll('.delete-sale-btn');
-    deleteSaleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const saleId = btn.getAttribute('data-sale-id');
-        this.openConfirmDeleteSalesModal([saleId]);
-      });
-    });
-  },
-
-  openConfirmDeleteSalesModal(saleIds) {
-    const isSingle = saleIds.length === 1;
-    const sales = appState.getSales().filter(s => saleIds.includes(s.id));
-    const totalAmount = sales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
-
-    const contentHtml = `
-      <form id="confirm-delete-sales-form" class="p-6 md:p-8 space-y-5">
-        <div class="flex items-start gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 text-xl">
-            <i class="fas fa-exclamation-triangle"></i>
-          </div>
-          <div>
-            <h4 class="text-base font-bold text-gray-900">
-              ${isSingle ? `ยืนยันการลบรายการขาย #${saleIds[0]}` : `ยืนยันการลบรายการขายที่เลือก (${saleIds.length} รายการ)`}
-            </h4>
-            <p class="text-xs text-gray-500 mt-1">
-              ยอดรวมเงินทั้งหมด: <b class="text-gray-800">${formatBaht(totalAmount)}</b>
-            </p>
-          </div>
-        </div>
-
-        <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 space-y-2">
-          <div class="font-bold flex items-center gap-1.5 text-amber-950">
-            <i class="fas fa-info-circle"></i> ผลกระทบของการลบข้อมูล:
-          </div>
-          <ul class="list-disc pl-5 space-y-1 text-amber-800">
-            <li>ยอดจำหน่ายนี้จะถูกตัดออกจากรายงานการเงินและกำไร-ขาดทุนสะสมของสมาชิก</li>
-            <li>ประวัติการขายในทะเบียนลูกค้าและคลังสินค้าจะถูกลบออก</li>
-          </ul>
-        </div>
-
-        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" id="restore-inventory-checkbox" checked class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
-            <div class="text-xs">
-              <span class="font-bold text-gray-800 block">คืนสต็อกสมุนไพรอบแห้งกลับเข้าคลังสินค้า</span>
-              <span class="text-gray-500">คืนจำนวนสมุนไพรตามรายการขายนี้กลับเข้าล็อตผลผลิตเดิมอัตโนมัติ</span>
+    const formHtml = `
+      <form id="global-deduct-stock-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-4">
+          <!-- Product Info Bar -->
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+            <div>
+              <span class="text-sm font-semibold text-emerald-800 uppercase block">ตัดสต็อกสินค้า</span>
+              <span class="text-base font-bold text-emerald-950 mt-0.5 block">${product.name} (${product.id})</span>
             </div>
-          </label>
+            <div class="text-right">
+              <span class="text-sm text-gray-500 block">คงเหลือปัจจุบัน:</span>
+              <span class="text-xl font-bold text-emerald-800">${product.stock} <span class="text-sm font-bold text-gray-500">${product.unit}</span></span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="deduct-amount" class="block text-sm font-semibold text-gray-500 uppercase mb-1">จำนวนที่ตัดสต็อก (${product.unit}) *</label>
+              <input type="number" id="deduct-amount" name="amount" required min="0.01" max="${product.stock}" step="any" placeholder="เช่น 5"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="deduct-price" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ราคาจำหน่ายต่อหน่วย (บาท) *</label>
+              <input type="number" id="deduct-price" name="price" required min="0" step="any" value="${product.price}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="deduct-date" class="block text-sm font-semibold text-gray-500 uppercase mb-1">วันที่ทำรายการ *</label>
+              <input type="date" id="deduct-date" name="date" required value="${todayStr}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div>
+              <label for="deduct-customer-select" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ลูกค้าผู้ซื้อ / ช่องทางจำหน่าย</label>
+              <select id="deduct-customer-select" name="customerId"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">-- ลูกค้าทั่วไป / ไม่ระบุชื่อ --</option>
+                ${custOptionsHtml}
+              </select>
+            </div>
+
+            <div class="md:col-span-2 p-3 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-center">
+              <span class="text-sm font-medium text-gray-600">รวมยอดเงินทั้งสิ้น:</span>
+              <span id="deduct-total-price" class="text-xl font-bold text-emerald-800">0.00 บาท</span>
+            </div>
+          </div>
         </div>
 
-        <div class="flex justify-end gap-2.5 pt-4 border-t border-gray-100">
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
           <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
             ยกเลิก
           </button>
-          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-trash-alt"></i> ยืนยันการลบ
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-check"></i> ยืนยันการตัดสต็อก
           </button>
         </div>
       </form>
     `;
 
     openGlobalModal({
-      title: isSingle ? `ลบรายการขาย ${saleIds[0]}` : `ลบรายการขาย (${saleIds.length} รายการ)`,
-      icon: 'fas fa-trash-alt',
-      size: 'max-w-md',
-      headerColor: 'bg-rose-700',
-      content: contentHtml,
+      title: `ตัดสต็อกจำหน่าย: ${product.name}`,
+      icon: 'fas fa-cart-arrow-down',
+      size: 'max-w-2xl',
+      headerColor: 'bg-emerald-700',
+      content: formHtml,
       onRender: (dialog) => {
-        const form = dialog.querySelector('#confirm-delete-sales-form');
+        const amountInput = dialog.querySelector('#deduct-amount');
+        const priceInput = dialog.querySelector('#deduct-price');
+        const totalSpan = dialog.querySelector('#deduct-total-price');
+
+        const updateTotal = () => {
+          const amt = parseFloat(amountInput ? amountInput.value : 0) || 0;
+          const prc = parseFloat(priceInput ? priceInput.value : 0) || 0;
+          if (totalSpan) totalSpan.textContent = formatBaht(amt * prc);
+        };
+
+        if (amountInput) amountInput.addEventListener('input', updateTotal);
+        if (priceInput) priceInput.addEventListener('input', updateTotal);
+
+        const form = dialog.querySelector('#global-deduct-stock-form');
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
-            const restoreCheckbox = dialog.querySelector('#restore-inventory-checkbox');
-            const restoreStock = restoreCheckbox ? restoreCheckbox.checked : true;
+            const formData = new FormData(form);
+            const amount = parseFloat(formData.get('amount')) || 0;
+            const price = parseFloat(formData.get('price')) || 0;
+            const date = formData.get('date');
+            const custId = formData.get('customerId');
+            
+            let custName = 'ลูกค้าทั่วไป / ไม่ระบุชื่อ';
+            if (custId) {
+              const cust = appState.getCustomerById(custId);
+              if (cust) custName = cust.name;
+            }
 
             try {
-              const count = appState.deleteSales(saleIds, restoreStock);
+              appState.deductProductStock(productId, amount, custName, price, date, custId || null);
               closeGlobalModal();
-              this.selectedSaleIds = this.selectedSaleIds.filter(id => !saleIds.includes(id));
-              showToast(`ลบรายการบันทึกการขายจำนวน ${count} รายการเรียบร้อยแล้ว${restoreStock ? ' (คืนสต็อกเข้าคลังแล้ว)' : ''}`);
+              showToast(`ตัดสต็อก ${product.name} จำนวน ${amount} ${product.unit} สำเร็จ (บันทึกลงบัญชีเรียบร้อย)`, 'success');
               this.refreshView();
             } catch (err) {
               showToast(err.message, 'error');
@@ -1854,224 +1238,57 @@ export const InventoryComponent = {
     });
   },
 
-  openSalesSummaryModal(saleIds) {
-    const sales = appState.getSales().filter(s => saleIds.includes(s.id));
-    const enterprise = appState.getEnterprise();
-    const crops = appState.getCrops();
-    const plots = appState.getPlots();
+  openDeleteProductModal(productId) {
+    const product = appState.getProductById(productId);
+    if (!product) return;
 
-    const totalRevenue = sales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
-    const todayThai = formatThaiDate(new Date().toISOString().split('T')[0]);
-
-    const tableRowsHtml = sales.map((s, idx) => {
-      const crop = crops.find(c => c.id === s.cropId);
-      const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-      const unitText = s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`;
-      const priceText = s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระปุก` : `${formatBaht(s.pricePerKg || s.price)}/กก.`;
-
-      return `
-        <tr class="border-b border-gray-200 text-xs">
-          <td class="py-2.5 px-3 text-gray-500">${idx + 1}</td>
-          <td class="py-2.5 px-3 font-semibold text-gray-800">${s.id}</td>
-          <td class="py-2.5 px-3 text-gray-600">${formatThaiDate(s.date)}</td>
-          <td class="py-2.5 px-3">
-            <span class="font-medium text-gray-800">${s.cropId}</span>
-            <span class="text-[10px] text-gray-400 block">${plot ? plot.name : ''}</span>
-          </td>
-          <td class="py-2.5 px-3 font-medium text-gray-700">${s.customer || '-'}</td>
-          <td class="py-2.5 px-3 text-right font-bold text-gray-800">${unitText}</td>
-          <td class="py-2.5 px-3 text-right text-gray-600">${priceText}</td>
-          <td class="py-2.5 px-3 text-right font-black text-emerald-800">${formatBaht(s.totalPrice)}</td>
-        </tr>
-      `;
-    }).join('');
-
-    const modalContent = `
-      <div class="flex flex-col flex-1 overflow-hidden" id="printable-sales-summary">
-        <div class="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
-          <!-- Header for printing -->
-          <div class="border-b border-gray-200 pb-4 text-center">
-            <h2 class="text-xl font-extrabold text-gray-800">${enterprise.name}</h2>
-            <p class="text-xs text-gray-500 mt-1">${enterprise.village} ต.${enterprise.subdistrict} อ.${enterprise.district} จ.${enterprise.province}</p>
-            <h3 class="text-base font-bold text-emerald-800 mt-3 flex items-center justify-center gap-1.5">
-              <i class="fas fa-file-invoice-dollar"></i> รายงานสรุปรายการจำหน่ายผลผลิตสมุนไพรอบแห้ง
-            </h3>
-            <div class="flex justify-between items-center text-xs text-gray-500 mt-3 pt-2 border-t border-dashed border-gray-200">
-              <span>จำนวนรายการที่เลือก: <b>${sales.length} รายการ</b></span>
-              <span>วันที่พิมพ์: <b>${todayThai}</b></span>
-            </div>
-          </div>
-
-          <!-- Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-gray-100 text-[11px] font-bold text-gray-600 uppercase border-b border-gray-300">
-                  <th class="py-2.5 px-3">#</th>
-                  <th class="py-2.5 px-3">รหัสการขาย</th>
-                  <th class="py-2.5 px-3">วันที่</th>
-                  <th class="py-2.5 px-3">ล็อต/แปลง</th>
-                  <th class="py-2.5 px-3">ลูกค้า</th>
-                  <th class="py-2.5 px-3 text-right">จำนวน</th>
-                  <th class="py-2.5 px-3 text-right">ราคาหน่วย</th>
-                  <th class="py-2.5 px-3 text-right">ยอดรวม</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRowsHtml}
-              </tbody>
-              <tfoot>
-                <tr class="bg-emerald-50/70 border-t-2 border-emerald-600 text-sm font-bold">
-                  <td colspan="7" class="py-3 px-3 text-right text-emerald-950 font-bold">รวมยอดขายทั้งสิ้น (${sales.length} รายการ):</td>
-                  <td class="py-3 px-3 text-right font-black text-emerald-900 text-base">${formatBaht(totalRevenue)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div class="pt-4 border-t border-gray-100 text-xs text-gray-400 flex justify-between items-center">
-            <span>พิมพ์จากระบบบริหารจัดการวิสาหกิจชุมชนสมุนไพรอบแห้ง</span>
-            <span>ผู้มีอำนาจตรวจสอบ / ผู้บันทึก: .................................................</span>
+    const contentHtml = `
+      <div class="p-6 md:p-8 space-y-4 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl shadow-sm">
+          <i class="fas fa-trash-alt"></i>
+        </div>
+        <div>
+          <h4 class="text-lg font-bold text-gray-900">ยืนยันการลบรายการสินค้า</h4>
+          <p class="text-sm text-gray-500 mt-1">
+            คุณต้องการลบสินค้า <b>"${product.name}"</b> (รหัส: <b class="text-emerald-700">${product.id}</b>) ออกจากคลังสินค้าหรือไม่?
+          </p>
+          <div class="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100 text-sm text-gray-500">
+            จำนวนสต็อกคงเหลือปัจจุบัน: <b>${product.stock} ${product.unit}</b>
           </div>
         </div>
 
-        <div class="p-4 md:px-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
-          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-xs font-bold text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl transition-colors">
-            ปิดหน้าต่าง
+        <div class="flex justify-center gap-3 pt-4 border-t border-gray-100">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
           </button>
-          <button type="button" id="print-summary-action-btn" class="px-6 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
-            <i class="fas fa-print"></i> พิมพ์รายงานสรุปนี้
+          <button type="button" id="confirm-delete-product-btn" class="px-6 py-2.5 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+            <i class="fas fa-trash-alt"></i> ยืนยันการลบ
           </button>
         </div>
       </div>
     `;
 
     openGlobalModal({
-      title: `ใบสรุปรายการขาย (${sales.length} รายการ)`,
-      icon: 'fas fa-print',
-      size: 'max-w-4xl',
-      headerColor: 'bg-[#1e4620]',
-      content: modalContent,
+      title: `ลบรายการสินค้า ${product.id}`,
+      icon: 'fas fa-trash-alt',
+      size: 'max-w-md',
+      headerColor: 'bg-rose-700',
+      content: contentHtml,
       onRender: (dialog) => {
-        const printBtn = dialog.querySelector('#print-summary-action-btn');
-        if (printBtn) {
-          printBtn.addEventListener('click', () => {
-            window.print();
+        const confirmBtn = dialog.querySelector('#confirm-delete-product-btn');
+        if (confirmBtn) {
+          confirmBtn.addEventListener('click', () => {
+            try {
+              appState.deleteProduct(productId);
+              closeGlobalModal();
+              showToast(`ลบรายการสินค้า ${product.name} เรียบร้อยแล้ว`, 'success');
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
           });
         }
       }
-    });
-  },
-
-  openSaleDetailModal(saleId) {
-    const sale = appState.getSales().find(s => s.id === saleId);
-    if (!sale) return;
-
-    const crops = appState.getCrops();
-    const plots = appState.getPlots();
-    const members = appState.getMembers();
-    const crop = crops.find(c => c.id === sale.cropId);
-    const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-    const owners = plot ? members.filter(m => plot.memberIds && plot.memberIds.includes(m.id)) : [];
-    const custInfo = sale.customerId ? appState.getCustomerById(sale.customerId) : null;
-
-    const ownersListHtml = owners.map(o => `
-      <div class="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-800">
-        <i class="fas fa-user-circle text-lg text-emerald-600"></i>
-        <div>
-          <div class="font-bold text-gray-800">${o.name} (${o.role})</div>
-          <div class="text-[10px] text-emerald-600">${o.villageNumber || '-'} | โทร: ${o.phone || '-'}</div>
-        </div>
-      </div>
-    `).join('') || '<div class="text-xs text-gray-500">-</div>';
-
-    const customerHtml = custInfo ? `
-      <span class="font-bold text-gray-800">${custInfo.name}</span>
-      <span class="text-xs text-gray-500 font-normal block mt-0.5">${custInfo.customerType} | โทร: ${custInfo.phone || '-'}</span>
-      ${custInfo.address ? `<span class="text-[11px] text-gray-400 font-normal block">${custInfo.address}</span>` : ''}
-    ` : `<span class="font-bold text-gray-800">${sale.customer || '-'}</span>`;
-
-    const detailContent = `
-      <div class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
-          <div class="flex justify-between items-start border-b border-gray-100 pb-4">
-            <div>
-              <span class="text-xs text-gray-400 font-bold block">รหัสรายการขาย:</span>
-              <span class="text-lg font-black text-emerald-800">${sale.id}</span>
-            </div>
-            <div class="text-right">
-              <span class="text-xs text-gray-400 font-bold block">วันที่จำหน่าย:</span>
-              <span class="text-sm font-bold text-gray-700">${formatThaiDate(sale.date)}</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 md:p-6 rounded-2xl border border-gray-100">
-            <div class="space-y-4">
-              <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider border-b border-gray-200 pb-1">
-                <i class="fas fa-leaf mr-1"></i> ข้อมูลผลผลิตและแหล่งที่มา
-              </h4>
-              <div>
-                <span class="text-xs text-gray-400 block">ล็อตสินค้า / แหล่งปลูก:</span>
-                <span class="text-sm font-bold text-gray-800">${sale.cropId}</span>
-                <span class="text-xs text-gray-500 block mt-0.5">${plot ? plot.name : '-'}</span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-400 block">ชนิดสมุนไพร:</span>
-                <span class="text-sm font-bold text-emerald-700">${plot ? `${plot.plantType}อบแห้ง` : '-'}</span>
-              </div>
-              <div>
-                <span class="text-xs text-gray-400 block mb-1.5">เกษตรกรเจ้าของแปลง:</span>
-                <div class="space-y-2">
-                  ${ownersListHtml}
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-4">
-              <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider border-b border-gray-200 pb-1">
-                <i class="fas fa-user-tag mr-1"></i> ข้อมูลการขายและลูกค้า
-              </h4>
-              <div>
-                <span class="text-xs text-gray-400 block">ลูกค้าผู้ซื้อ:</span>
-                <div class="text-sm mt-0.5">${customerHtml}</div>
-              </div>
-              <div>
-                <span class="text-xs text-gray-400 block">เลขอ้างอิง / ใบเสร็จ:</span>
-                <span class="text-xs font-bold text-gray-600">${sale.invoiceNo || `INV-${sale.id.split('-')[1]}`}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
-            <div class="flex justify-between items-center text-xs text-gray-600">
-              <span>จำนวนที่ขาย:</span>
-              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`}</span>
-            </div>
-            <div class="flex justify-between items-center text-xs text-gray-600">
-              <span>ราคาต่อหน่วย:</span>
-              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`}</span>
-            </div>
-            <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
-              <span class="text-sm font-bold text-gray-800">ยอดรวมทั้งสิ้น:</span>
-              <span class="text-xl font-black text-emerald-800">${formatBaht(sale.totalPrice)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4 md:px-6 bg-gray-50 border-t border-gray-100 text-right flex-shrink-0">
-          <button type="button" class="close-global-modal-btn px-6 py-2.5 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
-            ปิดหน้าต่าง
-          </button>
-        </div>
-      </div>
-    `;
-
-    openGlobalModal({
-      title: 'รายละเอียดใบเสร็จการจำหน่าย',
-      icon: 'fas fa-receipt',
-      size: 'max-w-4xl',
-      headerColor: 'bg-[#1e4620]',
-      content: detailContent
     });
   },
 
@@ -2079,7 +1296,7 @@ export const InventoryComponent = {
     const main = document.getElementById('app-view');
     if (main) {
       main.innerHTML = this.render();
-      this.init(); // rebind events
+      this.init();
     }
   }
 };

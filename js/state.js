@@ -1,16 +1,186 @@
-// State Management with LocalStorage persistence for Dried Herb Community Enterprise
-import { generateRandomCoordinates } from './helpers.js';
+import { generateRandomCoordinates, getHerbDefaultIcon, HERB_GROUPS_PRESETS, formatCropSeasonId } from './helpers.js';
 
 const STORAGE_KEYS = {
   ENTERPRISE: 'herb_enterprise_profile',
   MEMBERS: 'herb_enterprise_members',
   PLOTS: 'herb_enterprise_plots',
-  CROPS: 'herb_enterprise_crops',
+  HERBS: 'herb_enterprise_herbs_catalog', // Tier 1: Herbs Catalog
+  CROPS: 'herb_enterprise_crops', // Tier 2: Planting Cycles
+  DIVIDENDS: 'herb_enterprise_dividends', // Tier 2: Member Dividends
   INVENTORY: 'herb_enterprise_inventory',
   SALES: 'herb_enterprise_sales',
   CUSTOMERS: 'herb_enterprise_customers',
-  AUTH: 'herb_enterprise_auth'
+  AUTH: 'herb_enterprise_auth',
+  ROADMAPS: 'herb_enterprise_roadmaps',
+  DRYING_BATCHES: 'herb_enterprise_drying_batches',
+  PACKAGING_BATCHES: 'herb_enterprise_packaging_batches',
+  PRODUCTS: 'herb_enterprise_products',
+  ACTIVITY_LOGS: 'herb_enterprise_activity_logs' // Tier 3: Activity Logs
 };
+
+export const MOCK_HERBS_CATALOG = [
+  {
+    herbId: 'HRB-001',
+    name: 'เก๊กฮวย',
+    category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+    icon: '🌼',
+    standardRatio: 8.0,
+    growthDays: 90,
+    dryLossPct: 87.5,
+    baselinePriceFresh: 35,
+    baselinePriceDry: 250,
+    description: 'พืชสมุนไพรเด่น ดอกสีเหลืองทอง กลิ่นหอม บำรุงตับ ดับพิษร้อน ปลูกง่าย ผลผลิตคุ้มค่า',
+    isActive: true
+  },
+  {
+    herbId: 'HRB-002',
+    name: 'คาโมมายล์',
+    category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+    icon: '🌿',
+    standardRatio: 6.0,
+    growthDays: 90,
+    dryLossPct: 83.3,
+    baselinePriceFresh: 60,
+    baselinePriceDry: 450,
+    description: 'สมุนไพรพรีเมียม กลิ่นหอมผ่อนคลาย ช่วยการนอนหลับ และคลายความตึงเครียด',
+    isActive: true
+  },
+  {
+    herbId: 'HRB-003',
+    name: 'อัญชัน',
+    category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+    icon: '🌸',
+    standardRatio: 7.0,
+    growthDays: 75,
+    dryLossPct: 85.7,
+    baselinePriceFresh: 45,
+    baselinePriceDry: 350,
+    description: 'ดอกสีม่วงน้ำเงิน มีสารแอนโทไซยานินสูง บำรุงสายตาและเส้นผม ดอกดกตลอดปี',
+    isActive: true
+  },
+  {
+    herbId: 'HRB-004',
+    name: 'ดาวเรือง',
+    category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+    icon: '🌻',
+    standardRatio: 7.5,
+    growthDays: 70,
+    dryLossPct: 86.7,
+    baselinePriceFresh: 30,
+    baselinePriceDry: 280,
+    description: 'ดอกสีเหลืองส้ม อุดมด้วยลูทีน บำรุงจอประสาทตาและเสริมภูมิคุ้มกัน',
+    isActive: true
+  }
+];
+
+const MOCK_MEMBER_DIVIDENDS = [
+  {
+    dividendId: 'DIV-2568-P001-R1-01',
+    cycleId: '2568/P001-R1',
+    memberId: 'MEM-001',
+    memberName: 'นายสมเกียรติ พึ่งตน',
+    produceDeliveredKg: 150.0,
+    laborCost: 3500,
+    profitShare: 8200,
+    totalPayout: 11700,
+    paidDate: '2026-07-15',
+    status: 'paid'
+  },
+  {
+    dividendId: 'DIV-2568-P002-R1-01',
+    cycleId: '2568/P002-R1',
+    memberId: 'MEM-002',
+    memberName: 'นางใจดี ศรีสมุนไพร',
+    produceDeliveredKg: 100.0,
+    laborCost: 2800,
+    profitShare: 6500,
+    totalPayout: 9300,
+    paidDate: '2026-07-20',
+    status: 'paid'
+  }
+];
+
+const MOCK_ACTIVITY_LOGS = [
+  {
+    logId: 'ACT-2569-001',
+    cycleId: '2569/P001-R1',
+    activityDate: '2026-08-27',
+    activityType: 'ลงต้นกล้า',
+    description: 'รองก้นหลุมด้วยปุ๋ยหมักชีวภาพ คลุมฟางข้าวรักษาความชื้น รดน้ำแปลงชุ่ม',
+    freshHarvestedKg: 0,
+    recordedBy: 'MEM-001'
+  },
+  {
+    logId: 'ACT-2569-002',
+    cycleId: '2569/P001-R1',
+    activityDate: '2026-09-10',
+    activityType: 'ใส่ปุ๋ย/รดน้ำ',
+    description: 'ใส่น้ำหมักชีวภาพสูตรบำรุงต้นและใบ รดน้ำระบบสปริงเกลอร์ตอนเช้า',
+    freshHarvestedKg: 0,
+    recordedBy: 'MEM-001'
+  },
+  {
+    logId: 'ACT-2569-003',
+    cycleId: '2568/P001-R1',
+    activityDate: '2026-06-05',
+    activityType: 'เก็บเกี่ยว',
+    description: 'เก็บเกี่ยวดอกเก๊กฮวยสดบาน 80% ช่วงเช้าตรู่ก่อนแดดออก รวบรวมส่งเตาอบ',
+    freshHarvestedKg: 150.0,
+    recordedBy: 'MEM-001'
+  }
+];
+
+const MOCK_DRYING_BATCHES = [
+  {
+    id: 'DRY-6901',
+    herbType: 'เก๊กฮวย',
+    totalFreshAvailableKg: 150.0,
+    freshWeightKg: 150.0,
+    dryWeightKg: 15.0,
+    ratioActual: '10.00',
+    processedDate: '2026-06-07',
+    note: 'อบแห้งเตาพลังงานแสงอาทิตย์ ตู้อบ 1 (อัตราส่วนมาตรฐาน 10:1 สด 150 kg ได้แห้ง 15 kg)',
+    cropIds: ['2568/P001-R1']
+  },
+  {
+    id: 'DRY-6902',
+    herbType: 'คาโมมายล์',
+    totalFreshAvailableKg: 100.0,
+    freshWeightKg: 100.0,
+    dryWeightKg: 10.0,
+    ratioActual: '10.00',
+    processedDate: '2026-06-20',
+    note: 'อบแห้งเตาลมร้อน ตู้อบ 2 (อัตราส่วนมาตรฐาน 10:1 สด 100 kg ได้แห้ง 10 kg)',
+    cropIds: ['2568/P002-R1']
+  }
+];
+
+const MOCK_PACKAGING_BATCHES = [
+  {
+    id: 'PACK-6901',
+    herbType: 'เก๊กฮวย',
+    dryUsedKg: 5.00,
+    packageSize: '50 G',
+    jarsProduced: 100,
+    processedDate: '2026-07-01',
+    productId: 'PRD-003',
+    productName: 'เก๊กฮวยกระป๋อง (50 G)',
+    operatorName: 'นายสมเกียรติ พึ่งตน',
+    note: 'บรรจุกระป๋องมาตรฐาน 50 G (150 บาท/กป.)'
+  },
+  {
+    id: 'PACK-6902',
+    herbType: 'คาโมมายล์',
+    dryUsedKg: 2.50,
+    packageSize: '50 G',
+    jarsProduced: 50,
+    processedDate: '2026-07-01',
+    productId: 'PRD-004',
+    productName: 'คาโมมายล์กระป๋อง (50 G)',
+    operatorName: 'นางใจดี ศรีสมุนไพร',
+    note: 'บรรจุกระป๋องมาตรฐาน 50 G (100 บาท/กป.)'
+  }
+];
 
 let supabaseClient = null;
 
@@ -23,7 +193,7 @@ const MOCK_USERS = [
     role: 'Admin',
     roleDisplay: 'ประธานกลุ่ม',
     memberId: 'MEM-001',
-    avatarText: 'ส',
+    avatarText: 'น',
     color: 'emerald'
   },
   {
@@ -59,7 +229,18 @@ const DEFAULT_ENTERPRISE = {
   phone: '089-555-1234',
   email: 'sridonmun.driedherbs@gmail.com',
   chairman: 'นายสมเกียรติ พึ่งตน',
-  description: 'กลุ่มเกษตรกรผลิตและแปรรูปสมุนไพรอบแห้งปลอดสารพิษเพื่อความยั่งยืน เก๊กฮวย คาโมมายล์ และสมุนไพรพื้นบ้าน'
+  description: 'กลุ่มเกษตรกรผลิตและแปรรูปสมุนไพรอบแห้งปลอดสารพิษเพื่อความยั่งยืน เก๊กฮวย คาโมมายล์ และสมุนไพรพื้นบ้าน',
+  committee: {
+    president: { name: 'นายสมเกียรติ พึ่งตน', phone: '081-234-5600' },
+    vicePresident: { name: 'นางใจดี ศรีสมุนไพร', phone: '081-234-5602' },
+    treasurer: { name: 'นายมานะ รักเกษตร', phone: '081-234-5699' },
+    secretary: { name: 'นางสมศรี มีวิถี', phone: '081-234-5604' },
+    board: [
+      { role: 'ฝ่ายแปรรูปและเตาอบ', name: 'นายวิชัย ปัญญาดี', phone: '081-234-5605' },
+      { role: 'ฝ่ายคลังสินค้าและบรรจุภัณฑ์', name: 'นางนภา สุขสบาย', phone: '081-234-5606' },
+      { role: 'ฝ่ายการตลาดและจัดจำหน่าย', name: 'นายดำรง รักชาติ', phone: '081-234-5607' }
+    ]
+  }
 };
 
 // Mock 33 Members
@@ -69,8 +250,8 @@ const MOCK_MEMBERS = [
   { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '081-234-5699', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-01-15', houseNumber: '45/1' },
   { id: 'MEM-004', name: 'นางสมศรี มีวิถี', role: 'เลขานุการ', phone: '081-234-5604', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-01-20', houseNumber: '18' },
   { id: 'MEM-005', name: 'นายวิชัย ปัญญาดี', role: 'กรรมการ', phone: '081-234-5605', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-01', houseNumber: '99/2' },
-  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'สมาชิกทั่วไป', phone: '081-234-5606', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-05', houseNumber: '24/1' },
-  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5607', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-02-10', houseNumber: '55' },
+  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'กรรมการ', phone: '081-234-5606', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-05', houseNumber: '24/1' },
+  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'กรรมการ', phone: '081-234-5607', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-02-10', houseNumber: '55' },
   { id: 'MEM-008', name: 'นางสมปอง สุขสำราญ', role: 'สมาชิกทั่วไป', phone: '081-234-5608', status: 'active', villageNumber: 'หมู่ 4', joinDate: '2024-02-10', houseNumber: '102' },
   { id: 'MEM-009', name: 'นายบุญมี ทองคำ', role: 'สมาชิกทั่วไป', phone: '081-234-5609', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-12', houseNumber: '7/3' },
   { id: 'MEM-010', name: 'นางประกาย แสงทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5610', status: 'active', villageNumber: 'หมู่ 3', joinDate: '2024-02-15', houseNumber: '88' },
@@ -99,19 +280,29 @@ const MOCK_MEMBERS = [
   { id: 'MEM-033', name: 'นายพชรพล อิ่มเอม', role: 'สมาชิกทั่วไป', phone: '081-234-5633', status: 'active', villageNumber: 'หมู่ 2', joinDate: '2024-05-10', houseNumber: '58/2' }
 ];
 
-// Mock plots for some members to display initially
+// Mock plots for members (Total 14 plots)
 const MOCK_PLOTS = [
-  { id: 'PLOT-001', memberIds: ['MEM-001'], name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, lat: 18.9142, lng: 98.9442, status: 'active' },
-  { id: 'PLOT-002', memberIds: ['MEM-002'], name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, lat: 18.9158, lng: 98.9415, status: 'active' },
-  { id: 'PLOT-003', memberIds: ['MEM-003'], name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, lat: 18.9121, lng: 98.9495, status: 'active' },
-  { id: 'PLOT-004', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, lat: 18.9172, lng: 98.9455, status: 'active' }
+  { id: 'P - 001', memberIds: ['MEM-001'], name: 'แปลงสวนหน้าบ้าน (ประธาน)', sizeRai: 2, sizeNgan: 1, sizeSqWah: 50, lat: 18.9142, lng: 98.9442, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 002', memberIds: ['MEM-002'], name: 'แปลงริมคลองส่งน้ำ', sizeRai: 1, sizeNgan: 2, sizeSqWah: 0, lat: 18.9158, lng: 98.9415, status: 'active', plantType: 'คาโมมายล์' },
+  { id: 'P - 003', memberIds: ['MEM-003'], name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 3, sizeNgan: 0, sizeSqWah: 80, lat: 18.9121, lng: 98.9495, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 004', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 0, sizeNgan: 3, sizeSqWah: 50, lat: 18.9172, lng: 98.9455, status: 'active', plantType: 'คาโมมายล์' },
+  { id: 'P - 005', memberIds: ['MEM-005'], name: 'แปลงทุ่งรวงทอง', sizeRai: 2, sizeNgan: 0, sizeSqWah: 0, lat: 18.9135, lng: 98.9428, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 006', memberIds: ['MEM-006'], name: 'แปลงสวนดอนแก้ว', sizeRai: 1, sizeNgan: 3, sizeSqWah: 40, lat: 18.9162, lng: 98.9472, status: 'active', plantType: 'คาโมมายล์' },
+  { id: 'P - 007', memberIds: ['MEM-007'], name: 'แปลงหนองบัวงาม', sizeRai: 3, sizeNgan: 1, sizeSqWah: 20, lat: 18.9115, lng: 98.9405, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 008', memberIds: ['MEM-008'], name: 'แปลงร่มไม้ชายทุ่ง', sizeRai: 2, sizeNgan: 2, sizeSqWah: 0, lat: 18.9180, lng: 98.9430, status: 'active', plantType: 'คาโมมายล์' },
+  { id: 'P - 009', memberIds: ['MEM-009'], name: 'แปลงม่อนแสงจันทร์', sizeRai: 4, sizeNgan: 0, sizeSqWah: 50, lat: 18.9108, lng: 98.9482, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 010', memberIds: ['MEM-010'], name: 'แปลงสวนเกสรทอง', sizeRai: 1, sizeNgan: 1, sizeSqWah: 80, lat: 18.9148, lng: 98.9490, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 011', memberIds: ['MEM-011'], name: 'แปลงห้วยน้ำริน', sizeRai: 2, sizeNgan: 0, sizeSqWah: 25, lat: 18.9168, lng: 98.9398, status: 'active', plantType: 'คาโมมายล์' },
+  { id: 'P - 012', memberIds: ['MEM-012'], name: 'แปลงดอนมูลพัฒนา', sizeRai: 1, sizeNgan: 2, sizeSqWah: 60, lat: 18.9128, lng: 98.9460, status: 'active', plantType: 'เก๊กฮวย' },
+  { id: 'P - 013', memberIds: ['MEM-013'], name: 'แปลงสันป่าเปา', sizeRai: 3, sizeNgan: 0, sizeSqWah: 0, lat: 18.9192, lng: 98.9412, status: 'active', plantType: 'คาโมมายล์' },
+  { id: 'P - 014', memberIds: ['MEM-014'], name: 'แปลงสวนสมุนไพรทวีสุข', sizeRai: 2, sizeNgan: 3, sizeSqWah: 10, lat: 18.9152, lng: 98.9515, status: 'active', plantType: 'เก๊กฮวย' }
 ];
 
 // Mock crop seasons for initial plots (Format: [YearBE2digits][Running2digits], e.g. 6901)
 const MOCK_CROPS = [
   {
-    id: '6901',
-    plotId: 'PLOT-001',
+    id: '2569/P001-R1',
+    plotId: 'P - 001',
     plantDate: '2026-08-27',
     harvestDateEst: '2026-11-27',
     fertDateEst: '2026-09-10',
@@ -129,8 +320,8 @@ const MOCK_CROPS = [
     ]
   },
   {
-    id: '6902',
-    plotId: 'PLOT-002',
+    id: '2569/P002-R1',
+    plotId: 'P - 002',
     plantDate: '2026-08-28',
     harvestDateEst: '2026-11-28',
     fertDateEst: '2026-09-12',
@@ -148,8 +339,8 @@ const MOCK_CROPS = [
     ]
   },
   {
-    id: '6903',
-    plotId: 'PLOT-003',
+    id: '2569/P003-R1',
+    plotId: 'P - 003',
     plantDate: '2026-09-01',
     harvestDateEst: '2026-12-01',
     fertDateEst: '2026-09-15',
@@ -165,8 +356,8 @@ const MOCK_CROPS = [
     fertilizingLog: []
   },
   {
-    id: '6904',
-    plotId: 'PLOT-004',
+    id: '2569/P004-R1',
+    plotId: 'P - 004',
     plantDate: '2026-09-05',
     harvestDateEst: '2026-12-05',
     fertDateEst: '2026-09-20',
@@ -182,88 +373,295 @@ const MOCK_CROPS = [
     fertilizingLog: []
   },
   {
-    id: '6905',
-    plotId: 'PLOT-001',
-    plantDate: '2026-03-01',
-    harvestDateEst: '2026-06-01',
-    harvestDateActual: '2026-06-05',
+    id: '2568/P001-R1',
+    plotId: 'P - 001',
+    plantDate: '2026-01-05',
+    harvestDateEst: '2026-04-05',
+    harvestDateActual: '2026-04-08',
     seedlingCount: 800,
     seedlingSource: 'เก๊กฮวย',
-    cost: 4500,
-    yield: 160.0,
+    cost: 4200,
+    yield: 150.0,
     status: 'harvested',
     isProcessed: true,
-    cropYear: 2569,
+    dryingDate: '2026-04-10',
+    freshUsed: 150.0,
+    dryWeight: 15.0,
+    cropYear: 2568,
     cropCycle: 1,
-    note: 'รอบปลูกเก๊กฮวย เก็บเกี่ยวผลผลิตเรียบร้อยและอบแห้งแล้ว',
-    harvestNote: 'ดอกสดสมบูรณ์ คุณภาพเกรด A',
+    note: 'รอบปลูกเก๊กฮวย รอบที่ 1 เก็บเกี่ยวผลผลิตสด 150 กก. อบแห้งได้ 15 กก. (อัตราส่วนมาตรฐาน 10:1)',
+    harvestNote: 'ดอกสดสมบูรณ์ คุณภาพเกรด A อบแห้งกลิ่นหอม สีทองสดใส',
     fertilizingLog: [
-      { date: '2026-03-05', type: 'ปุ๋ยหมักชีวภาพสูตรใบ', amount: '20 กิโลกรัม', cost: 350 }
+      { date: '2026-01-10', type: 'ปุ๋ยหมักชีวภาพสูตรใบ', amount: '20 กิโลกรัม', cost: 350 }
     ]
   },
   {
-    id: '6906',
-    plotId: 'PLOT-002',
-    plantDate: '2026-03-15',
-    harvestDateEst: '2026-06-15',
-    harvestDateActual: '2026-06-18',
+    id: '2568/P001-R2',
+    plotId: 'P - 001',
+    plantDate: '2026-04-20',
+    harvestDateEst: '2026-07-20',
+    harvestDateActual: '2026-07-25',
+    seedlingCount: 850,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 4600,
+    yield: 170.0,
+    status: 'harvested',
+    isProcessed: true,
+    dryingDate: '2026-07-27',
+    freshUsed: 170.0,
+    dryWeight: 17.0,
+    cropYear: 2568,
+    cropCycle: 2,
+    note: 'รอบปลูกเก๊กฮวย รอบที่ 2 ผลผลิตดีเยี่ยม อบแห้งตามอัตราส่วน 10:1',
+    harvestNote: 'ดอกสดหนา กลิ่นหอมแรง อบแห้งได้มาตรฐาน GAP',
+    fertilizingLog: [
+      { date: '2026-04-25', type: 'ปุ๋ยอินทรีย์อัดเม็ด', amount: '25 กิโลกรัม', cost: 400 }
+    ]
+  },
+  {
+    id: '2568/P002-R1',
+    plotId: 'P - 002',
+    plantDate: '2026-01-15',
+    harvestDateEst: '2026-04-15',
+    harvestDateActual: '2026-04-18',
     seedlingCount: 500,
     seedlingSource: 'คาโมมายล์',
     cost: 3200,
-    yield: 90.0,
+    yield: 100.0,
     status: 'harvested',
     isProcessed: true,
-    cropYear: 2569,
+    dryingDate: '2026-04-20',
+    freshUsed: 100.0,
+    dryWeight: 10.0,
+    cropYear: 2568,
     cropCycle: 1,
-    note: 'รอบปลูกคาโมมายล์ เก็บเกี่ยวและอบแห้งแล้ว',
-    harvestNote: 'ดอกแห้งหอมมาก',
+    note: 'รอบปลูกคาโมมายล์ รอบที่ 1 ผลผลิตสด 100 กก. อบแห้งได้ 10 กก. (10:1)',
+    harvestNote: 'ดอกแห้งหอมมาก สะอาด ปลอดสารเคมี 100%',
     fertilizingLog: [
-      { date: '2026-03-20', type: 'ปุ๋ยคอกเตรียมดิน', amount: '30 กิโลกรัม', cost: 400 }
+      { date: '2026-01-20', type: 'ปุ๋ยคอกเตรียมดิน', amount: '30 กิโลกรัม', cost: 400 }
     ]
   },
   {
-    id: '6907',
-    plotId: 'PLOT-003',
-    plantDate: '2026-04-01',
-    harvestDateEst: '2026-07-01',
-    harvestDateActual: '2026-08-25',
+    id: '2568/P002-R2',
+    plotId: 'P - 002',
+    plantDate: '2026-05-01',
+    harvestDateEst: '2026-08-01',
+    harvestDateActual: '2026-08-04',
+    seedlingCount: 550,
+    seedlingSource: 'คาโมมายล์',
+    cost: 3400,
+    yield: 90.0,
+    status: 'harvested',
+    isProcessed: true,
+    dryingDate: '2026-08-06',
+    freshUsed: 90.0,
+    dryWeight: 9.0,
+    cropYear: 2568,
+    cropCycle: 2,
+    note: 'รอบปลูกคาโมมายล์ รอบที่ 2 บำรุงอินทรีย์สมบูรณ์ อบแห้ง (10:1)',
+    harvestNote: 'กลิ่นหอมละมุน ผ่านเกณฑ์รับรองอินทรีย์วิถีไทย',
+    fertilizingLog: [
+      { date: '2026-05-10', type: 'น้ำหมักชีวภาพปลาทะเล', amount: '20 ลิตร', cost: 320 }
+    ]
+  },
+  {
+    id: '2568/P003-R1',
+    plotId: 'P - 003',
+    plantDate: '2026-01-20',
+    harvestDateEst: '2026-04-20',
+    harvestDateActual: '2026-04-25',
     seedlingCount: 1000,
     seedlingSource: 'เก๊กฮวย',
     cost: 4800,
-    yield: 175.5,
+    yield: 180.0,
     status: 'harvested',
-    isProcessed: false,
-    cropYear: 2569,
+    isProcessed: true,
+    dryingDate: '2026-04-28',
+    freshUsed: 180.0,
+    dryWeight: 18.0,
+    cropYear: 2568,
     cropCycle: 1,
-    note: 'เก็บเกี่ยวดอกสดเก๊กฮวยเรียบร้อยแล้ว รอส่งเข้าตู้อบแห้ง',
-    harvestNote: 'ดอกสดคุณภาพดี รอคิวเตาอบที่ 1',
+    note: 'เก๊กฮวยม่อนแก้ว รอบที่ 1 สด 180 กก. ได้แห้ง 18 กก. (10:1)',
+    harvestNote: 'ดอกสวย สีเหลืองทองสว่าง คัดเกรดพิเศษ',
     fertilizingLog: []
   },
   {
-    id: '6908',
-    plotId: 'PLOT-004',
-    plantDate: '2026-04-10',
-    harvestDateEst: '2026-07-10',
-    harvestDateActual: '2026-08-26',
+    id: '2568/P003-R2',
+    plotId: 'P - 003',
+    plantDate: '2026-05-10',
+    harvestDateEst: '2026-08-10',
+    harvestDateActual: '2026-08-15',
+    seedlingCount: 1100,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 5100,
+    yield: 190.0,
+    status: 'harvested',
+    isProcessed: true,
+    dryingDate: '2026-08-18',
+    freshUsed: 190.0,
+    dryWeight: 19.0,
+    cropYear: 2568,
+    cropCycle: 2,
+    note: 'เก๊กฮวยม่อนแก้ว รอบที่ 2 เก็บเกี่ยวและอบแห้งแล้ว (10:1)',
+    harvestNote: 'ได้ผลผลิตสูง ดอกแน่น ส่งอบแห้งทันที',
+    fertilizingLog: []
+  },
+  {
+    id: '2568/P003-R3',
+    plotId: 'P - 003',
+    plantDate: '2026-08-20',
+    harvestDateEst: '2026-11-20',
+    harvestDateActual: '2026-11-25',
+    seedlingCount: 1050,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 5000,
+    yield: 180.0,
+    status: 'harvested',
+    isProcessed: true,
+    dryingDate: '2026-11-28',
+    freshUsed: 180.0,
+    dryWeight: 18.0,
+    cropYear: 2568,
+    cropCycle: 3,
+    note: 'เก๊กฮวยม่อนแก้ว รอบที่ 3 สด 180 กก. ได้แห้ง 18 กก. (10:1)',
+    harvestNote: 'คุณภาพดีเยี่ยม สีทอง กลิ่นหอมฟุ้ง',
+    fertilizingLog: []
+  },
+  {
+    id: '2568/P004-R1',
+    plotId: 'P - 004',
+    plantDate: '2026-02-01',
+    harvestDateEst: '2026-05-01',
+    harvestDateActual: '2026-05-05',
     seedlingCount: 600,
     seedlingSource: 'คาโมมายล์',
     cost: 3500,
     yield: 85.0,
     status: 'harvested',
     isProcessed: false,
-    cropYear: 2569,
+    cropYear: 2568,
     cropCycle: 1,
-    note: 'เก็บเกี่ยวดอกสดคาโมมายล์เรียบร้อยแล้ว รอส่งเข้าตู้อบแห้ง',
+    note: 'เก็บเกี่ยวดอกสดคาโมมายล์รอบ 1 เรียบร้อยแล้ว รอส่งเข้าตู้อบแห้ง',
     harvestNote: 'ดอกสดสมบูรณ์ รอคิวเตาอบที่ 2',
+    fertilizingLog: []
+  },
+  {
+    id: '2568/P005-R1',
+    plotId: 'P - 005',
+    plantDate: '2026-02-10',
+    harvestDateEst: '2026-05-10',
+    harvestDateActual: '2026-05-15',
+    seedlingCount: 750,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 4100,
+    yield: 140.0,
+    status: 'harvested',
+    isProcessed: true,
+    dryingDate: '2026-05-18',
+    freshUsed: 140.0,
+    dryWeight: 14.0,
+    cropYear: 2568,
+    cropCycle: 1,
+    note: 'แปลงทุ่งรวงทอง รอบที่ 1 สด 140 กก. ได้แห้ง 14 กก. (10:1)',
+    harvestNote: 'ดอกสดสวยงาม ไร้สารเคมี',
+    fertilizingLog: []
+  },
+  {
+    id: '2568/P005-R2',
+    plotId: 'P - 005',
+    plantDate: '2026-06-01',
+    harvestDateEst: '2026-09-01',
+    harvestDateActual: '2026-09-05',
+    seedlingCount: 800,
+    seedlingSource: 'เก๊กฮวย',
+    cost: 4300,
+    yield: 150.0,
+    status: 'harvested',
+    isProcessed: true,
+    dryingDate: '2026-09-08',
+    freshUsed: 150.0,
+    dryWeight: 15.0,
+    cropYear: 2568,
+    cropCycle: 2,
+    note: 'แปลงทุ่งรวงทอง รอบที่ 2 สด 150 กก. ได้แห้ง 15 กก. (10:1)',
+    harvestNote: 'ดอกสมบูรณ์ดีมาก เก็บเกี่ยวได้ตามเป้าหมาย',
     fertilizingLog: []
   }
 ];
 
 // Mock inventory split by cropId (Phase 2 core feature)
 const MOCK_INVENTORY = [
-  { cropId: '6905', herbType: 'เก๊กฮวย', dryStockKg: 15.0, processedDate: '2026-06-07' },
-  { cropId: '6906', herbType: 'คาโมมายล์', dryStockKg: 10.0, processedDate: '2026-06-20' }
+  { cropId: '2568/P001-R1', herbType: 'เก๊กฮวย', dryStockKg: 15.0, processedDate: '2026-06-07' },
+  { cropId: '2568/P002-R1', herbType: 'คาโมมายล์', dryStockKg: 10.0, processedDate: '2026-06-20' }
 ];
+
+// Mock Products Catalog for Inventory Management (PRD-XXX)
+const MOCK_PRODUCTS = [
+  {
+    id: 'PRD-001',
+    name: 'ดอกเก๊กฮวยอบแห้ง (1 กก.)',
+    price: 250,
+    unit: 'กก.',
+    stock: 25.0,
+    category: 'เก๊กฮวย',
+    updatedDate: '2026-06-07'
+  },
+  {
+    id: 'PRD-002',
+    name: 'ดอกคาโมมายล์อบแห้ง (1 กก.)',
+    price: 450,
+    unit: 'กก.',
+    stock: 15.0,
+    category: 'คาโมมายล์',
+    updatedDate: '2026-06-20'
+  },
+  {
+    id: 'PRD-003',
+    name: 'เก๊กฮวยกระป๋อง (50 G)',
+    price: 150,
+    unit: 'กระป๋อง',
+    stock: 100,
+    category: 'เก๊กฮวย',
+    updatedDate: '2026-07-01'
+  },
+  {
+    id: 'PRD-004',
+    name: 'คาโมมายล์กระป๋อง (50 G)',
+    price: 100,
+    unit: 'กระป๋อง',
+    stock: 50,
+    category: 'คาโมมายล์',
+    updatedDate: '2026-07-01'
+  },
+  {
+    id: 'PRD-005',
+    name: 'ชาเก๊กฮวยแบบกระป๋อง',
+    price: 95,
+    unit: 'กระป๋อง',
+    stock: 80,
+    category: 'เก๊กฮวย',
+    updatedDate: '2026-07-05'
+  },
+  {
+    id: 'PRD-006',
+    name: 'เก๊กฮวยกระป๋อง (100 กรัม)',
+    price: 280,
+    unit: 'กระป๋อง',
+    stock: 0,
+    category: 'เก๊กฮวย',
+    updatedDate: '2026-07-05'
+  },
+  {
+    id: 'PRD-007',
+    name: 'คาโมมายล์กระป๋อง (100 กรัม)',
+    price: 180,
+    unit: 'กระป๋อง',
+    stock: 0,
+    category: 'คาโมมายล์',
+    updatedDate: '2026-07-05'
+  }
+];
+
 
 // Mock Customers
 const MOCK_CUSTOMERS = [
@@ -272,6 +670,8 @@ const MOCK_CUSTOMERS = [
     name: 'ร้านชาสมุนไพรม่อนแจ่ม',
     customerType: 'ร้านคาเฟ่/ร้านขายของฝาก',
     phone: '081-998-1122',
+    lineId: '@monchamtea',
+    facebook: 'ม่อนแจ่ม ชาสมุนไพรแท้',
     address: '99 ม.7 ต.แม่แรม อ.แม่ริม จ.เชียงใหม่ 50180',
     contactChannel: 'Line: @monchamtea'
   },
@@ -280,6 +680,8 @@ const MOCK_CUSTOMERS = [
     name: 'กลุ่มท่องเที่ยวแม่ริม',
     customerType: 'ตัวแทนจำหน่าย',
     phone: '089-776-5544',
+    lineId: 'maerim_tour',
+    facebook: 'กลุ่มท่องเที่ยวแม่ริม Maerim Travel',
     address: '15/2 ถ.โชตนา ต.ริมใต้ อ.แม่ริม จ.เชียงใหม่ 50180',
     contactChannel: 'FB: MaerimTravelGroup'
   },
@@ -288,16 +690,81 @@ const MOCK_CUSTOMERS = [
     name: 'คุณสมหญิง อารีย์พร',
     customerType: 'ลูกค้าทั่วไป',
     phone: '084-332-1100',
+    lineId: 'somying.a',
+    facebook: 'Somying Areephon',
     address: '108 ม.2 ต.ศรีดอนมูล อ.เชียงแสน จ.เชียงราย 57150',
     contactChannel: 'โทรศัพท์'
+  },
+  {
+    id: 'CUST-004',
+    name: 'โรงงานเวชสำอางสมุนไพรล้านนา',
+    customerType: 'ซื้อส่งโรงงาน',
+    phone: '053-219-880',
+    lineId: '@lannaherb_factory',
+    facebook: 'โรงงานสมุนไพรล้านนาแล็บ',
+    address: '45/1 นิคมอุตสาหกรรมภาคเหนือ ต.บ้านกลาง อ.เมือง จ.ลำพูน 51000',
+    contactChannel: 'Line: @lannaherb_factory'
+  },
+  {
+    id: 'CUST-005',
+    name: 'ร้านคาเฟ่บ้านชาดอนมูล',
+    customerType: 'ร้านคาเฟ่/ร้านขายของฝาก',
+    phone: '082-555-8901',
+    lineId: '@donmun_tea',
+    facebook: 'บ้านชาดอนมูล Organic Cafe',
+    address: '22 ม.3 ต.ศรีดอนมูล อ.เชียงแสน จ.เชียงราย 57150',
+    contactChannel: 'Line: @donmun_tea'
+  },
+  {
+    id: 'CUST-006',
+    name: 'คุณนภาพร วงศ์สว่าง',
+    customerType: 'ลูกค้าทั่วไป',
+    phone: '086-444-2211',
+    lineId: 'naphaporn.w',
+    facebook: 'Naphaporn Wongsawang',
+    address: '55/9 ถ.พหลโยธิน แขวงลาดยาว เขตจตุจักร กรุงเทพฯ 10900',
+    contactChannel: 'FB: Naphaporn Wongsawang'
   }
 ];
 
 // Mock sales transactions linked to specific cropIds
 const MOCK_SALES = [
-  { id: 'SALE-001', cropId: '6905', amountKg: 5.0, pricePerKg: 500, totalPrice: 2500, customerId: 'CUST-001', customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-06-15' },
-  { id: 'SALE-002', cropId: '6906', amountKg: 5.0, pricePerKg: 650, totalPrice: 3250, customerId: 'CUST-002', customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-06-25' }
+  { id: 'SALE-001', cropId: '2568/P001-R1', amountKg: 5.0, pricePerKg: 250, totalPrice: 1250, customerId: 'CUST-001', customer: 'ร้านชาสมุนไพรม่อนแจ่ม', date: '2026-06-15' },
+  { id: 'SALE-002', cropId: '2568/P002-R1', amountKg: 5.0, pricePerKg: 450, totalPrice: 2250, customerId: 'CUST-002', customer: 'กลุ่มท่องเที่ยวแม่ริม', date: '2026-06-25' }
 ];
+
+// Default Standard Planting Roadmaps (แผนการปลูกสมุนไพรมาตรฐาน 3 กลุ่ม)
+export const DEFAULT_ROADMAPS = {
+  // 1. สมุนไพรกลุ่มชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ
+  'เก๊กฮวย': {
+    name: 'เก๊กฮวย',
+    icon: '🌼',
+    category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+    description: 'พืชสมุนไพรเด่น ดอกสีเหลืองทอง กลิ่นหอม บำรุงตับ ดับพิษร้อน ปลูกง่าย ผลผลิตคุ้มค่า',
+    durationDays: 90,
+    cycleText: 'ระยะเวลาเพาะปลูกรวมประมาณ 90 วัน',
+    steps: [
+      { stepNo: 1, title: 'ลงต้นกล้า', dayNumber: 1, dayLabel: 'วันที่ 1', advice: 'รองก้นหลุม/เริ่มปลูก', detail: 'รองก้นหลุมด้วยปุ๋ยหมักชีวภาพหรือปุ๋ยคอกหมัก รดน้ำแปลงให้ชุ่มชื้น คลุมโคนต้นด้วยฟางข้าวเพื่อรักษาความชื้น', color: 'emerald', icon: 'fa-seedling' },
+      { stepNo: 2, title: 'ใส่ปุ๋ยบำรุงครั้งที่ 1', dayNumber: 30, dayLabel: 'วันที่ 30', advice: 'เร่งต้น/ใบ', detail: 'ใส่ปุ๋ยหมักชีวภาพสูตรบำรุงต้นและใบ พรวนดินรอบโคนต้นอย่างระมัดระวัง กำจัดวัชพืช พร้อมให้น้ำอย่างสม่ำเสมอสัปดาห์ละ 2-3 ครั้ง', color: 'teal', icon: 'fa-leaf' },
+      { stepNo: 3, title: 'ใส่ปุ๋ยบำรุงครั้งที่ 2', dayNumber: 60, dayLabel: 'วันที่ 60', advice: 'เร่งตาดอก', detail: 'ใส่ปุ๋ยอินทรีย์เสริมธาตุฟอสฟอรัสและโพแทสเซียม (มูลค้างคาวหรือปุ๋ยหมักพิเศษ) เพื่อเร่งตาดอกให้ดก ดอกสมบูรณ์ สีเหลืองเข้มสด', color: 'amber', icon: 'fa-sun' },
+      { stepNo: 4, title: 'เก็บเกี่ยวผลผลิต', dayNumber: 90, dayLabel: 'วันที่ 90', advice: 'เก็บเกี่ยวส่งโรงอบ', detail: 'เก็บเกี่ยวดอกเก๊กฮวยที่บานประมาณ 70-80% ในช่วงเช้าตรู่ (06:00-09:00 น.) ก่อนแดดจัด คัดแยกสิ่งเจือปน และนำส่งเข้าเตาอบแห้งภายในวันเดียวกัน', color: 'rose', icon: 'fa-basket-shopping' }
+    ]
+  },
+  'คาโมมายล์': {
+    name: 'คาโมมายล์',
+    icon: '🌼',
+    category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+    description: 'สมุนไพรเพื่อการผ่อนคลาย ดอกสีขาวเกสรเหลือง ช่วยให้นอนหลับสบาย ต้านการอักเสบ',
+    durationDays: 85,
+    cycleText: 'ระยะเวลาเพาะปลูกรวมประมาณ 80 - 85 วัน',
+    steps: [
+      { stepNo: 1, title: 'ลงแปลงปลูก/ย้ายกล้า', dayNumber: 1, dayLabel: 'วันที่ 1', advice: 'รองก้นหลุม/เริ่มปลูก', detail: 'ยกร่องแปลงปลูก ดินร่วนซุยระบายน้ำดี รองก้นหลุมด้วยปุ๋ยหมักอินทรีย์ ปลูกระยะห่าง 25-30 ซม. รดน้ำละอองฝอย', color: 'emerald', icon: 'fa-seedling' },
+      { stepNo: 2, title: 'ใส่ปุ๋ยบำรุงครั้งที่ 1', dayNumber: 25, dayLabel: 'วันที่ 25', advice: 'เร่งต้น/ราก', detail: 'ใส่ปุ๋ยหมักชีวภาพหรือน้ำหมักจุลินทรีย์เจือจาง เพื่อพัฒนาระบบรากและแตกกิ่งก้าน พรวนดินตื้นๆ ไม่ให้กระทบรากฝอย', color: 'teal', icon: 'fa-water' },
+      { stepNo: 3, title: 'ใส่ปุ๋ยบำรุงครั้งที่ 2', dayNumber: 50, dayLabel: 'วันที่ 50', advice: 'เร่งตาดอก', detail: 'บำรุงด้วยปุ๋ยอินทรีย์สูตรเร่งดอกและเสริมความแข็งแรงของก้านดอก ตรวจสอบความชื้นแปลงไม่ให้แฉะเกินไป', color: 'amber', icon: 'fa-spa' },
+      { stepNo: 4, title: 'เก็บเกี่ยวผลผลิต', dayNumber: 80, dayLabel: 'วันที่ 80', advice: 'เก็บเกี่ยวส่งโรงอบ', detail: 'เด็ดเก็บเฉพาะดอกที่กลีบสีขาวบานราบเต็มที่ ช่วงสายหลังน้ำค้างแห้ง ส่งเข้าตู้อบแห้งลมร้อนอุณหภูมิ 45-50°C เพื่อรักษากลิ่นหอมระเหย', color: 'rose', icon: 'fa-basket-shopping' }
+    ]
+  }
+};
 
 export class AppState {
   constructor() {
@@ -574,8 +1041,56 @@ export class AppState {
     return MOCK_USERS;
   }
 
+  /**
+   * Reset all simulation data to fresh pristine state
+   */
+  resetAllSimulationData() {
+    localStorage.setItem(STORAGE_KEYS.ENTERPRISE, JSON.stringify(DEFAULT_ENTERPRISE));
+    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(MOCK_MEMBERS));
+    localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
+    localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(MOCK_CUSTOMERS));
+    localStorage.setItem(STORAGE_KEYS.ROADMAPS, JSON.stringify(DEFAULT_ROADMAPS));
+    localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(MOCK_DRYING_BATCHES));
+    localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(MOCK_PACKAGING_BATCHES));
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(MOCK_PRODUCTS));
+
+    // Ensure session is set
+    if (!this.getCurrentUser()) {
+      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(MOCK_USERS[0]));
+    }
+
+    // Refresh memory caches
+    this.plotsCache = JSON.parse(JSON.stringify(MOCK_PLOTS));
+    this.membersCache = JSON.parse(JSON.stringify(MOCK_MEMBERS));
+    this.cropsCache = JSON.parse(JSON.stringify(MOCK_CROPS));
+    this.inventoryCache = JSON.parse(JSON.stringify(MOCK_INVENTORY));
+    this.salesCache = JSON.parse(JSON.stringify(MOCK_SALES));
+    this.customersCache = JSON.parse(JSON.stringify(MOCK_CUSTOMERS));
+
+    if (this.onEnterpriseChange) {
+      this.onEnterpriseChange(DEFAULT_ENTERPRISE);
+    }
+    if (this.onAuthChange) {
+      this.onAuthChange(this.getCurrentUser());
+    }
+  }
+
   init() {
     this.initSupabase();
+
+    const SIMULATION_RESET_KEY = 'herb_enterprise_sim_ver_v9';
+    if (localStorage.getItem('herb_enterprise_sim_ver') !== SIMULATION_RESET_KEY) {
+      this.resetAllSimulationData();
+      localStorage.setItem('herb_enterprise_sim_ver', SIMULATION_RESET_KEY);
+      localStorage.setItem('herb_enterprise_products_price_v6', 'done');
+      if (supabaseClient) {
+        this.syncFromSupabase().catch(e => console.error("Initial Supabase sync failed:", e));
+      }
+      return;
+    }
     
     // 1. Enterprise Setup
     const storedEnt = localStorage.getItem(STORAGE_KEYS.ENTERPRISE);
@@ -619,12 +1134,108 @@ export class AppState {
     }
 
     // 3. Plots
-    if (!localStorage.getItem(STORAGE_KEYS.PLOTS) || JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)).length === 0) {
+    const storedPlots = localStorage.getItem(STORAGE_KEYS.PLOTS);
+    if (!storedPlots || JSON.parse(storedPlots).length === 0) {
       localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
+    } else {
+      try {
+        const currentPlots = JSON.parse(storedPlots);
+        let hasNew = false;
+        MOCK_PLOTS.forEach(mockP => {
+          const found = currentPlots.find(p => p.id === mockP.id);
+          if (!found) {
+            currentPlots.push(mockP);
+            hasNew = true;
+          } else if (!found.plantType && mockP.plantType) {
+            found.plantType = mockP.plantType;
+            hasNew = true;
+          }
+        });
+        if (hasNew) {
+          currentPlots.sort((a, b) => {
+            const numA = parseInt((a.id || '').replace(/\D/g, '')) || 0;
+            const numB = parseInt((b.id || '').replace(/\D/g, '')) || 0;
+            return numA - numB;
+          });
+          localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(currentPlots));
+        }
+      } catch (err) {
+        console.error("Plots sync error:", err);
+      }
     }
 
-    // 4. Crop Seasons
-    localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
+    // 4. Crop Seasons (1 รอบมีได้ 1 แปลงเท่านั้น ไม่เขียนทับข้อมูลที่บันทึกแล้ว)
+    const storedCrops = localStorage.getItem(STORAGE_KEYS.CROPS);
+    if (!storedCrops || JSON.parse(storedCrops).length === 0) {
+      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
+    } else {
+      // Automatic cleanup & migration to standard format: [ปี พ.ศ.]/[รหัสแปลง]-R[รอบที่]
+      try {
+        let cropsList = JSON.parse(storedCrops);
+        
+        // Auto-migrate any existing crops to new format
+        cropsList = cropsList.map(c => {
+          const standardId = formatCropSeasonId(c.id, c.cropYear, c.cropCycle);
+          return {
+            ...c,
+            id: standardId || c.id
+          };
+        });
+
+        // Ensure MOCK_CROPS are included if missing
+        MOCK_CROPS.forEach(mockC => {
+          if (!cropsList.some(c => c.id === mockC.id)) {
+            cropsList.push(mockC);
+          }
+        });
+
+        const seen = new Set();
+        const deduplicated = [];
+        for (let i = cropsList.length - 1; i >= 0; i--) {
+          const c = cropsList[i];
+          // Delete old invalid IDs by skipping them
+          if (!String(c.id).includes('/')) {
+            continue;
+          }
+          const key = `${c.plotId}_${c.cropYear}_${c.cropCycle || 1}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduplicated.unshift(c);
+          }
+        }
+        localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(deduplicated));
+        
+        // Also migrate and clean up Drying Batches, Inventory and Sales referencing crop IDs
+        const storedDrying = localStorage.getItem(STORAGE_KEYS.DRYING_BATCHES);
+        if (storedDrying) {
+          const dryingList = JSON.parse(storedDrying).map(d => ({
+            ...d,
+            cropIds: (d.cropIds || []).map(id => formatCropSeasonId(id))
+          }));
+          localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(dryingList));
+        }
+
+        const storedInv = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+        if (storedInv) {
+          const validInv = JSON.parse(storedInv).map(i => ({
+            ...i,
+            cropId: formatCropSeasonId(i.cropId)
+          })).filter(i => String(i.cropId).includes('/'));
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(validInv));
+        }
+
+        const storedSales = localStorage.getItem(STORAGE_KEYS.SALES);
+        if (storedSales) {
+          const validSales = JSON.parse(storedSales).map(s => ({
+            ...s,
+            cropId: formatCropSeasonId(s.cropId)
+          })).filter(s => String(s.cropId).includes('/'));
+          localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(validSales));
+        }
+      } catch (err) {
+        console.error("Crops deduplication & migration error:", err);
+      }
+    }
 
     // 5. Inventory (Phase 2)
     localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
@@ -634,9 +1245,56 @@ export class AppState {
       localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(MOCK_SALES));
     }
 
-    // 7. Customers
-    if (!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) {
+    // 7. Customers (Auto-migrate lineId & facebook fields)
+    const storedCust = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
+    if (!storedCust) {
       localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(MOCK_CUSTOMERS));
+    } else {
+      try {
+        let custList = JSON.parse(storedCust);
+        let updated = false;
+        custList.forEach(c => {
+          const mockMatch = MOCK_CUSTOMERS.find(m => m.id === c.id);
+          if (mockMatch) {
+            if (!c.lineId && mockMatch.lineId) { c.lineId = mockMatch.lineId; updated = true; }
+            if (!c.facebook && mockMatch.facebook) { c.facebook = mockMatch.facebook; updated = true; }
+          }
+          if (!c.lineId && c.contactChannel && c.contactChannel.toLowerCase().includes('line')) {
+            c.lineId = c.contactChannel.replace(/line\s*:\s*/i, '').trim();
+            updated = true;
+          }
+          if (!c.facebook && c.contactChannel && (c.contactChannel.toLowerCase().includes('fb') || c.contactChannel.toLowerCase().includes('facebook'))) {
+            c.facebook = c.contactChannel.replace(/fb\s*:\s*|facebook\s*:\s*/i, '').trim();
+            updated = true;
+          }
+        });
+        MOCK_CUSTOMERS.forEach(m => {
+          if (!custList.some(c => c.id === m.id)) {
+            custList.push(m);
+            updated = true;
+          }
+        });
+        if (updated) {
+          localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(custList));
+        }
+      } catch (e) {
+        console.error("Customers migration error:", e);
+      }
+    }
+
+    // 8. Planting Roadmaps
+    if (!localStorage.getItem(STORAGE_KEYS.ROADMAPS)) {
+      localStorage.setItem(STORAGE_KEYS.ROADMAPS, JSON.stringify(DEFAULT_ROADMAPS));
+    }
+
+    // 9. Products Catalog (Finished Goods & Inventory PRD-XXX)
+    if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(MOCK_PRODUCTS));
+    }
+
+    // 10. Packaging Batches (Canning & Packaging process logs)
+    if (!localStorage.getItem(STORAGE_KEYS.PACKAGING_BATCHES)) {
+      localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(MOCK_PACKAGING_BATCHES));
     }
 
     // Trigger asynchronous Supabase synchronization if connected
@@ -649,7 +1307,16 @@ export class AppState {
 
   // --- Enterprise Profile Methods ---
   getEnterprise() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.ENTERPRISE));
+    try {
+      const ent = JSON.parse(localStorage.getItem(STORAGE_KEYS.ENTERPRISE));
+      if (!ent) return DEFAULT_ENTERPRISE;
+      if (!ent.committee) {
+        ent.committee = JSON.parse(JSON.stringify(DEFAULT_ENTERPRISE.committee));
+      }
+      return ent;
+    } catch (e) {
+      return DEFAULT_ENTERPRISE;
+    }
   }
 
   saveEnterprise(data) {
@@ -785,7 +1452,7 @@ export class AppState {
       const num = parseInt(p.id.split('-')[1]);
       return num > max ? num : max;
     }, 0);
-    const newId = `PLOT-${String(maxIdNum + 1).padStart(3, '0')}`;
+    const newId = `P - ${String(maxIdNum + 1).padStart(3, '0')}`;
     
     let finalLat = parseFloat(plot.lat);
     let finalLng = parseFloat(plot.lng);
@@ -920,23 +1587,21 @@ export class AppState {
     // Determine cropYear (Thai Buddhist Era, e.g. 2569)
     const plantDateObj = crop.plantDate ? new Date(crop.plantDate) : new Date();
     const cropYear = parseInt(crop.cropYear) || (plantDateObj.getFullYear() + 543);
+    const cropCycle = parseInt(crop.cropCycle) || 1;
     const yearSuffix = String(cropYear).slice(-2); // e.g. '69' from 2569
 
-    // Find highest running number for this crop year
-    // Handles format '6901' (where prefix is '69' and suffix is 2-digit index) or legacy format 'CROP-XXX'
-    let maxRunning = 0;
-    crops.forEach(c => {
-      if (!c || !c.id) return;
-      const strId = String(c.id);
-      if (strId.startsWith(yearSuffix) && strId.length >= 4) {
-        const num = parseInt(strId.slice(yearSuffix.length));
-        if (!isNaN(num) && num > maxRunning) {
-          maxRunning = num;
-        }
-      }
-    });
+    // STRICT VALIDATION: In 1 round (cropYear + cropCycle), 1 plot can only have 1 crop record!
+    const existing = crops.find(c => 
+      c.plotId === crop.plotId && 
+      Number(c.cropYear) === Number(cropYear) && 
+      Number(c.cropCycle || 1) === Number(cropCycle)
+    );
+    if (existing) {
+      throw new Error(`แปลง ${crop.plotId} มีรอบเพาะปลูกในรอบนี้แล้ว (1 รอบบันทึกได้ 1 แปลงเท่านั้น ระบบล็อกห้ามทำซ้ำ)`);
+    }
 
-    const newId = `${yearSuffix}${String(maxRunning + 1).padStart(2, '0')}`;
+    // Format ID as standard: [ปี พ.ศ. 4 หลัก]/[P ตามด้วยเลขแปลง 3 หลัก]-R[เลขรอบ 1 หรือ 2] (strictly no spaces) e.g. 2569/P001-R1
+    const newId = formatCropSeasonId(crop.plotId, cropYear, cropCycle);
     
     let estHarvest = crop.harvestDateEst;
     if (!estHarvest && crop.plantDate) {
@@ -953,6 +1618,7 @@ export class AppState {
       status: crop.status || 'growing',
       harvestDateEst: estHarvest,
       cropYear: cropYear,
+      cropCycle: cropCycle,
       fertilizingLog: crop.fertilizingLog || [],
       isProcessed: false
     };
@@ -992,8 +1658,8 @@ export class AppState {
       const updatedCrop = { 
         ...crops[index], 
         ...updatedData,
-        cost: parseFloat(updatedData.cost) || 0,
-        yield: updatedData.yield ? parseFloat(updatedData.yield) : crops[index].yield
+        cost: updatedData.cost !== undefined ? (parseFloat(updatedData.cost) || 0) : crops[index].cost,
+        yield: updatedData.yield !== undefined ? parseFloat(updatedData.yield) : crops[index].yield
       };
 
       if (supabaseClient) {
@@ -1102,10 +1768,32 @@ export class AppState {
 
   // --- Sales Methods (Phase 2) ---
   getSales() {
+    let sales = [];
     if (supabaseClient) {
-      return this.salesCache;
+      sales = this.salesCache || [];
+    } else {
+      sales = JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || [];
     }
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || [];
+
+    try {
+      const directSales = JSON.parse(localStorage.getItem('herb_enterprise_direct_sales_v1')) || [];
+      if (Array.isArray(directSales) && directSales.length > 0) {
+        const salesMap = new Map();
+        directSales.forEach(s => {
+          if (s && s.id) salesMap.set(s.id, s);
+        });
+        sales.forEach(s => {
+          if (s && s.id && !salesMap.has(s.id)) {
+            salesMap.set(s.id, s);
+          }
+        });
+        return Array.from(salesMap.values());
+      }
+    } catch (e) {
+      console.error("Direct sales load error in getSales:", e);
+    }
+
+    return sales;
   }
 
   getSalesByCropId(cropId) {
@@ -1116,7 +1804,7 @@ export class AppState {
    * Process fresh harvested flowers into dry herb stock
    * Allows optional custom dryWeightKg input, or defaults to calculated ratio (Chrysanthemum 8:1, Chamomile 6:1)
    */
-  processDryHerbStock(cropId, freshYieldKg, customDryWeightKg = null) {
+  processDryHerbStock(cropId, freshYieldKg, customDryWeightKg = null, dryingDate = null) {
     const crop = this.getCropById(cropId);
     if (!crop) throw new Error('ไม่พบรหัสรอบการปลูกนี้ในระบบ');
     if (crop.isProcessed) throw new Error('ล็อตเพาะปลูกนี้ผ่านกระบวนการแปรรูปอบแห้งแล้ว');
@@ -1128,13 +1816,17 @@ export class AppState {
     if (yieldAmount <= 0) throw new Error('น้ำหนักผลผลิตสดต้องมากกว่า 0 กิโลกรัมเพื่อเข้าอบแห้ง');
 
     // Calculate dried yield or use custom dry weight
+    // อัตราส่วนมาตรฐาน 10:1 (สด 10 กก. ได้แห้ง 1 กก. เช่น สด 150 kg -> แห้ง 15 kg)
     let finalDryWeight = 0;
     if (customDryWeightKg !== null && !isNaN(parseFloat(customDryWeightKg)) && parseFloat(customDryWeightKg) > 0) {
       finalDryWeight = parseFloat(parseFloat(customDryWeightKg).toFixed(2));
     } else {
-      const ratio = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย') ? 8 : 6;
+      let ratio = 10;
       finalDryWeight = parseFloat((yieldAmount / ratio).toFixed(2));
     }
+
+    const actualDryingDate = dryingDate || new Date().toISOString().split('T')[0];
+    const batchId = 'DRY-' + Date.now().toString().slice(-4);
 
     // 1. Add to Inventory
     const inventory = this.getInventory();
@@ -1142,6 +1834,7 @@ export class AppState {
     let invItem;
     if (existingIndex !== -1) {
       inventory[existingIndex].dryStockKg = parseFloat((inventory[existingIndex].dryStockKg + finalDryWeight).toFixed(2));
+      inventory[existingIndex].processedDate = actualDryingDate;
       invItem = inventory[existingIndex];
       if (supabaseClient) {
         supabaseClient.from('inventory').update({ dry_stock_kg: invItem.dryStockKg }).eq('crop_id', cropId).then(({ error }) => {
@@ -1153,7 +1846,7 @@ export class AppState {
         cropId: cropId,
         herbType: herbType,
         dryStockKg: finalDryWeight,
-        processedDate: new Date().toISOString().split('T')[0]
+        processedDate: actualDryingDate
       };
       inventory.push(invItem);
       if (supabaseClient) {
@@ -1171,15 +1864,335 @@ export class AppState {
       localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
     }
 
-    // 2. Mark Crop as processed and save yield if changed
+    // 2. Mark Crop as processed and save yield, drying date, and dry weight
     this.updateCrop(cropId, { 
       status: 'harvested',
       yield: yieldAmount,
-      harvestDateActual: crop.harvestDateActual || new Date().toISOString().split('T')[0],
-      isProcessed: true 
+      harvestDateActual: crop.harvestDateActual || actualDryingDate,
+      isProcessed: true,
+      dryingDate: actualDryingDate,
+      freshUsed: yieldAmount,
+      dryWeight: finalDryWeight
+    });
+
+    // 3. Add to batch history
+    this.addDryingBatch({
+      id: batchId,
+      herbType: herbType,
+      totalFreshAvailableKg: yieldAmount,
+      freshWeightKg: yieldAmount,
+      dryWeightKg: finalDryWeight,
+      ratioActual: (yieldAmount / (finalDryWeight || 1)).toFixed(2),
+      processedDate: actualDryingDate,
+      note: `อบแห้งแปลง ${plot ? plot.name : cropId}`,
+      cropIds: [cropId]
     });
 
     return finalDryWeight;
+  }
+
+  /**
+   * Get all enterprise drying batch logs
+   */
+  getDryingBatches() {
+    const data = localStorage.getItem(STORAGE_KEYS.DRYING_BATCHES);
+    let list = [];
+    if (!data) {
+      list = [...MOCK_DRYING_BATCHES];
+      localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(list));
+    } else {
+      try {
+        list = JSON.parse(data);
+      } catch (e) {
+        list = [...MOCK_DRYING_BATCHES];
+      }
+    }
+    let hasUpdated = false;
+    list.forEach(b => {
+      const fresh = parseFloat(b.freshWeightKg) || 0;
+      const dry = parseFloat(b.dryWeightKg) || 0;
+      if (fresh > 0 && dry > 0) {
+        const calculatedRatio = (fresh / dry).toFixed(2);
+        if (b.ratioActual !== calculatedRatio) {
+          b.ratioActual = calculatedRatio;
+          hasUpdated = true;
+        }
+      }
+    });
+    if (hasUpdated) {
+      localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(list));
+    }
+    return list.sort((a, b) => new Date(b.processedDate) - new Date(a.processedDate));
+  }
+
+  /**
+   * Add a drying batch log
+   */
+  addDryingBatch(batch) {
+    const batches = this.getDryingBatches();
+    batches.unshift(batch);
+    localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(batches));
+
+    // Tier 3 Trigger: Auto-restock dry flower into Inventory_Stock / Products
+    try {
+      if (!batch.syncedToStock) {
+        const dryKg = parseFloat(batch.dryWeightKg) || 0;
+        if (dryKg > 0 && batch.herbType) {
+          const products = this.getProducts();
+          const matchPrd = products.find(p => p.unit === 'กก.' && p.name.includes(batch.herbType));
+          if (matchPrd) {
+            this.updateProduct(matchPrd.id, { stock: parseFloat(((parseFloat(matchPrd.stock) || 0) + dryKg).toFixed(2)) });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Auto-restock dry flower trigger error in addDryingBatch:", e);
+    }
+
+    return batch;
+  }
+
+  /**
+   * Process pooled fresh flowers of a specific herb type into dry herb stock
+   * Gathers fresh harvest from all plots of this herb without plot/member division
+   */
+  processPooledHerbDrying(herbType, freshWeightKg, customDryWeightKg = null, batchNote = '', processedDate = null) {
+    const allCrops = this.getCrops();
+    const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
+    const targetHerb = isChrys ? 'เก๊กฮวย' : (herbType.includes('คาโมมายล์') ? 'คาโมมายล์' : herbType);
+    
+    // Find all harvested unprocessed crops of this herb type
+    const pendingCrops = allCrops.filter(c => {
+      if (c.status !== 'harvested' || c.isProcessed) return false;
+      const plot = this.getPlotById(c.plotId);
+      const cHerb = c.seedlingSource || (plot ? plot.plantType : '') || '';
+      return cHerb.includes(targetHerb);
+    });
+
+    const totalPendingWeight = pendingCrops.reduce((sum, c) => sum + (parseFloat(c.yield) || 0), 0);
+    if (totalPendingWeight <= 0) {
+      throw new Error(`ไม่พบผลผลิตดอกสดรออบของพืช '${targetHerb}' ในระบบ`);
+    }
+
+    const weightToProcess = Math.min(parseFloat(freshWeightKg) || totalPendingWeight, totalPendingWeight);
+    if (weightToProcess <= 0) {
+      throw new Error('กรุณาระบุน้ำหนักผลผลิตสดที่ต้องการนำเข้าอบ');
+    }
+
+    // Determine ratio and final dry weight (สูตรมาตรฐานวิสาหกิจ 10:1 เช่น สด 150 kg -> แห้ง 15 kg)
+    let ratio = 10;
+
+    let finalDryWeight = 0;
+    if (customDryWeightKg !== null && !isNaN(parseFloat(customDryWeightKg)) && parseFloat(customDryWeightKg) > 0) {
+      finalDryWeight = parseFloat(parseFloat(customDryWeightKg).toFixed(2));
+    } else {
+      finalDryWeight = parseFloat((weightToProcess / ratio).toFixed(2));
+    }
+
+    const actualDate = processedDate || new Date().toISOString().split('T')[0];
+    const batchId = 'DRY-' + Date.now().toString().slice(-4);
+
+    // 1. Mark pending crops as processed and record drying info
+    let remainingFresh = weightToProcess;
+    const processedCropIds = [];
+    const actualRatio = weightToProcess / (finalDryWeight || 1);
+
+    for (const crop of pendingCrops) {
+      const cYield = parseFloat(crop.yield) || 0;
+      if (remainingFresh >= cYield - 0.05) {
+        const cropDryWeight = parseFloat((cYield / actualRatio).toFixed(2));
+        this.updateCrop(crop.id, { 
+          isProcessed: true,
+          dryingDate: actualDate,
+          dryWeight: cropDryWeight,
+          freshUsed: cYield
+        });
+        processedCropIds.push(crop.id);
+        remainingFresh -= cYield;
+      } else if (remainingFresh > 0) {
+        const cropDryWeight = parseFloat((remainingFresh / actualRatio).toFixed(2));
+        this.updateCrop(crop.id, { 
+          isProcessed: true,
+          dryingDate: actualDate,
+          dryWeight: cropDryWeight,
+          freshUsed: remainingFresh
+        });
+        processedCropIds.push(crop.id);
+        remainingFresh = 0;
+      }
+    }
+
+    // 2. Add dry herb stock to inventory
+    const inventory = this.getInventory();
+    const existingIndex = inventory.findIndex(inv => inv.isPooledBatch && inv.herbType === targetHerb);
+    
+    if (existingIndex !== -1) {
+      inventory[existingIndex].dryStockKg = parseFloat((inventory[existingIndex].dryStockKg + finalDryWeight).toFixed(2));
+      inventory[existingIndex].processedDate = actualDate;
+    } else {
+      inventory.push({
+        cropId: batchId,
+        herbType: targetHerb,
+        dryStockKg: finalDryWeight,
+        processedDate: actualDate,
+        isPooledBatch: true,
+        note: batchNote || `ผลผลิตรวมวิสาหกิจ (ทุกแปลงสมาชิก) - รอบอบ ${actualDate}`
+      });
+    }
+
+    if (!supabaseClient) {
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+    }
+
+    // Also sync to products catalog (PRD-XXX)
+    try {
+      const products = this.getProducts();
+      const matchPrd = products.find(p => p.unit === 'กก.' && p.name.includes(targetHerb));
+      if (matchPrd) {
+        this.updateProduct(matchPrd.id, { stock: parseFloat((matchPrd.stock + finalDryWeight).toFixed(2)) });
+      }
+    } catch (e) {
+      console.error("Sync product error:", e);
+    }
+
+    // 3. Record batch drying log
+    const dryingBatch = {
+      id: batchId,
+      herbType: targetHerb,
+      totalFreshAvailableKg: totalPendingWeight,
+      freshWeightKg: weightToProcess,
+      dryWeightKg: finalDryWeight,
+      ratioActual: (weightToProcess / (finalDryWeight || 1)).toFixed(2),
+      processedDate: actualDate,
+      note: batchNote || `ผลผลิตสดรวมทุกแปลงสมาชิก - อบแห้งเข้าคลัง`,
+      cropIds: processedCropIds,
+      syncedToStock: true
+    };
+    this.addDryingBatch(dryingBatch);
+
+    return dryingBatch;
+  }
+
+  /**
+   * Get all enterprise packaging/canning batch logs
+   */
+  getPackagingBatches() {
+    const data = localStorage.getItem(STORAGE_KEYS.PACKAGING_BATCHES);
+    let list = [];
+    if (!data) {
+      list = [...MOCK_PACKAGING_BATCHES];
+      localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(list));
+    } else {
+      try {
+        list = JSON.parse(data);
+        // Normalize packaging batches to 50 G
+        let changed = false;
+        list.forEach(b => {
+          if (!b.packageSize || b.packageSize.includes('กิโลกรัม') || b.packageSize.includes('50 กรัม')) {
+            b.packageSize = '50 G';
+            if (b.dryUsedKg >= 50 && b.jarsProduced === 1) {
+              b.dryUsedKg = 5.0;
+              b.jarsProduced = 100;
+            }
+            if (b.productName) {
+              b.productName = b.productName.replace(/50\s*กก\./g, '50 G').replace(/50\s*กิโลกรัม/g, '50 G').replace(/50\s*กรัม/g, '50 G').replace('กระป๋อง', 'กระป๋อง');
+            }
+            if (b.note) {
+              b.note = b.note.replace(/50\s*กก\./g, '50 G').replace(/50\s*กิโลกรัม/g, '50 G');
+            }
+            changed = true;
+          }
+        });
+        if (changed) {
+          localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(list));
+        }
+      } catch (e) {
+        list = [...MOCK_PACKAGING_BATCHES];
+      }
+    }
+    return list.sort((a, b) => new Date(b.processedDate) - new Date(a.processedDate));
+  }
+
+  /**
+   * Add a packaging batch log
+   */
+  addPackagingBatch(batch) {
+    const batches = this.getPackagingBatches();
+    batches.unshift(batch);
+    localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(batches));
+    return batch;
+  }
+
+  /**
+   * Process dry herb into canned/jar packaging products
+   * (ดอกแห้ง > แบบกระป๋อง: สูตร 50 G ต่อ 1 กระป๋อง, 1 กก. = 20 กระป๋อง)
+   */
+  processHerbCanning(herbType, dryUsedKg, packageSizeUnit = '50 G', jarsCount = null, operatorName = '', note = '', processedDate = null) {
+    const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
+    const targetHerb = isChrys ? 'เก๊กฮวย' : (herbType.includes('คาโมมายล์') ? 'คาโมมายล์' : herbType);
+    const usedKg = parseFloat(dryUsedKg) || 0;
+    
+    // Parse package size in grams (e.g. 50 G per jar = 0.05 kg)
+    let szG = 50;
+    if (typeof packageSizeUnit === 'number') {
+      szG = packageSizeUnit;
+    } else if (typeof packageSizeUnit === 'string') {
+      const match = packageSizeUnit.match(/\d+/);
+      szG = match ? parseInt(match[0]) : 50;
+    }
+
+    const jarsProduced = jarsCount ? parseInt(jarsCount) : Math.max(1, Math.floor((usedKg * 1000) / szG));
+    const actualDate = processedDate || new Date().toISOString().split('T')[0];
+
+    const yearBE = new Date(actualDate).getFullYear() + 543;
+    const yearShort = String(yearBE).slice(-2);
+    const existingBatches = this.getPackagingBatches();
+    const batchId = `PACK-${yearShort}${String(existingBatches.length + 1).padStart(2, '0')}`;
+
+    // 1. Deduct dry herbs used from inventory & bulk dry product stock (PRD-001/PRD-002)
+    try {
+      const inventory = this.getInventory();
+      const invItem = inventory.find(i => (i.herbType && i.herbType.includes(targetHerb)));
+      if (invItem && invItem.dryStockKg >= usedKg) {
+        invItem.dryStockKg = Math.max(0, parseFloat((invItem.dryStockKg - usedKg).toFixed(2)));
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+      }
+
+      const bulkProd = products.find(p => p.unit === 'กก.' && (p.name.includes(targetHerb) || p.category.includes(targetHerb)));
+      if (bulkProd && bulkProd.stock >= usedKg) {
+        this.updateProduct(bulkProd.id, { stock: Math.max(0, parseFloat((bulkProd.stock - usedKg).toFixed(2))) });
+      }
+    } catch (e) {
+      console.error("Canning deduction error:", e);
+    }
+
+    // 2. Find canned product in products catalog and increase jar stock
+    const products = this.getProducts();
+    let cannedProduct = products.find(p => (p.unit === 'กระป๋อง' || p.unit === 'กระป๋อง') && (p.category.includes(targetHerb) || p.name.includes(targetHerb)));
+
+    if (cannedProduct) {
+      this.updateProduct(cannedProduct.id, {
+        stock: (cannedProduct.stock || 0) + jarsProduced,
+        updatedDate: actualDate
+      });
+    }
+
+    // 2. Record packaging batch log
+    const batch = {
+      id: batchId,
+      herbType: targetHerb,
+      dryUsedKg: usedKg,
+      packageSize: `${szG} G`,
+      jarsProduced: jarsProduced,
+      processedDate: actualDate,
+      productId: cannedProduct ? cannedProduct.id : '',
+      productName: cannedProduct ? cannedProduct.name : `ดอก${targetHerb}กระป๋อง (${szG} G)`,
+      operatorName: operatorName || 'สมาชิกกลุ่มแปรรูป',
+      note: note || `บรรจุกระป๋องขนาด ${szG} G (1 กก. = ${Math.floor(1000 / szG)} กป.) ตามเกณฑ์วิสาหกิจ`
+    };
+
+    this.addPackagingBatch(batch);
+    return batch;
   }
 
   /**
@@ -1189,7 +2202,7 @@ export class AppState {
   recordSale(cropId, amount, price, customer, date, saleType = 'bulk', customerId = null) {
     const amt = parseFloat(amount) || 0;
     const prc = parseFloat(price) || 0;
-    if (amt <= 0) throw new Error(saleType === 'bulk' ? 'ปริมาณสมุนไพรอบแห้งที่ขายต้องมากกว่า 0 กก.' : 'จำนวนกระปุกที่ขายต้องมากกว่า 0 กระปุก');
+    if (amt <= 0) throw new Error(saleType === 'bulk' ? 'ปริมาณสมุนไพรอบแห้งที่ขายต้องมากกว่า 0 กก.' : 'จำนวนกระป๋องที่ขายต้องมากกว่า 0 กระป๋อง');
     if (prc <= 0) throw new Error('ราคาต่อหน่วยต้องมากกว่า 0 บาท');
 
     // 1. Check Inventory
@@ -1198,8 +2211,7 @@ export class AppState {
     if (invIndex === -1) throw new Error('ไม่พบล็อตสินค้านี้ในคลังสินค้า');
     
     const inv = inventory[invIndex];
-    const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
-    const jarCapacity = isChrys ? 0.10 : 0.05; // 100g for Chrysanthemum, 50g for Chamomile
+    const jarCapacity = 0.05; // 50g per jar (0.05 kg) as requested (50 G ต่อ 1 กระป๋อง)
 
     let weightToDeduct = amt;
     if (saleType === 'jar') {
@@ -1211,7 +2223,7 @@ export class AppState {
         throw new Error(`จำนวนสินค้าล็อตนี้ไม่เพียงพอในคลัง (คงเหลือ ${inv.dryStockKg} กก., ต้องการขาย ${amt} กก.)`);
       } else {
         const maxJarsAvailable = Math.floor(inv.dryStockKg / jarCapacity);
-        throw new Error(`วัตถุดิบอบแห้งในคลังไม่เพียงพอสำหรับบรรจุขาย (คงเหลือ ${inv.dryStockKg} กก., เทียบเท่าสูงสุด ${maxJarsAvailable} กระปุก, ต้องการขาย ${amt} กระปุก)`);
+        throw new Error(`วัตถุดิบอบแห้งในคลังไม่เพียงพอสำหรับบรรจุขาย (คงเหลือ ${inv.dryStockKg} กก., เทียบเท่าสูงสุด ${maxJarsAvailable} กระป๋อง, ต้องการขาย ${amt} กระป๋อง)`);
       }
     }
 
@@ -1285,8 +2297,7 @@ export class AppState {
       const invIndex = inventory.findIndex(inv => inv.cropId === sale.cropId);
       if (invIndex !== -1) {
         const inv = inventory[invIndex];
-        const isChrys = inv.herbType === 'เก๊กฮวย' || inv.herbType.includes('เก๊กฮวย');
-        const jarCapacity = isChrys ? 0.10 : 0.05;
+        const jarCapacity = 0.05; // 50g per jar
         const weightToRestore = sale.saleType === 'jar'
           ? parseFloat((sale.amount * jarCapacity).toFixed(2))
           : (parseFloat(sale.amount) || parseFloat(sale.amountKg) || 0);
@@ -1299,6 +2310,18 @@ export class AppState {
         } else {
           localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
         }
+      }
+
+      // Restore product stock if linked to catalog (PRD-XXX)
+      try {
+        const products = this.getProducts();
+        const prod = products.find(p => p.id === sale.cropId);
+        if (prod) {
+          const restoredQty = parseFloat(sale.amount) || parseFloat(sale.amountKg) || 0;
+          this.updateProduct(prod.id, { stock: parseFloat((prod.stock + restoredQty).toFixed(2)) });
+        }
+      } catch (e) {
+        console.error("Product stock restore error:", e);
       }
     }
 
@@ -1390,7 +2413,9 @@ export class AppState {
       customerType: customerData.customerType || 'ลูกค้าทั่วไป',
       phone: (customerData.phone || '').trim(),
       address: (customerData.address || '').trim(),
-      contactChannel: (customerData.contactChannel || '').trim()
+      lineId: (customerData.lineId || '').trim(),
+      facebook: (customerData.facebook || '').trim(),
+      contactChannel: (customerData.contactChannel || customerData.lineId || customerData.facebook || '').trim()
     };
 
     if (!newCustomer.name) throw new Error('กรุณาระบุชื่อลูกค้าหรือชื่อร้านค้า');
@@ -1410,7 +2435,9 @@ export class AppState {
         customerType: data.customerType || customers[index].customerType,
         phone: (data.phone !== undefined ? data.phone : customers[index].phone).trim(),
         address: (data.address !== undefined ? data.address : customers[index].address).trim(),
-        contactChannel: (data.contactChannel !== undefined ? data.contactChannel : customers[index].contactChannel).trim()
+        lineId: (data.lineId !== undefined ? data.lineId : (customers[index].lineId || '')).trim(),
+        facebook: (data.facebook !== undefined ? data.facebook : (customers[index].facebook || '')).trim(),
+        contactChannel: (data.contactChannel !== undefined ? data.contactChannel : (customers[index].contactChannel || '')).trim()
       };
       localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
       return customers[index];
@@ -1477,6 +2504,335 @@ export class AppState {
     });
   }
 
+  // --- Products Catalog Methods (PRD-XXX) ---
+  getProducts() {
+    try {
+      const MIGRATION_KEY = 'herb_enterprise_products_price_v6';
+      const migrated = localStorage.getItem(MIGRATION_KEY);
+      const data = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+      if (!data) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(MOCK_PRODUCTS));
+        localStorage.setItem(MIGRATION_KEY, 'done');
+        return [...MOCK_PRODUCTS];
+      }
+      let products = JSON.parse(data) || [];
+      
+      // AUTO-MIGRATE: Clean up old units based on strict criteria (กก. and กระป๋อง only)
+      let needsSave = false;
+      products.forEach(p => {
+        if (p.unit === 'กระปุก' || p.unit === 'ซอง' || p.unit === 'กล่อง' || p.unit === 'ขวด' || p.unit === 'custom') {
+          p.unit = 'กระป๋อง';
+          needsSave = true;
+        }
+      });
+      if (needsSave) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+      }
+
+      // Auto-migrate to v6: เก๊กฮวยกระป๋อง 50G 150, คาโมมายด์กระป๋อง 50 G 100...
+      if (!migrated) {
+        const defaultPriceMap = {
+          'PRD-001': { price: 250, name: 'ดอกเก๊กฮวยอบแห้ง (1 กก.)', unit: 'กก.' },
+          'PRD-002': { price: 450, name: 'ดอกคาโมมายล์อบแห้ง (1 กก.)', unit: 'กก.' },
+          'PRD-003': { price: 150, name: 'เก๊กฮวยกระป๋อง (50 G)', unit: 'กระป๋อง' },
+          'PRD-004': { price: 100, name: 'คาโมมายล์กระป๋อง (50 G)', unit: 'กระป๋อง' }
+        };
+
+        products = products.map(p => {
+          if (defaultPriceMap[p.id]) {
+            return {
+              ...p,
+              name: defaultPriceMap[p.id].name,
+              price: defaultPriceMap[p.id].price,
+              unit: defaultPriceMap[p.id].unit
+            };
+          }
+          return p;
+        });
+
+        // Add any missing mock products (incl. PRD-006/PRD-007)
+        for (const mockItem of MOCK_PRODUCTS) {
+          if (!products.some(p => p.id === mockItem.id)) {
+            products.push(mockItem);
+          }
+        }
+
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        localStorage.setItem(MIGRATION_KEY, 'done');
+      }
+
+      // ซิงค์สินค้าในคลังให้ครอบคลุมพืชสมุนไพรทุกชนิดในแผนการปลูกอัตโนมัติ
+      products = this.syncHerbProductsWithRoadmaps(products);
+
+      return products;
+    } catch (e) {
+      return [...MOCK_PRODUCTS];
+    }
+  }
+
+  /**
+   * ซิงโครไนซ์รายการสินค้าในคลังให้มีสินค้ามาตรฐาน (ดอกอบแห้ง 1 กก. และ กระป๋อง 50G) 
+   * สำหรับทุกชนิดพืชที่ถูกสร้างขึ้นในแผนการปลูก
+   */
+  syncHerbProductsWithRoadmaps(products) {
+    try {
+      const roadmaps = this.getRoadmaps ? this.getRoadmaps() : {};
+      const herbNames = Object.keys(roadmaps || {});
+      if (herbNames.length === 0) return products;
+
+      let changed = false;
+
+      // Clean up auto-generated products for herbs no longer in roadmaps (preserve base catalog PRD-001..PRD-007)
+      const baseProductIds = ['PRD-001', 'PRD-002', 'PRD-003', 'PRD-004', 'PRD-005', 'PRD-006', 'PRD-007'];
+      const filtered = products.filter(p => {
+        if (baseProductIds.includes(p.id)) return true;
+        // Keep if category is in active roadmaps
+        if (p.category && herbNames.includes(p.category)) return true;
+        // If stock > 0, preserve
+        if ((parseFloat(p.stock) || 0) > 0) return true;
+        return false;
+      });
+      if (filtered.length !== products.length) {
+        products = filtered;
+        changed = true;
+      }
+
+      // หาเลขรหัส PRD สูงสุด
+      let maxIdNum = products.reduce((max, p) => {
+        const match = (p.id || '').match(/PRD-(\d+)/);
+        const num = match ? parseInt(match[1], 10) : 0;
+        return (!isNaN(num) && num > max) ? num : max;
+      }, 0);
+
+      herbNames.forEach(herb => {
+        if (!herb || !herb.trim()) return;
+        const herbClean = herb.trim();
+
+        // 1. ตรวจสอบสินค้าอบแห้ง (1 กก.)
+        const hasBulk = products.some(p => 
+          (p.category === herbClean || (p.name || '').includes(herbClean)) && (p.unit === 'กก.' || p.unit === 'kg')
+        );
+        if (!hasBulk) {
+          maxIdNum++;
+          const newId = `PRD-${String(maxIdNum).padStart(3, '0')}`;
+          let bulkPrefix = 'ดอก';
+          if (herbClean.includes('ใบ') || herbClean.includes('เตย') || herbClean.includes('ตะไคร้') || herbClean.includes('ฟ้าทะลายโจร') || herbClean.includes('เสลดพังพอน')) {
+            bulkPrefix = '';
+          } else if (herbClean.includes('ขมิ้น') || herbClean.includes('ไพล') || herbClean.includes('กระชาย') || herbClean.includes('ขิง') || herbClean.includes('ว่าน') || herbClean.includes('มะกรูด')) {
+            bulkPrefix = '';
+          }
+          const bulkName = bulkPrefix ? `${bulkPrefix}${herbClean}อบแห้ง (1 กก.)` : `${herbClean}อบแห้ง (1 กก.)`;
+
+          products.push({
+            id: newId,
+            name: bulkName,
+            price: 300,
+            unit: 'กก.',
+            stock: 0,
+            category: herbClean,
+            updatedDate: new Date().toISOString().split('T')[0]
+          });
+          changed = true;
+        }
+
+        // 2. ตรวจสอบสินค้ากระป๋อง (50 G)
+        const hasCan = products.some(p => 
+          (p.category === herbClean || (p.name || '').includes(herbClean)) && (p.unit === 'กระป๋อง' || p.unit === 'กระปุก')
+        );
+        if (!hasCan) {
+          maxIdNum++;
+          const newId = `PRD-${String(maxIdNum).padStart(3, '0')}`;
+          products.push({
+            id: newId,
+            name: `${herbClean}กระป๋อง (50 G)`,
+            price: 120,
+            unit: 'กระป๋อง',
+            stock: 0,
+            category: herbClean,
+            updatedDate: new Date().toISOString().split('T')[0]
+          });
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+      }
+      return products;
+    } catch (e) {
+      console.error('Error syncing herb products:', e);
+      return products;
+    }
+  }
+
+  /**
+   * Helper to get current product price by herb type and unit
+   * e.g. getProductPrice('เก๊กฮวย', 'กก.') -> 250
+   * e.g. getProductPrice('คาโมมายล์', 'กก.') -> 450
+   * e.g. getProductPrice('เก๊กฮวย', 'กระป๋อง') -> 150 (50 G)
+   * e.g. getProductPrice('คาโมมายล์', 'กระป๋อง') -> 100 (50 G)
+   */
+  getProductPrice(herbType = '', unit = 'กก.') {
+    const products = this.getProducts();
+    const isChrys = herbType.includes('เก๊กฮวย');
+    const isCham = herbType.includes('คาโมมายล์');
+    
+    const found = products.find(p => {
+      const matchUnit = unit === 'กก.' ? (p.unit === 'กก.' || p.unit === 'kg') : (p.unit === 'กระป๋อง' || p.unit === 'กระป๋อง');
+      if (!matchUnit) return false;
+      if (isChrys && (p.name.includes('เก๊กฮวย') || p.category.includes('เก๊กฮวย'))) return true;
+      if (isCham && (p.name.includes('คาโมมายล์') || p.category.includes('คาโมมายล์'))) return true;
+      return p.name.includes(herbType);
+    });
+
+    if (found) return found.price;
+
+    // Standard Fallbacks: เก๊กฮวยกระป๋อง 50G=150, คาโมมายด์กระป๋อง 50G=100, เก๊กฮวยอบแห้ง 1KG=250, คาโมมายด์อบแห้ง 1KG=450
+    if (isChrys) return unit === 'กก.' ? 250 : 150;
+    if (isCham) return unit === 'กก.' ? 450 : 100;
+    return unit === 'กก.' ? 300 : 120;
+  }
+
+  /**
+   * Helper to quickly update product price
+   */
+  updateProductPrice(productId, newPrice) {
+    const priceVal = parseFloat(newPrice);
+    if (isNaN(priceVal) || priceVal < 0) {
+      throw new Error('ราคาต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0 บาท');
+    }
+    return this.updateProduct(productId, { price: priceVal });
+  }
+
+  getProductById(id) {
+    return this.getProducts().find(p => p.id === id);
+  }
+
+  addProduct(productData) {
+    const products = this.getProducts();
+    let newId = productData.id ? productData.id.trim() : '';
+    if (!newId) {
+      const maxIdNum = products.reduce((max, p) => {
+        const parts = (p.id || '').split('-');
+        const num = parseInt(parts[1]);
+        return (!isNaN(num) && num > max) ? num : max;
+      }, 0);
+      newId = `PRD-${String(maxIdNum + 1).padStart(3, '0')}`;
+    }
+
+    if (products.some(p => p.id === newId)) {
+      throw new Error(`รหัสสินค้า '${newId}' มีอยู่ในระบบแล้ว กรุณาใช้รหัสอื่น`);
+    }
+
+    const newProduct = {
+      id: newId,
+      name: (productData.name || '').trim(),
+      price: parseFloat(productData.price) || 0,
+      unit: (productData.unit || 'กก.').trim(),
+      stock: parseFloat(productData.stock) || 0,
+      category: (productData.category || 'ทั่วไป').trim(),
+      updatedDate: productData.updatedDate || new Date().toISOString().split('T')[0]
+    };
+
+    if (!newProduct.name) throw new Error('กรุณาระบุชื่อสินค้า');
+    if (newProduct.price < 0) throw new Error('ราคาต่อหน่วยต้องไม่ติดลบ');
+    if (newProduct.stock < 0) throw new Error('จำนวนสต็อกเริ่มต้นต้องไม่ติดลบ');
+
+    products.push(newProduct);
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    return newProduct;
+  }
+
+  updateProduct(id, productData) {
+    const products = this.getProducts();
+    const index = products.findIndex(p => p.id === id);
+    if (index === -1) throw new Error(`ไม่พบสินค้ารหัส ${id} ในระบบ`);
+
+    products[index] = {
+      ...products[index],
+      name: productData.name !== undefined ? productData.name.trim() : products[index].name,
+      price: productData.price !== undefined ? (parseFloat(productData.price) || 0) : products[index].price,
+      unit: productData.unit !== undefined ? productData.unit.trim() : products[index].unit,
+      stock: productData.stock !== undefined ? (parseFloat(productData.stock) || 0) : products[index].stock,
+      category: productData.category !== undefined ? productData.category.trim() : products[index].category,
+      updatedDate: new Date().toISOString().split('T')[0]
+    };
+
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    return products[index];
+  }
+
+  deleteProduct(id) {
+    const products = this.getProducts();
+    const filtered = products.filter(p => p.id !== id);
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(filtered));
+    return true;
+  }
+
+  adjustProductStock(id, newStock, reason = '') {
+    const stockVal = parseFloat(newStock);
+    if (isNaN(stockVal) || stockVal < 0) throw new Error('จำนวนสต็อกต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0');
+    return this.updateProduct(id, { stock: stockVal });
+  }
+
+  deductProductStock(id, amount, customerName = '', salePrice = null, date = null, customerId = null) {
+    const amt = parseFloat(amount) || 0;
+    if (amt <= 0) throw new Error('จำนวนที่ตัดสต็อกต้องมากกว่า 0');
+
+    const product = this.getProductById(id);
+    if (!product) throw new Error(`ไม่พบสินค้ารหัส ${id}`);
+    if (product.stock < amt) {
+      throw new Error(`สต็อกสินค้ามีไม่เพียงพอ (คงเหลือ ${product.stock} ${product.unit}, ต้องการตัด ${amt} ${product.unit})`);
+    }
+
+    const newStock = parseFloat((product.stock - amt).toFixed(2));
+    this.updateProduct(id, { stock: newStock });
+
+    // Also deduct bulk dry herb stock from inventory if sold in กก.
+    if (product.unit === 'กก.' || product.unit === 'kg') {
+      try {
+        const inventory = this.getInventory();
+        const targetHerb = product.name.includes('เก๊กฮวย') ? 'เก๊กฮวย' : (product.name.includes('คาโมมาย') ? 'คาโมมายล์' : '');
+        if (targetHerb) {
+          const invItem = inventory.find(i => (i.herbType && i.herbType.includes(targetHerb)));
+          if (invItem) {
+            invItem.dryStockKg = Math.max(0, parseFloat((invItem.dryStockKg - amt).toFixed(2)));
+            localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+          }
+        }
+      } catch (e) {
+        console.error("Inventory sync error in deductProductStock:", e);
+      }
+    }
+
+    // Record sale transaction
+    const unitPrice = salePrice !== null && !isNaN(parseFloat(salePrice)) ? parseFloat(salePrice) : product.price;
+    const sales = this.getSales();
+    const maxIdNum = sales.reduce((max, s) => {
+      const num = parseInt(s.id.split('-')[1]);
+      return num > max ? num : max;
+    }, 0);
+    const newSaleId = `SALE-${String(maxIdNum + 1).padStart(3, '0')}`;
+    const newSale = {
+      id: newSaleId,
+      cropId: id,
+      amount: amt,
+      price: unitPrice,
+      amountKg: amt,
+      pricePerKg: unitPrice,
+      totalPrice: parseFloat((amt * unitPrice).toFixed(2)),
+      customerId: customerId || null,
+      customer: customerName || 'ทั่วไป/ไม่ระบุชื่อ',
+      date: date || new Date().toISOString().split('T')[0],
+      saleType: product.unit === 'กก.' ? 'bulk' : 'jar'
+    };
+
+    sales.push(newSale);
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+
+    return { product: this.getProductById(id), sale: newSale };
+  }
+
   getStats() {
     const currentUser = this.getCurrentUser();
     const isMember = currentUser && currentUser.role === 'Member';
@@ -1528,6 +2884,431 @@ export class AppState {
       totalDryStock: totalDryStock.toFixed(2),
       totalSalesRevenue: totalSalesRev
     };
+  }
+
+  // --- Planting Roadmap Methods ---
+  getRoadmaps() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ROADMAPS);
+      let roadmaps = data ? JSON.parse(data) : {};
+
+      let hasChange = false;
+
+      // ลบเฉพาะคีย์ที่ว่างเปล่า
+      Object.keys(roadmaps).forEach(h => {
+        if (!h || !h.trim()) {
+          delete roadmaps[h];
+          hasChange = true;
+        }
+      });
+
+      // Auto-ensure standard herbs exist and have matching icons
+      Object.keys(DEFAULT_ROADMAPS).forEach(herbName => {
+        const def = DEFAULT_ROADMAPS[herbName];
+        if (!roadmaps[herbName]) {
+          roadmaps[herbName] = JSON.parse(JSON.stringify(def));
+          hasChange = true;
+        } else {
+          // If icon is generic or empty or mismatched, update to matching icon
+          if (!roadmaps[herbName].icon || (roadmaps[herbName].icon === '🌿' && def.icon !== '🌿')) {
+            roadmaps[herbName].icon = def.icon || getHerbDefaultIcon(herbName);
+            hasChange = true;
+          }
+          if (!roadmaps[herbName].category && def.category) {
+            roadmaps[herbName].category = def.category;
+            hasChange = true;
+          }
+        }
+      });
+
+      // Ensure every single herb in roadmaps has an appropriate matching icon
+      Object.keys(roadmaps).forEach(h => {
+        const autoIcon = getHerbDefaultIcon(h);
+        if (!roadmaps[h].icon || roadmaps[h].icon === '🌿' || roadmaps[h].icon === '🪻' || roadmaps[h].icon === '🫚' || roadmaps[h].icon === '🪴') {
+          roadmaps[h].icon = autoIcon;
+          hasChange = true;
+        }
+      });
+
+      if (hasChange || !data) {
+        localStorage.setItem(STORAGE_KEYS.ROADMAPS, JSON.stringify(roadmaps));
+      }
+
+      return roadmaps;
+    } catch (e) {
+      console.error("Error reading roadmaps:", e);
+      return JSON.parse(JSON.stringify(DEFAULT_ROADMAPS));
+    }
+  }
+
+  getRoadmapByHerb(herbName) {
+    const roadmaps = this.getRoadmaps();
+    if (roadmaps[herbName]) {
+      return roadmaps[herbName];
+    }
+    const keys = Object.keys(roadmaps);
+    if (keys.length > 0) {
+      return roadmaps[keys[0]];
+    }
+    return DEFAULT_ROADMAPS['เก๊กฮวย'];
+  }
+
+  saveRoadmaps(data) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.ROADMAPS, JSON.stringify(data));
+      return data;
+    } catch (e) {
+      console.error("Error saving roadmaps:", e);
+      throw e;
+    }
+  }
+
+  saveHerbRoadmap(herbName, roadmapData) {
+    const roadmaps = this.getRoadmaps();
+    if (!roadmapData.icon || roadmapData.icon === '🌿') {
+      roadmapData.icon = getHerbDefaultIcon(herbName);
+    }
+    roadmaps[herbName] = roadmapData;
+    this.saveRoadmaps(roadmaps);
+
+    // สร้างรายการสินค้าในคลังสำหรับพืชสมุนไพรใหม่ให้อัตโนมัติทันที
+    try {
+      this.getProducts();
+    } catch (e) {}
+
+    return roadmapData;
+  }
+
+  saveHerbStep(herbName, stepData) {
+    const roadmaps = this.getRoadmaps();
+    if (!roadmaps[herbName]) {
+      roadmaps[herbName] = {
+        name: herbName,
+        icon: '🌿',
+        description: `แผนการปลูกสมุนไพร ${herbName}`,
+        durationDays: 90,
+        cycleText: 'ระยะเวลาเพาะปลูกรวมประมาณ 90 วัน',
+        steps: []
+      };
+    }
+
+    const steps = roadmaps[herbName].steps || [];
+    const existingIndex = steps.findIndex(s => s.stepNo === Number(stepData.stepNo) || (stepData.originalStepNo && s.stepNo === Number(stepData.originalStepNo)));
+
+    const formattedStep = {
+      stepNo: Number(stepData.stepNo) || (steps.length + 1),
+      title: stepData.title || 'ขั้นตอนใหม่',
+      dayNumber: Number(stepData.dayNumber) || 1,
+      dayLabel: stepData.dayLabel || `วันที่ ${stepData.dayNumber || 1}`,
+      advice: stepData.advice || '',
+      detail: stepData.detail || '',
+      color: stepData.color || 'emerald',
+      icon: stepData.icon || 'fa-seedling'
+    };
+
+    if (existingIndex >= 0) {
+      steps[existingIndex] = formattedStep;
+    } else {
+      steps.push(formattedStep);
+    }
+
+    // Sort steps by dayNumber
+    steps.sort((a, b) => a.dayNumber - b.dayNumber);
+    // Re-index step numbers 1, 2, 3...
+    steps.forEach((s, idx) => {
+      s.stepNo = idx + 1;
+    });
+
+    roadmaps[herbName].steps = steps;
+    // Update max duration if step day exceeds current
+    const maxDay = Math.max(...steps.map(s => s.dayNumber), 1);
+    roadmaps[herbName].durationDays = maxDay;
+    roadmaps[herbName].cycleText = `ระยะเวลาเพาะปลูกรวมประมาณ ${maxDay} วัน`;
+
+    this.saveRoadmaps(roadmaps);
+    return roadmaps[herbName];
+  }
+
+  deleteHerbStep(herbName, stepNo) {
+    const roadmaps = this.getRoadmaps();
+    if (!roadmaps[herbName] || !roadmaps[herbName].steps) return false;
+
+    roadmaps[herbName].steps = roadmaps[herbName].steps.filter(s => s.stepNo !== Number(stepNo));
+    // Re-number
+    roadmaps[herbName].steps.forEach((s, idx) => {
+      s.stepNo = idx + 1;
+    });
+
+    const maxDay = roadmaps[herbName].steps.length > 0 ? Math.max(...roadmaps[herbName].steps.map(s => s.dayNumber)) : 0;
+    roadmaps[herbName].durationDays = maxDay;
+    roadmaps[herbName].cycleText = `ระยะเวลาเพาะปลูกรวมประมาณ ${maxDay} วัน`;
+
+    this.saveRoadmaps(roadmaps);
+    return roadmaps[herbName];
+  }
+
+  deleteHerbRoadmap(herbName) {
+    const roadmaps = this.getRoadmaps();
+    if (!roadmaps[herbName]) return false;
+    delete roadmaps[herbName];
+    if (Object.keys(roadmaps).length === 0) {
+      this.saveRoadmaps(JSON.parse(JSON.stringify(DEFAULT_ROADMAPS)));
+    } else {
+      this.saveRoadmaps(roadmaps);
+    }
+
+    // ล้างรายการสินค้าของพืชที่ถูกลบ (หากสต็อกคงเหลือเป็น 0)
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+      if (data) {
+        let products = JSON.parse(data) || [];
+        const filtered = products.filter(p => !(p.category === herbName && (parseFloat(p.stock) || 0) === 0));
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(filtered));
+      }
+    } catch (e) {}
+
+    return true;
+  }
+
+  // =========================================================================
+  // 4-TIER ENTERPRISE DATABASE ARCHITECTURE METHODS
+  // =========================================================================
+
+  // --- TIER 1: MASTER DATA (พืชสมุนไพร, ข้อมูลหลัก) ---
+  getHerbsCatalog() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.HERBS);
+      if (!data) {
+        localStorage.setItem(STORAGE_KEYS.HERBS, JSON.stringify(MOCK_HERBS_CATALOG));
+        return JSON.parse(JSON.stringify(MOCK_HERBS_CATALOG));
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      console.error("Error reading herbs catalog:", e);
+      return JSON.parse(JSON.stringify(MOCK_HERBS_CATALOG));
+    }
+  }
+
+  saveHerbsCatalog(catalog) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.HERBS, JSON.stringify(catalog));
+      return catalog;
+    } catch (e) {
+      console.error("Error saving herbs catalog:", e);
+      throw e;
+    }
+  }
+
+  getHerbById(herbId) {
+    const list = this.getHerbsCatalog();
+    return list.find(h => h.herbId === herbId || h.name === herbId) || null;
+  }
+
+  addOrUpdateHerb(herb) {
+    const list = this.getHerbsCatalog();
+    const idx = list.findIndex(h => h.herbId === herb.herbId || h.name === herb.name);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...herb };
+    } else {
+      if (!herb.herbId) {
+        herb.herbId = `HRB-${String(list.length + 1).padStart(3, '0')}`;
+      }
+      list.push(herb);
+    }
+    this.saveHerbsCatalog(list);
+    return herb;
+  }
+
+  // --- TIER 2: PERIODIC DATA (รอบเพาะปลูก และ เงินปันผลสมาชิก) ---
+  getPlantingCycles() {
+    // Standard cycle code format: [ปี]/[แปลง]-R[รอบ] e.g. 2569/P001-R1
+    const crops = this.getCrops();
+    return crops.map(c => ({
+      ...c,
+      cycleCode: c.seasonId || c.id,
+      standardCycleId: c.seasonId || c.id
+    }));
+  }
+
+  savePlantingCycle(cycleData) {
+    if (cycleData.id && this.getCropById(cycleData.id)) {
+      return this.updateCrop(cycleData.id, cycleData);
+    }
+    return this.addCrop(cycleData);
+  }
+
+  getMemberDividends(cycleId = null) {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.DIVIDENDS);
+      let list = [];
+      if (!data) {
+        list = [...MOCK_MEMBER_DIVIDENDS];
+        localStorage.setItem(STORAGE_KEYS.DIVIDENDS, JSON.stringify(list));
+      } else {
+        list = JSON.parse(data);
+      }
+      if (cycleId) {
+        return list.filter(d => d.cycleId === cycleId);
+      }
+      return list;
+    } catch (e) {
+      console.error("Error loading member dividends:", e);
+      return [...MOCK_MEMBER_DIVIDENDS];
+    }
+  }
+
+  saveMemberDividend(dividend) {
+    const list = this.getMemberDividends();
+    const idx = list.findIndex(d => d.dividendId === dividend.dividendId);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...dividend };
+    } else {
+      if (!dividend.dividendId) {
+        dividend.dividendId = `DIV-${Date.now().toString().slice(-6)}`;
+      }
+      list.unshift(dividend);
+    }
+    localStorage.setItem(STORAGE_KEYS.DIVIDENDS, JSON.stringify(list));
+    return dividend;
+  }
+
+  calculateCycleDividends(cycleId, laborRatePerKg = 25, profitShareRate = 0.6) {
+    const crops = this.getCrops().filter(c => (c.seasonId === cycleId || c.id === cycleId));
+    const members = this.getMembers();
+    const sales = this.getSales().filter(s => crops.some(c => c.id === s.cropId));
+    const totalCycleRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.totalPrice) || 0), 0);
+    
+    const results = [];
+    crops.forEach(crop => {
+      const member = members.find(m => m.id === crop.memberId) || { name: 'ไม่ระบุสมาชิก' };
+      const produceKg = parseFloat(crop.yield) || 0;
+      const laborCost = Math.round(produceKg * laborRatePerKg);
+      const profitShare = Math.round((totalCycleRevenue * profitShareRate) * (produceKg / (crops.reduce((s, x) => s + (parseFloat(x.yield) || 0), 0) || 1)));
+      const dividend = {
+        dividendId: `DIV-${cycleId.replace(/[\/\-]/g, '')}-${crop.memberId || 'MEM'}`,
+        cycleId: cycleId,
+        memberId: crop.memberId,
+        memberName: member.name,
+        produceDeliveredKg: produceKg,
+        laborCost: laborCost,
+        profitShare: profitShare,
+        totalPayout: laborCost + profitShare,
+        paidDate: new Date().toISOString().split('T')[0],
+        status: 'calculated'
+      };
+      this.saveMemberDividend(dividend);
+      results.push(dividend);
+    });
+    return results;
+  }
+
+  // --- TIER 3: TRANSACTIONAL DATA (บันทึกกิจกรรมประจำวัน & สต็อก) ---
+  getActivityLogs(cycleId = null) {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ACTIVITY_LOGS);
+      let list = [];
+      if (!data) {
+        list = [...MOCK_ACTIVITY_LOGS];
+        localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(list));
+      } else {
+        list = JSON.parse(data);
+      }
+      if (cycleId) {
+        return list.filter(l => l.cycleId === cycleId);
+      }
+      return list.sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate));
+    } catch (e) {
+      console.error("Error reading activity logs:", e);
+      return [...MOCK_ACTIVITY_LOGS];
+    }
+  }
+
+  addActivityLog(log) {
+    const list = this.getActivityLogs();
+    const newLog = {
+      logId: log.logId || `ACT-${Date.now().toString().slice(-6)}`,
+      cycleId: log.cycleId,
+      activityDate: log.activityDate || new Date().toISOString().split('T')[0],
+      activityType: log.activityType || 'ดูแลแปลงทั่วไป',
+      description: log.description || '',
+      freshHarvestedKg: parseFloat(log.freshHarvestedKg) || 0,
+      recordedBy: log.recordedBy || (this.getCurrentUser()?.id || 'MEM-001')
+    };
+    list.unshift(newLog);
+    localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(list));
+    return newLog;
+  }
+
+  // --- TIER 4: AGGREGATED / ANALYTICAL LAYER (แดชบอร์ด & รายงานสรุป) ---
+  getDashboardMetrics() {
+    const sales = this.getSales();
+    const crops = this.getCrops();
+    const dryingBatches = this.getDryingBatches();
+    const products = this.getProducts();
+
+    // 1. Net revenue
+    const netRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.totalPrice) || 0), 0);
+
+    // 2. Total fresh yield
+    const totalFreshYieldKg = crops.reduce((sum, c) => sum + (parseFloat(c.yield) || 0), 0);
+
+    // 3. Total dry yield
+    const totalDryYieldKg = dryingBatches.reduce((sum, b) => sum + (parseFloat(b.dryWeightKg) || 0), 0);
+
+    // 4. Ready stock valuation
+    const readyStockValue = products.reduce((sum, p) => sum + ((parseFloat(p.stock) || 0) * (parseFloat(p.price) || 0)), 0);
+
+    // 5. Herb sales breakdown (bulk vs jar)
+    const herbSales = {};
+    const jarSales = {};
+    sales.forEach(s => {
+      const isJar = s.saleType === 'jar' || (s.cropId && s.cropId.includes('PRD-CAN'));
+      let herbName = 'เก๊กฮวย';
+      if ((s.productName && s.productName.includes('คาโมมายล์')) || (s.cropId && s.cropId.includes('คาโมมายล์'))) herbName = 'คาโมมายล์';
+      else if ((s.productName && s.productName.includes('อัญชัน')) || (s.cropId && s.cropId.includes('อัญชัน'))) herbName = 'อัญชัน';
+      else if ((s.productName && s.productName.includes('ดาวเรือง')) || (s.cropId && s.cropId.includes('ดาวเรือง'))) herbName = 'ดาวเรือง';
+
+      const val = parseFloat(s.totalPrice) || 0;
+      if (isJar) {
+        jarSales[herbName] = (jarSales[herbName] || 0) + val;
+      } else {
+        herbSales[herbName] = (herbSales[herbName] || 0) + val;
+      }
+    });
+
+    return {
+      netRevenue,
+      totalFreshYieldKg,
+      totalDryYieldKg,
+      readyStockValue,
+      herbSales,
+      jarSales,
+      totalPlots: 14,
+      activeMembers: this.getMembers().filter(m => m.status === 'active').length
+    };
+  }
+
+  getFinancialReports() {
+    const metrics = this.getDashboardMetrics();
+    const dividends = this.getMemberDividends();
+    const totalMemberPayout = dividends.reduce((sum, d) => sum + (parseFloat(d.totalPayout) || 0), 0);
+    const retainedEarnings = metrics.netRevenue - totalMemberPayout;
+    const grossMarginPct = metrics.netRevenue > 0 ? ((retainedEarnings / metrics.netRevenue) * 100).toFixed(1) : 0;
+
+    return {
+      totalRevenue: metrics.netRevenue,
+      totalMemberPayout,
+      retainedEarnings,
+      grossMarginPct: parseFloat(grossMarginPct),
+      readyStockValue: metrics.readyStockValue,
+      freshYieldKg: metrics.totalFreshYieldKg,
+      dryYieldKg: metrics.totalDryYieldKg
+    };
+  }
+
+  resetDefaultRoadmaps() {
+    localStorage.setItem(STORAGE_KEYS.ROADMAPS, JSON.stringify(DEFAULT_ROADMAPS));
+    return JSON.parse(JSON.stringify(DEFAULT_ROADMAPS));
   }
 }
 export const appState = new AppState();

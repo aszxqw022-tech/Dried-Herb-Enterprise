@@ -5,12 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบวิสาหกิจชุมชนสมุนไพรอบแห้ง</title>
   
+  <!-- Google Fonts: Prompt (weights 300 to 700 for optimal Thai legibility) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Prompt', 'sans-serif'],
+          },
+          fontSize: {
+            xs: ['0.875rem', { lineHeight: '1.25rem' }], // 14px (No tiny 12px)
+            sm: ['0.875rem', { lineHeight: '1.25rem' }], // 14px
+            base: ['1rem', { lineHeight: '1.5rem' }],    // 16px
+          },
+          fontWeight: {
+            black: '700',
+            extrabold: '700',
+          },
+          letterSpacing: {
+            tight: '0px',
+            tighter: '0px',
+          },
           colors: {
             herbal: {
               50: '#f4f9f4',
@@ -47,104 +68,149 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
 
+  <!-- html2pdf.js — Client-side HTML to PDF export (Local & Offline capable) -->
+  <script src="js/libs/html2pdf.bundle.min.js"></script>
+
+  <!-- Chart.js — Modern Interactive Data Visualization (Local & Offline capable) -->
+  <script src="js/libs/chart.umd.min.js"></script>
+
   <!-- Custom CSS for Premium Design -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=18">
 </head>
-<body class="bg-[#f4f9f4] min-h-screen flex">
+<body class="bg-[#f8fafc] text-slate-800 min-h-screen flex antialiased">
 
   <!-- Mobile Sidebar Overlay -->
-  <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-30 hidden transition-opacity lg:hidden"></div>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-30 hidden transition-opacity lg:hidden"></div>
 
-  <!-- Sidebar (Left Navigation) -->
-  <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-[#1e4620] to-[#153216] text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:flex-shrink-0 shadow-xl">
+  <!-- Sidebar (Left Navigation) - Original Menus with Exact Hex Colors -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-[#1A3D1C] text-white flex flex-col z-40 transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:flex-shrink-0 shadow-2xl border-r border-[#143317]">
     
     <!-- Sidebar Header (Brand Logo/Name) -->
-    <div class="p-6 border-b border-emerald-900 flex items-center justify-between">
+    <div class="p-5 border-b border-white/10 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
-          <i class="fas fa-leaf text-xl text-green-300"></i>
+        <div class="w-11 h-11 rounded-2xl border border-white/20 bg-white/5 flex items-center justify-center text-[#4ade80] shadow-sm">
+          <i class="fas fa-leaf text-2xl"></i>
         </div>
-        <div>
-          <span class="text-[10px] font-bold text-green-300 uppercase tracking-widest block">วิสาหกิจสมุนไพร</span>
-          <span class="text-sm font-extrabold text-white block truncate w-44 enterprise-name-display">วิสาหกิจสมุนไพรอบแห้ง</span>
+        <div class="overflow-hidden">
+          <span class="text-sm font-bold text-[#4ade80] tracking-wide block">วิสาหกิจสมุนไพร</span>
+          <span class="text-sm font-bold text-white block truncate w-44 enterprise-name-display">วิสาหกิจชุมชนสมุนไพรอบแห้ง</span>
         </div>
       </div>
       <!-- Close button on Mobile -->
       <button class="lg:hidden text-white/70 hover:text-white text-xl">
-        <!-- Event bound via app.js -->
+        <i class="fas fa-times"></i>
       </button>
     </div>
 
     <!-- Sidebar Navigation Links -->
-    <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+    <nav class="flex-1 p-3.5 space-y-1 overflow-y-auto">
       
-      <a href="#" data-view="dashboard" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-chart-line text-lg w-5"></i>
+      <!-- หน้าแรก / แดชบอร์ด -->
+      <a href="#" data-view="dashboard" class="sidebar-link active flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-semibold text-white" title="แดชบอร์ดภาพรวม">
+        <i class="fa-solid fa-chart-line text-lg w-5 text-white"></i>
         <span>แดชบอร์ดภาพรวม</span>
       </a>
 
-      <a href="#" data-view="members" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-users text-lg w-5 text-emerald-700"></i>
-        <span>จัดการทะเบียนสมาชิก</span>
+      <!-- หมวดที่ 1: กระบวนการเพาะปลูกและแปรรูป -->
+      <div class="pt-3.5 pb-1 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
+        <span>หมวดที่ 1: กระบวนการเพาะปลูกและแปรรูป</span>
+      </div>
+
+      <!-- 1. จัดการแปลงปลูก -->
+      <a href="#" data-view="plots" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการแปลงปลูก 14 แปลง">
+        <i class="fa-solid fa-map-location-dot text-base w-5 text-white"></i>
+        <span>1. จัดการแปลงปลูก</span>
       </a>
 
-      <a href="#" data-view="plots" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-map-marked-alt text-lg w-5 text-emerald-700"></i>
-        <span>จัดการแปลงปลูกสมุนไพร</span>
+      <!-- 2. จัดการรอบปลูก -->
+      <a href="#" data-view="crops" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการรอบปลูก (2569/Pxxx-R1)">
+        <i class="fa-solid fa-seedling text-base w-5 text-white"></i>
+        <span>2. จัดการรอบปลูก</span>
       </a>
 
-      <a href="#" data-view="roadmap" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-calendar-check text-lg w-5 text-emerald-700"></i>
-        <span>แผนการปลูก (Roadmap)</span>
+      <!-- 3. จัดการโรงอบแห้ง -->
+      <a href="#" data-view="fresh-produce" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการโรงอบแห้ง (ย้ายขึ้นมาต่อจากรอบปลูก เพื่อบันทึกผลผลิตเข้าเตาอบ)">
+        <i class="fa-solid fa-fire-burner text-base w-5 text-white"></i>
+        <span>3. จัดการโรงอบแห้ง</span>
       </a>
 
-      <a href="#" data-view="crops" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-history text-lg w-5 text-emerald-700"></i>
-        <span>บันทึกรอบเพาะปลูก</span>
+      <!-- 4. คลังและสต็อกรวม -->
+      <a href="#" data-view="inventory" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="คลังและสต็อกรวม (แสดงยอดคงเหลือ กก. และ กระปุก 50g)">
+        <i class="fa-solid fa-boxes-stacked text-base w-5 text-white"></i>
+        <span>4. คลังและสต็อกรวม</span>
       </a>
 
-      <a href="#" data-view="crop-history" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fa-solid fa-clock-rotate-left text-lg w-5 text-emerald-700"></i>
-        <span>ประวัติการปลูก</span>
+      <!-- หมวดที่ 2: การจำหน่ายและลูกค้า -->
+      <div class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
+        <span>หมวดที่ 2: การจำหน่ายและลูกค้า</span>
+      </div>
+
+      <!-- 5. จัดการขาย -->
+      <a href="#" data-view="sales" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการขาย (เปิดบิลจำหน่าย/ตัดสต็อก)">
+        <i class="fa-solid fa-store text-base w-5 text-white"></i>
+        <span>5. จัดการขาย</span>
       </a>
 
-      <a href="#" data-view="fresh-produce" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-spa text-lg w-5 text-emerald-700"></i>
-        <span>ผลผลิตดอกสด</span>
+      <!-- 6. ข้อมูลลูกค้า -->
+      <a href="#" data-view="customers" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ข้อมูลลูกค้า (ย้ายมาอยู่หมวดขาย เพื่อง่ายต่อการเปิดบิล)">
+        <i class="fa-solid fa-handshake text-base w-5 text-white"></i>
+        <span>6. ข้อมูลลูกค้า</span>
       </a>
 
-      <a href="#" data-view="inventory" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-warehouse text-lg w-5 text-emerald-700"></i>
-        <span>คลังสินค้า</span>
+      <!-- 7. ประวัติการขายและรอบปลูก -->
+      <a href="#" data-view="crop-history" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ประวัติการขายและรอบปลูก (Log บันทึกย้อนหลัง)">
+        <i class="fa-solid fa-clock-rotate-left text-base w-5 text-white"></i>
+        <span>7. ประวัติการขายและรอบปลูก</span>
       </a>
 
-      <a href="#" data-view="finance" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-file-invoice-dollar text-lg w-5 text-emerald-700"></i>
-        <span>การเงินรายสมาชิก</span>
+      <!-- หมวดที่ 3: สรุปผลและการเงิน -->
+      <div class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
+        <span>หมวดที่ 3: สรุปผลและการเงิน</span>
+      </div>
+
+      <!-- 8. การเงินรายสมาชิก -->
+      <a href="#" data-view="finance" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="การเงินรายสมาชิก (สรุปยอดรายได้/ปันผลของสมาชิกแต่ละแปลง)">
+        <i class="fa-solid fa-hand-holding-dollar text-base w-5 text-white"></i>
+        <span>8. การเงินรายสมาชิก</span>
       </a>
 
-      <a href="#" data-view="customers" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fa-solid fa-users text-lg w-5 text-emerald-700"></i>
-        <span>ข้อมูลลูกค้า</span>
+      <!-- 9. รายงานสรุป -->
+      <a href="#" data-view="cost-revenue" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="รายงานสรุป (วิเคราะห์ต้นทุน รายได้ กำไร และ Margin)">
+        <i class="fa-solid fa-chart-pie text-base w-5 text-white"></i>
+        <span>9. รายงานสรุป</span>
       </a>
 
-      <div class="border-t border-emerald-900/60 my-4"></div>
+      <!-- หมวดที่ 4: ข้อมูลหลักและการตั้งค่า (Master Settings) -->
+      <div id="nav-section-master-settings" class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
+        <span>หมวดที่ 4: ข้อมูลหลักและการตั้งค่า (Master Settings)</span>
+      </div>
 
-      <a href="#" data-view="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-200">
-        <i class="fas fa-cogs text-lg w-5 text-emerald-700"></i>
-        <span>ตั้งค่าข้อมูลวิสาหกิจ</span>
+      <!-- 10. จัดการสมาชิก -->
+      <a href="#" data-view="members" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการสมาชิก (ทะเบียนรายชื่อสมาชิกกลุ่ม)">
+        <i class="fa-solid fa-users text-base w-5 text-white"></i>
+        <span>10. จัดการสมาชิก</span>
+      </a>
+
+      <!-- 11. ตั้งค่าข้อมูลวิสาหกิจ -->
+      <a href="#" data-view="settings" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ตั้งค่าข้อมูลวิสาหกิจ (ข้อมูลกลุ่ม, ที่อยู่, คณะกรรมการ และผังองค์กร)">
+        <i class="fa-solid fa-gear text-base w-5 text-[#4ade80]"></i>
+        <span>11. ตั้งค่าข้อมูลวิสาหกิจ</span>
       </a>
     </nav>
 
     <!-- Sidebar Footer -->
-    <div class="p-6 border-t border-emerald-900/60 bg-[#122c13]">
+    <div class="p-4 border-t border-white/10 bg-[#122C13]">
       <div class="flex items-center gap-3">
-        <div id="user-avatar-display" class="w-8 h-8 rounded-full bg-emerald-800 flex items-center justify-center text-xs font-bold border border-emerald-700">
-          BE
+        <div id="user-avatar-display" class="w-10 h-10 rounded-full bg-[#065F46] text-white flex items-center justify-center text-base font-bold shadow-sm">
+          น
         </div>
         <div class="flex-1 overflow-hidden">
-          <span id="user-name-display" class="text-xs font-bold text-gray-300 block truncate">ผู้ใช้งานระบบ</span>
-          <span id="user-role-display" class="text-[10px] text-green-400 block truncate">ผู้เยี่ยมชม</span>
+          <span id="user-name-display" class="text-sm font-bold text-white block truncate">นายสมเกียรติ พึ่งตน</span>
+          <span id="user-role-display" class="text-sm text-[#4ade80] font-semibold block truncate">ประธานกลุ่ม</span>
         </div>
       </div>
     </div>
@@ -154,30 +220,29 @@
   <div class="flex-1 flex flex-col min-h-screen overflow-y-auto">
     
     <!-- Top Header Navigation (Responsive bar) -->
-    <header class="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-      <div class="flex items-center gap-3">
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      <div class="flex items-center gap-3.5">
         <!-- Sidebar Toggle for Mobile -->
-        <button id="sidebar-toggle" class="p-2 -ml-2 text-gray-500 hover:text-emerald-700 rounded-xl hover:bg-gray-50 lg:hidden focus:outline-none">
-          <i class="fas fa-bars text-xl"></i>
+        <button id="sidebar-toggle" class="p-2 -ml-2 text-slate-600 hover:text-emerald-700 rounded-xl hover:bg-slate-100 lg:hidden focus:outline-none transition-colors">
+          <i class="fas fa-bars text-lg"></i>
         </button>
         <div class="hidden sm:block">
-          <span class="text-xs text-gray-400 font-medium block">ยินดีต้อนรับเข้าสู่ระบบ</span>
-          <span class="text-sm font-bold text-gray-800 enterprise-name-display">วิสาหกิจชุมชนสมุนไพรอบแห้ง</span>
+          <span class="text-sm text-gray-500 font-normal block leading-tight mb-0.5">ยินดีต้อนรับเข้าสู่ระบบ</span>
+          <span class="text-base sm:text-lg font-bold text-gray-900 leading-snug block enterprise-name-display">วิสาหกิจชุมชนสมุนไพรอบแห้งบ้านศรีดอนมูล</span>
         </div>
       </div>
 
       <!-- User Auth Status & Action buttons in top header -->
       <div class="flex items-center gap-4">
         <!-- Stats widget on larger screens -->
-        <div class="hidden xl:flex items-center gap-4 text-xs font-semibold pr-4 border-r border-gray-200">
-          <span class="flex items-center gap-1.5 text-gray-500">
-            <i class="fas fa-users text-emerald-600"></i>
-            สมาชิก: <span class="text-gray-900 font-bold enterprise-village-display">หมู่ 4</span>
+        <div class="hidden xl:flex items-center gap-3 text-sm font-medium pr-4 border-r border-slate-200">
+          <span class="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            <i class="fa-solid fa-location-dot text-emerald-600"></i>
+            พื้นที่: <span class="text-slate-900 font-bold enterprise-village-display">หมู่ 4</span>
           </span>
-          <span class="h-4 w-px bg-gray-200"></span>
-          <span class="flex items-center gap-1.5 text-gray-500">
-            <i class="fas fa-seedling text-amber-500"></i>
-            พืชเด่น: <span class="text-gray-900 font-bold">เก๊กฮวย/คาโมมายล์</span>
+          <span class="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            <i class="fa-solid fa-leaf text-amber-600"></i>
+            พืชหลัก: <span class="text-slate-900 font-bold enterprise-crops-display">เก๊กฮวย / คาโมมายล์</span>
           </span>
         </div>
 
@@ -204,6 +269,7 @@
   <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3"></div>
 
   <!-- Main JavaScript App module -->
-  <script type="module" src="js/app.js?v=39"></script>
+  <script type="module" src="js/app.js?v=144"></script>
 </body>
 </html>
+<!-- No-Cache Meta tags injected to prevent stale bugs -->
