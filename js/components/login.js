@@ -1,4 +1,4 @@
-﻿// Login Component for Authentication
+// Login Component for Authentication
 import { appState } from '../state.js';
 import { showToast } from '../helpers.js';
 
@@ -85,7 +85,7 @@ export const LoginComponent = {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               
               <!-- Admin Demo Button -->
-              <button type="button" data-demo-user="12/4" data-demo-pass="0812345600"
+              <button type="button" data-demo-user="12/4" data-demo-pass="0611391105"
                 class="demo-login-btn p-3 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-left transition-all group flex flex-col justify-between">
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-bold text-emerald-900">👑 ประธาน/Admin</span>
@@ -105,10 +105,10 @@ export const LoginComponent = {
               </button>
 
               <!-- Member Demo Button -->
-              <button type="button" data-demo-user="12/5" data-demo-pass="0812345602"
+              <button type="button" data-demo-user="12/5" data-demo-pass="0897654321"
                 class="demo-login-btn p-3 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100 text-left transition-all group flex flex-col justify-between">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-blue-900">🌾 เกษตรกร (MEM-002)</span>
+                  <span class="text-sm font-bold text-blue-900">🌾 รองประธาน (MEM-002)</span>
                   <i class="fas fa-chevron-right text-sm text-blue-600 group-hover:translate-x-0.5 transition-transform"></i>
                 </div>
                 <span class="text-sm text-blue-700 block mt-1">เลขที่บ้าน: <b>12/5</b></span>

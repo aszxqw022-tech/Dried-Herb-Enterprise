@@ -142,17 +142,17 @@ export const InventoryComponent = {
       </div>
     `;
 
-    // 3.5 Generate Standard Price Reference Bar (เกณฑ์ราคาขายผลผลิตมาตรฐานวิสาหกิจ - ครอบคลุมพืชสมุนไพรทุกชนิดในระบบ)
+    // 3.5 Generate Standard Price Reference Bar (เกณฑ์ราคาขายผลผลิตมาตรฐานวิสาหกิจ - ครอบคลุมพืชสมุนไพรตามแผนการปลูก)
     const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
-    const herbList = Object.keys(roadmaps);
-    if (!herbList.includes('เก๊กฮวย')) herbList.unshift('เก๊กฮวย');
-    if (!herbList.includes('คาโมมายล์')) herbList.splice(1, 0, 'คาโมมายล์');
+    const masterHerbs = appState.getHerbsCatalog ? appState.getHerbsCatalog() : [];
+    const herbList = Object.keys(roadmaps).length > 0 ? Object.keys(roadmaps) : ['เก๊กฮวย', 'คาโมมายล์'];
 
     const standardPriceItems = [];
     herbList.forEach((herb, hIdx) => {
       const isChrys = herb.includes('เก๊กฮวย');
       const isCham = herb.includes('คาโมมายล์');
-      const herbIcon = roadmaps[herb]?.icon || getHerbDefaultIcon(herb);
+      const mHerb = masterHerbs.find(h => h.name === herb);
+      const herbIcon = (mHerb && mHerb.icon) || roadmaps[herb]?.icon || getHerbDefaultIcon(herb);
 
       // Find bulk product (กก.)
       const bulkPrd = allProducts.find(p => (p.category === herb || (p.name || '').includes(herb)) && (p.unit === 'กก.' || p.unit === 'kg'));
@@ -171,6 +171,9 @@ export const InventoryComponent = {
       ];
       const theme = isChrys ? palette[0] : (isCham ? palette[1] : palette[2 + (hIdx % 2)]);
 
+      const buyingPrice = mHerb ? (mHerb.freshBuyingPrice || mHerb.baselinePriceFresh || '-') : '-';
+      const yieldRatio = mHerb ? (mHerb.standardRatio || '8.0') : '8.0';
+
       if (bulkPrd) {
         standardPriceItems.push({
           id: bulkPrd.id,
@@ -180,6 +183,9 @@ export const InventoryComponent = {
           unit: bulkPrd.unit,
           stock: bulkPrd.stock,
           icon: herbIcon,
+          herbName: herb,
+          buyingPrice,
+          yieldRatio,
           stripe: theme.bulkStripe,
           cardBorder: theme.bulkBorder,
           iconBg: 'bg-gray-50',
@@ -198,6 +204,9 @@ export const InventoryComponent = {
           unit: jarPrd.unit,
           stock: jarPrd.stock,
           icon: herbIcon,
+          herbName: herb,
+          buyingPrice,
+          yieldRatio,
           stripe: theme.jarStripe,
           cardBorder: theme.jarBorder,
           iconBg: 'bg-gray-50',
@@ -218,17 +227,23 @@ export const InventoryComponent = {
               <i class="fas fa-tags"></i>
             </div>
             <div>
-              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">
-                เกณฑ์ราคาจำหน่ายผลผลิต — วิสาหกิจชุมชน
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                <span>เกณฑ์ราคาและฐานข้อมูลพืชสมุนไพร — วิสาหกิจชุมชน</span>
               </h2>
               <p class="text-sm text-emerald-200 mt-0.5">
-                กดปุ่ม <b class="text-white">"✏ แก้ไขราคา"</b> บนการ์ดเพื่อปรับราคาได้ทันที · ราคาเชื่อมโยงกับทุกส่วนในระบบ
+                กำหนดราคารับซื้อสด อัตราอบแห้ง ราคาขายส่ง และราคาขายปลีก · เชื่อมโยงอัตโนมัติทุกส่วนในระบบ
               </p>
             </div>
           </div>
-          <span class="inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-emerald-100 self-start sm:self-auto shrink-0">
-            <i class="fas fa-link text-emerald-300"></i> เชื่อมโยงระบบคำนวณมูลค่าอัตโนมัติ
-          </span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="open-add-herb-modal-btn" class="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 shadow-md transition-all active:scale-95 cursor-pointer">
+              <i class="fas fa-plus-circle text-base"></i>
+              <span>+ เพิ่มสมุนไพรใหม่</span>
+            </button>
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-emerald-100 shrink-0">
+              <i class="fas fa-link text-emerald-300"></i> เชื่อมโยงไดนามิก
+            </span>
+          </div>
         </div>
 
         <!-- Price cards grid -->
@@ -252,11 +267,29 @@ export const InventoryComponent = {
 
                 <!-- Product name -->
                 <h3 class="text-base font-bold text-gray-900 leading-snug mb-0.5">${item.name}</h3>
-                <span class="text-sm text-gray-500 font-medium mb-3">รหัส: <span class="font-bold text-gray-700">${item.id}</span></span>
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                  <span>รหัส: <b class="text-gray-700">${item.id}</b></span>
+                  ${item.buyingPrice && item.buyingPrice !== '-' ? `
+                    <button class="edit-herb-master-btn bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-300 font-bold transition-all flex items-center gap-1 cursor-pointer" 
+                      data-herb="${item.herbName}" title="คลิกเพื่อแก้ไขราคารับซื้อสดและเกณฑ์ของ ${item.herbName}">
+                      <i class="fas fa-edit text-[10px] text-amber-700"></i>
+                      <span>รับซื้อสด ${item.buyingPrice} บ./กก.</span>
+                    </button>
+                  ` : ''}
+                </div>
 
                 <!-- Price display -->
-                <div class="mt-auto pt-3 border-t-2 border-dashed border-gray-100">
-                  <span class="text-sm font-bold text-gray-500 uppercase tracking-wider block mb-0.5">ราคาขายปัจจุบัน</span>
+                <div class="mt-auto pt-2.5 border-t-2 border-dashed border-gray-100">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">ราคาขายผลผลิต</span>
+                    ${item.yieldRatio ? `
+                      <button class="edit-herb-master-btn text-[11px] font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded border border-teal-200 transition-all cursor-pointer flex items-center gap-1"
+                        data-herb="${item.herbName}" title="คลิกเพื่อแก้ไขอัตราส่วนอบแห้งของ ${item.herbName}">
+                        <i class="fas fa-fire-burner text-[9px]"></i>
+                        <span>สูตร ${item.yieldRatio}:1</span>
+                      </button>
+                    ` : ''}
+                  </div>
                   <div class="flex items-baseline gap-1 mb-1">
                     <span class="text-3xl font-bold ${item.priceColor} tabular-nums">${item.price.toLocaleString()}</span>
                     <span class="text-sm font-bold text-gray-600">บาท</span>
@@ -672,6 +705,14 @@ export const InventoryComponent = {
       });
     }
 
+    // 1a. Button + เพิ่มสมุนไพรใหม่ (Master Herbs Catalog)
+    const addHerbBtn = document.getElementById('open-add-herb-modal-btn');
+    if (addHerbBtn) {
+      addHerbBtn.addEventListener('click', () => {
+        this.openAddHerbModal();
+      });
+    }
+
     // 1b. Button + เพิ่มสินค้ากระป๋องใหม่ (pre-fill unit as กระป๋อง)
     const addCanProductBtn = document.getElementById('open-add-can-product-btn');
     if (addCanProductBtn) {
@@ -764,6 +805,148 @@ export const InventoryComponent = {
         const id = btn.getAttribute('data-id');
         this.openQuickEditPriceModal(id);
       });
+    });
+
+    // 7b. Action buttons: แก้ไขเกณฑ์และราคารับซื้อสดของพืช (Master Herb)
+    const editHerbBtns = document.querySelectorAll('.edit-herb-master-btn');
+    editHerbBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const herbName = btn.getAttribute('data-herb');
+        if (herbName) this.openEditHerbModal(herbName);
+      });
+    });
+  },
+
+  openEditHerbModal(herbName) {
+    const masterHerb = appState.getHerbByName(herbName) || {
+      herbId: 'HRB-000',
+      name: herbName,
+      icon: getHerbDefaultIcon ? getHerbDefaultIcon(herbName) : '🌿',
+      freshBuyingPrice: 50,
+      standardRatio: 8.0,
+      drySellingPriceKg: 300,
+      jarSellingPrice50g: 120
+    };
+
+    const modalHtml = `
+      <form id="global-edit-herb-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <!-- Information Banner -->
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+              <i class="fas fa-coins text-amber-300"></i>
+            </span>
+            <div class="text-sm text-emerald-950">
+              <b class="font-bold block text-base text-emerald-900 mb-0.5">กำหนดราคาผลผลิต: ${masterHerb.icon || '🌿'} ${masterHerb.name}</b>
+              กำหนดราคารับซื้อสดจากสมาชิก และราคาขายส่ง/ขายปลีกมาตรฐาน — อัตราส่วนการอบแห้งสามารถปรับได้ที่เมนู <b>"กระบวนการแปรรูปสมุนไพร"</b>
+            </div>
+          </div>
+
+          <input type="hidden" name="name" value="${masterHerb.name}">
+
+          <!-- Fresh Buying Price (ราคารับซื้อสด) -->
+          <div class="p-4 bg-amber-50/80 rounded-2xl border-2 border-amber-300 space-y-2">
+            <label for="edit-modal-fresh-price" class="block text-sm font-bold text-amber-950 uppercase">
+              <i class="fas fa-hand-holding-dollar text-amber-600 mr-1.5 text-base"></i> ราคารับซื้อสดจากสมาชิก (บาท / กก.) *
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-amber-700 font-bold text-base">฿</span>
+              <input type="number" id="edit-modal-fresh-price" name="freshBuyingPrice" required min="1" step="any" value="${masterHerb.freshBuyingPrice || 50}"
+                class="w-full pl-9 pr-20 py-3 rounded-xl border-2 border-amber-400 text-2xl font-bold text-amber-950 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono shadow-inner">
+              <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-sm font-bold text-amber-800 pointer-events-none">
+                บาท / กก.
+              </span>
+            </div>
+            <p class="text-xs text-amber-800">
+              * ราคานี้จะถูกนำไปใช้คำนวณยอดเงินรับซื้อให้สมาชิกในระบบโรงอบแห้งและสรุปการเงินโดยอัตโนมัติ
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Wholesale Selling Price (ราคาขายส่ง กก.) -->
+            <div>
+              <label for="edit-modal-dry-price" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+                ราคาขายส่งดอกแห้ง (บาท / กก.) *
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold text-base">฿</span>
+                <input type="number" id="edit-modal-dry-price" name="drySellingPriceKg" required min="1" step="any" value="${masterHerb.drySellingPriceKg || 300}"
+                  class="w-full pl-9 pr-16 py-2.5 rounded-xl border border-gray-200 text-lg font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-gray-400 pointer-events-none">
+                  บาท / กก.
+                </span>
+              </div>
+            </div>
+
+            <!-- Retail Selling Price (ราคาขายปลีก กระป๋อง 50G) -->
+            <div>
+              <label for="edit-modal-jar-price" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+                ราคาขายปลีกกระป๋อง 50G (บาท / กระปุก) *
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold text-base">฿</span>
+                <input type="number" id="edit-modal-jar-price" name="jarSellingPrice50g" required min="1" step="any" value="${masterHerb.jarSellingPrice50g || 120}"
+                  class="w-full pl-9 pr-20 py-2.5 rounded-xl border border-gray-200 text-lg font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-gray-400 pointer-events-none">
+                  บาท/กระปุก
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 active:scale-95">
+            <i class="fas fa-save"></i> บันทึกข้อมูลเกณฑ์พืช
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: `แก้ไขเกณฑ์ราคา: ${masterHerb.name}`,
+      icon: 'fas fa-pen-to-square',
+      size: 'max-w-2xl',
+      headerColor: 'bg-emerald-800',
+      content: modalHtml,
+      onRender: (dialog) => {
+        const form = dialog.querySelector('#global-edit-herb-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const freshBuyingPrice = parseFloat(formData.get('freshBuyingPrice')) || 50;
+            const drySellingPriceKg = parseFloat(formData.get('drySellingPriceKg')) || 300;
+            const jarSellingPrice50g = parseFloat(formData.get('jarSellingPrice50g')) || 120;
+
+            const herbData = {
+              herbId: masterHerb.herbId,
+              name: masterHerb.name,
+              icon: masterHerb.icon || (getHerbDefaultIcon ? getHerbDefaultIcon(masterHerb.name) : '🌿'),
+              freshBuyingPrice: freshBuyingPrice,
+              standardRatio: masterHerb.standardRatio || 8.0,
+              drySellingPriceKg: drySellingPriceKg,
+              jarSellingPrice50g: jarSellingPrice50g,
+              category: masterHerb.category || 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+              growthDays: masterHerb.growthDays || 90
+            };
+
+            try {
+              appState.addOrUpdateHerb(herbData);
+              closeGlobalModal();
+              showToast(`อัปเดตเกณฑ์และราคารับซื้อสดของ "${herbData.name}" เป็น ${herbData.freshBuyingPrice} บ./กก. เรียบร้อยแล้ว`, 'success');
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
     });
   },
 
@@ -858,6 +1041,158 @@ export const InventoryComponent = {
               appState.updateProductPrice(productId, newPrice);
               closeGlobalModal();
               showToast(`อัปเดตราคาขาย ${product.name} เป็น ${formatBaht(newPrice)} / ${product.unit} เรียบร้อยแล้ว`, 'success');
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
+  },
+
+  openAddHerbModal() {
+    const nextHerbNum = (appState.getHerbsCatalog().length + 1);
+    const nextHerbId = `HRB-${String(nextHerbNum).padStart(3, '0')}`;
+    const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
+    const roadmapHerbNames = Object.keys(roadmaps);
+
+    // Filter available herbs from roadmaps that can be configured
+    const herbOptionsHtml = roadmapHerbNames.length > 0
+      ? roadmapHerbNames.map(name => {
+          const icon = getHerbDefaultIcon ? getHerbDefaultIcon(name) : '🌿';
+          return `<option value="${name}">${icon} ${name}</option>`;
+        }).join('')
+      : '<option value="เก๊กฮวย">🌼 เก๊กฮวย</option><option value="คาโมมายล์">🌾 คาโมมายล์</option>';
+
+    const modalHtml = `
+      <form id="global-add-herb-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <!-- Information Banner -->
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+              <i class="fas fa-seedling"></i>
+            </span>
+            <div class="text-sm text-emerald-950">
+              <b class="font-bold block text-base text-emerald-900 mb-0.5">เลือกพืชสมุนไพรจากแผนการปลูก (Master Herbs Catalog)</b>
+              เลือกชนิดพืชที่มีอยู่ในระบบแผนการปลูก ไอคอนจะถูกกำหนดอัตโนมัติ พร้อมตั้งราคารับซื้อสดและราคาขาย (อัตราส่วนอบแห้งกำหนดได้ใน "กระบวนการแปรรูปสมุนไพร")
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Herb ID -->
+            <div>
+              <label for="modal-herb-id" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+                รหัสพืชสมุนไพร *
+              </label>
+              <input type="text" id="modal-herb-id" name="herbId" required value="${nextHerbId}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-emerald-800 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+            </div>
+
+            <!-- Herb Name Dropdown from Roadmaps -->
+            <div>
+              <label for="modal-herb-name" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+                เลือกชนิดพืชสมุนไพร (จากแผนการปลูก) *
+              </label>
+              <select id="modal-herb-name" name="name" required
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
+                ${herbOptionsHtml}
+              </select>
+            </div>
+
+            <!-- Fresh Buying Price -->
+            <div class="md:col-span-2">
+              <label for="modal-herb-fresh-price" class="block text-sm font-bold text-amber-900 uppercase mb-1">
+                <i class="fas fa-hand-holding-dollar text-amber-600 mr-1"></i> ราคารับซื้อดอกสดจากสมาชิก (บาท / กก.) *
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold">฿</span>
+                <input type="number" id="modal-herb-fresh-price" name="freshBuyingPrice" required min="1" step="any" value="50" placeholder="50"
+                  class="w-full pl-9 pr-14 py-2.5 rounded-xl border-2 border-amber-300 text-base font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono">
+                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-bold text-gray-500">บ./กก.</span>
+              </div>
+              <span class="text-xs text-amber-800 mt-1 block">* นำไปใช้คำนวณเงินจ่ายสดให้สมาชิกในโรงอบแห้งโดยอัตโนมัติ</span>
+            </div>
+
+            <!-- Dry Selling Price (1 KG) -->
+            <div>
+              <label for="modal-herb-dry-price" class="block text-sm font-bold text-emerald-900 uppercase mb-1">
+                ราคาขายส่งดอกแห้ง (บาท / กก.) *
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold">฿</span>
+                <input type="number" id="modal-herb-dry-price" name="drySellingPriceKg" required min="1" step="any" value="300" placeholder="300"
+                  class="w-full pl-9 pr-14 py-2.5 rounded-xl border-2 border-emerald-300 text-base font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-bold text-gray-500">บ./กก.</span>
+              </div>
+            </div>
+
+            <!-- Jar Selling Price (50g) -->
+            <div>
+              <label for="modal-herb-jar-price" class="block text-sm font-bold text-indigo-900 uppercase mb-1">
+                ราคาขายปลีกกระป๋อง 50 G (บาท / กระปุก) *
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold">฿</span>
+                <input type="number" id="modal-herb-jar-price" name="jarSellingPrice50g" required min="1" step="any" value="120" placeholder="120"
+                  class="w-full pl-9 pr-14 py-2.5 rounded-xl border-2 border-indigo-300 text-base font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-bold text-gray-500">บ./กป.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-7 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 active:scale-95">
+            <i class="fas fa-check-circle"></i>
+            <span>บันทึกและเชื่อมโยงเข้าระบบ</span>
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: 'ตั้งค่าชนิดพืชสมุนไพร (จากแผนการปลูก)',
+      icon: 'fas fa-leaf',
+      size: 'max-w-2xl',
+      headerColor: 'bg-emerald-800',
+      content: modalHtml,
+      onRender: (dialog) => {
+        // Form Submit
+        const form = dialog.querySelector('#global-add-herb-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const name = (formData.get('name') || '').trim();
+            const autoIcon = getHerbDefaultIcon ? getHerbDefaultIcon(name) : '🌿';
+            const existingHerb = appState.getHerbByName(name);
+
+            const herbData = {
+              herbId: (formData.get('herbId') || '').trim(),
+              name: name,
+              icon: autoIcon,
+              freshBuyingPrice: parseFloat(formData.get('freshBuyingPrice')) || 50,
+              standardRatio: existingHerb ? existingHerb.standardRatio : 8.0,
+              drySellingPriceKg: parseFloat(formData.get('drySellingPriceKg')) || 300,
+              jarSellingPrice50g: parseFloat(formData.get('jarSellingPrice50g')) || 120,
+              category: 'ชาชงดื่มและเครื่องดื่มเพื่อสุขภาพ',
+              growthDays: 90
+            };
+
+            if (!herbData.name) {
+              showToast('กรุณาเลือกชนิดพืชสมุนไพร', 'error');
+              return;
+            }
+
+            try {
+              appState.addOrUpdateHerb(herbData);
+              closeGlobalModal();
+              showToast(`ตั้งค่าพืชสมุนไพร "${herbData.name}" เข้าระบบและเชื่อมโยงเรียบร้อยแล้ว`, 'success');
               this.refreshView();
             } catch (err) {
               showToast(err.message, 'error');

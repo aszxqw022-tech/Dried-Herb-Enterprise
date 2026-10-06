@@ -1191,7 +1191,7 @@ export const SalesComponent = {
               </div>
               <h1 class="text-base sm:text-lg font-bold text-gray-900 leading-snug">${enterprise.name || 'วิสาหกิจชุมชนสมุนไพรอบแห้งบ้านศรีดอนมูล'}</h1>
               <p class="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
-                ${enterprise.village || 'หมู่ที่ 2 บ้านศรีดอนมูล'} ต.${enterprise.subdistrict || 'ศรีดอนมูล'} อ.${enterprise.district || 'เชียงแสน'} จ.${enterprise.province || 'เชียงราย'} ${enterprise.zipcode || enterprise.postalCode || '57150'}
+                ${enterprise.village || 'หมู่ที่ 12'} ต.${enterprise.subdistrict || 'ศรีดอนมูล'} อ.${enterprise.district || 'เชียงแสน'} จ.${enterprise.province || 'เชียงราย'} ${enterprise.zipcode || enterprise.postalCode || '57150'}
               </p>
               <div class="text-xs sm:text-sm text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
                 <span>โทร. ${enterprise.phone || '089-555-1234'}</span>

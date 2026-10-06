@@ -7,16 +7,29 @@ export const CropsComponent = {
   selectedCycle: 1, // 1 | 2
   selectedHerb: 'เก๊กฮวย',
   searchQuery: '',
-  viewMode: 'table', // 'table' | 'matrix'
+  viewMode: (function() {
+    try {
+      return localStorage.getItem('crops_view_mode') || 'matrix';
+    } catch (e) {
+      return 'matrix';
+    }
+  })(), // 'matrix' (หลัก) | 'table'
 
   render() {
     const currentUser = appState.getCurrentUser();
     const isMember = currentUser && currentUser.role === 'Member';
 
-    // 1. Fetch available roadmaps and herbs
-    const roadmaps = appState.getRoadmaps();
-    const herbList = Object.keys(roadmaps);
-    if (!roadmaps[this.selectedHerb] && herbList.length > 0) {
+    // 1. Fetch available roadmaps and herbs from Master Herbs Catalog
+    const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
+    const masterHerbs = appState.getHerbsCatalog ? appState.getHerbsCatalog() : [];
+    const herbList = Array.from(new Set([
+      ...masterHerbs.map(h => h.name).filter(Boolean),
+      ...Object.keys(roadmaps)
+    ]));
+    if (!herbList.includes('เก๊กฮวย')) herbList.unshift('เก๊กฮวย');
+    if (!herbList.includes('คาโมมายล์')) herbList.splice(1, 0, 'คาโมมายล์');
+
+    if (!herbList.includes(this.selectedHerb) && herbList.length > 0) {
       this.selectedHerb = herbList[0];
     }
     const currentRoadmap = appState.getRoadmapByHerb(this.selectedHerb) || {
@@ -136,19 +149,19 @@ export const CropsComponent = {
                 พ.ศ. ${this.selectedYear} | รอบที่ ${this.selectedCycle} | ${this.selectedHerb}
               </span>
 
-              <!-- View Switcher Toggle (สลับมุมมอง ตารางสรุปดูง่าย / ตาราง Matrix) -->
+              <!-- View Switcher Toggle (สลับมุมมอง ตาราง Matrix เป็นหลัก / ตารางสรุปย่อ) -->
               <div class="flex items-center bg-gray-100 p-0.5 sm:p-1 rounded-xl border border-gray-200 shrink-0">
+                <button id="toggle-view-matrix-btn" class="px-2.5 sm:px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  this.viewMode === 'matrix' ? 'bg-white text-emerald-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
+                }" title="มุมมองตาราง Matrix ละเอียดทุกขั้นตอน (มุมมองหลัก)">
+                  <i class="fas fa-table-cells"></i>
+                  <span>ตาราง Matrix (หลัก)</span>
+                </button>
                 <button id="toggle-view-clean-btn" class="px-2.5 sm:px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   this.viewMode === 'table' ? 'bg-white text-emerald-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
                 }" title="มุมมองตารางสรุปมาตรฐาน (อ่านง่าย สบายตา)">
                   <i class="fas fa-table-list"></i>
                   <span>ตารางสรุป (ดูง่าย)</span>
-                </button>
-                <button id="toggle-view-matrix-btn" class="px-2.5 sm:px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  this.viewMode === 'matrix' ? 'bg-white text-emerald-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
-                }" title="มุมมองตาราง Matrix ละเอียดทุกขั้นตอน">
-                  <i class="fas fa-table-cells"></i>
-                  <span class="hidden sm:inline">ตาราง Matrix</span>
                 </button>
               </div>
             </div>
@@ -1217,19 +1230,21 @@ export const CropsComponent = {
       });
     }
 
-    // View Switcher Handlers (ตารางสรุปดูง่าย / ตาราง Matrix / การ์ดมือถือ)
-    const toggleCleanBtn = document.getElementById('toggle-view-clean-btn');
-    if (toggleCleanBtn) {
-      toggleCleanBtn.addEventListener('click', () => {
-        this.viewMode = 'table';
-        this.refreshView();
-      });
-    }
-
+    // View Switcher Handlers (ตาราง Matrix เป็นหลัก / ตารางสรุปย่อ)
     const toggleMatrixBtn = document.getElementById('toggle-view-matrix-btn');
     if (toggleMatrixBtn) {
       toggleMatrixBtn.addEventListener('click', () => {
         this.viewMode = 'matrix';
+        try { localStorage.setItem('crops_view_mode', 'matrix'); } catch (e) {}
+        this.refreshView();
+      });
+    }
+
+    const toggleCleanBtn = document.getElementById('toggle-view-clean-btn');
+    if (toggleCleanBtn) {
+      toggleCleanBtn.addEventListener('click', () => {
+        this.viewMode = 'table';
+        try { localStorage.setItem('crops_view_mode', 'table'); } catch (e) {}
         this.refreshView();
       });
     }

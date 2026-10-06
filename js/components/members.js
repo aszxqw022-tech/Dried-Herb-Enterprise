@@ -279,7 +279,7 @@ export const MembersComponent = {
     const icon = isEdit ? 'fas fa-user-edit' : 'fas fa-user-plus';
 
     const enterprise = appState.getEnterprise ? (appState.getEnterprise() || {}) : {};
-    const entVillage = (enterprise.village || '').trim() || 'หมู่ที่ 2 บ้านศรีดอนมูล';
+    const entVillage = (enterprise.village || '').trim() || 'หมู่ที่ 12';
     const defaultVillage = (member && member.villageNumber) ? member.villageNumber : entVillage;
 
     const photoPreviewHtml = this.currentPhotoBase64 

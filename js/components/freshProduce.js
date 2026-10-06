@@ -25,20 +25,7 @@ export const FreshProduceComponent = {
 
     const allRoadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
     const roadmapHerbNames = Object.keys(allRoadmaps);
-    const plotHerbNames = plots.map(p => p.plantType).filter(Boolean);
-    const cropHerbNames = allCrops.map(c => c.seedlingSource).filter(Boolean);
-    const batchHerbNames = dryingBatches.map(b => b.herbType).filter(Boolean);
-
-    const rawHerbs = ['เก๊กฮวย', 'คาโมมายล์', ...roadmapHerbNames, ...plotHerbNames, ...cropHerbNames, ...batchHerbNames];
-    const herbTypes = [];
-    rawHerbs.forEach(raw => {
-      let clean = raw.trim();
-      if (clean.includes('เก๊กฮวย')) clean = 'เก๊กฮวย';
-      else if (clean.includes('คาโมมายล์')) clean = 'คาโมมายล์';
-      if (clean && !herbTypes.includes(clean)) {
-        herbTypes.push(clean);
-      }
-    });
+    const herbTypes = roadmapHerbNames.length > 0 ? roadmapHerbNames : ['เก๊กฮวย', 'คาโมมายล์'];
 
     if (!this.selectedHerb || !herbTypes.includes(this.selectedHerb)) {
       this.selectedHerb = herbTypes[0] || 'เก๊กฮวย';
@@ -46,12 +33,7 @@ export const FreshProduceComponent = {
     const currentSelectedHerb = this.selectedHerb;
 
     const getHerbRatio = (h = '') => {
-      if (h.includes('เก๊กฮวย')) return 10;
-      if (h.includes('คาโมมายล์')) return 10;
-      if (h.includes('ชา')) return 5;
-      if (h.includes('ดาวเรือง')) return 10;
-      if (h.includes('ฟ้าทะลายโจร')) return 6;
-      return 10;
+      return this.getHerbRatio(h);
     };
 
     const herbPools = herbTypes.map(herb => {
@@ -231,19 +213,20 @@ export const FreshProduceComponent = {
             </div>
             <div class="flex items-center justify-between mb-3 relative z-10">
               <span class="text-xs font-bold text-amber-300 uppercase tracking-wider">อัตราส่วนแปรรูป</span>
-              <div class="w-10 h-10 rounded-xl bg-white/10 text-amber-300 flex items-center justify-center text-lg border border-white/10">
-                <i class="fa-solid fa-scale-balanced"></i>
-              </div>
+              <button id="edit-drying-ratio-btn" data-herb="${selectedPool.herb}" class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-amber-950 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95" title="คลิกเพื่อแก้ไขอัตราส่วนอบแห้งของ ${selectedPool.herb}">
+                <i class="fas fa-pen-to-square text-xs"></i>
+                <span>แก้ไขสูตร</span>
+              </button>
             </div>
             <div class="relative z-10">
               <div class="flex items-baseline gap-2">
-                <span class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">10:1</span>
-                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-950">Yield 10%</span>
+                <span class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">${selectedPool.ratio}:1</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-950">Yield ${(100 / selectedPool.ratio).toFixed(1)}%</span>
               </div>
               <div class="mt-2.5">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white/15 text-emerald-200 border border-white/10">
                   <i class="fas fa-arrows-spin text-amber-300"></i>
-                  สด 150 kg ➔ แห้ง 15 kg
+                  สด ${(selectedPool.ratio * 10).toFixed(0)} kg ➔ แห้ง 10 kg
                 </span>
               </div>
             </div>
@@ -310,13 +293,16 @@ export const FreshProduceComponent = {
                         <th class="px-6 py-4 whitespace-nowrap">รหัสแปลง</th>
                         <th class="px-6 py-4 whitespace-nowrap">เกษตรกร</th>
                         <th class="px-6 py-4 whitespace-nowrap text-right">ปริมาณสด (กก.)</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-right">ราคารับซื้อสด</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-right">ยอดเงินรับซื้อ</th>
                         <th class="px-6 py-4 whitespace-nowrap text-center">สถานะ</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-center">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-base font-medium text-slate-800">
                       ${cropsForHerb.length === 0 ? `
                         <tr>
-                          <td colspan="5" class="px-6 py-12 text-center text-slate-400 font-medium">
+                          <td colspan="8" class="px-6 py-12 text-center text-slate-400 font-medium">
                             ไม่มีข้อมูลผลผลิตสดในระบบ
                           </td>
                         </tr>
@@ -325,6 +311,13 @@ export const FreshProduceComponent = {
                         const members = appState.getMembers();
                         const owner = plot ? members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : null;
                         const yieldNum = parseFloat(c.yield) || 0;
+                        const cHerb = getCropHerb(c);
+                        const masterHerb = appState.getHerbByName ? (appState.getHerbByName(cHerb) || appState.getHerbById(cHerb)) : null;
+                        const freshBuyingPrice = typeof c.freshBuyingPrice === 'number' 
+                          ? c.freshBuyingPrice 
+                          : (masterHerb ? (parseFloat(masterHerb.freshBuyingPrice || masterHerb.baselinePriceFresh) || 50) : 50);
+                        const totalPayout = yieldNum * freshBuyingPrice;
+
                         return `
                           <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-slate-600">
@@ -337,8 +330,14 @@ export const FreshProduceComponent = {
                             <td class="px-6 py-4 whitespace-nowrap font-bold text-slate-900">
                               ${owner ? owner.name : '-'}
                             </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-slate-900">
-                              ${yieldNum.toFixed(1)}
+                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-slate-900 font-bold">
+                              ${yieldNum.toFixed(1)} กก.
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-emerald-800 font-bold">
+                              ${freshBuyingPrice} บ./กก.
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-emerald-900 font-extrabold text-base">
+                              ${formatBaht(totalPayout)}
                             </td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
                               ${c.isProcessed ? `
@@ -347,11 +346,18 @@ export const FreshProduceComponent = {
                                   อบแล้ว
                                 </span>
                               ` : `
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium bg-slate-100 text-slate-600">
-                                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium bg-amber-100 text-amber-900 font-bold">
+                                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                   รออบ
                                 </span>
                               `}
+                            </td>
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
+                              <button class="edit-fresh-harvest-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                                data-crop-id="${c.id}" title="แก้ไขปริมาณสดและราคารับซื้อของแปลงนี้">
+                                <i class="fas fa-edit text-xs"></i>
+                                <span>แก้ไข</span>
+                              </button>
                             </td>
                           </tr>
                         `;
@@ -688,6 +694,304 @@ export const FreshProduceComponent = {
         if (prodId) this.openQuickEditPriceModal(prodId);
       });
     });
+
+    // 7. Edit fresh harvest / buying price buttons
+    const editHarvestBtns = document.querySelectorAll('.edit-fresh-harvest-btn');
+    editHarvestBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const cropId = btn.getAttribute('data-crop-id');
+        if (cropId) this.openEditHarvestModal(cropId);
+      });
+    });
+
+    // 8. Edit drying ratio button in Card 4 (กระบวนการแปรรูปสมุนไพร)
+    const editRatioBtn = document.getElementById('edit-drying-ratio-btn');
+    if (editRatioBtn) {
+      editRatioBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const herb = editRatioBtn.getAttribute('data-herb') || this.selectedHerb;
+        this.openEditRatioModal(herb);
+      });
+    }
+  },
+
+  openEditRatioModal(herbName) {
+    const currentRatio = this.getHerbRatio(herbName);
+    const modalHtml = `
+      <form id="edit-drying-ratio-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </span>
+            <div class="text-sm text-emerald-950 flex-1">
+              <b class="font-bold text-base text-emerald-900 block mb-0.5">แก้ไขอัตราส่วนการอบแห้ง / แปรรูป: ${herbName}</b>
+              <p class="text-emerald-800">
+                กำหนดสัดส่วนน้ำหนักสดที่ต้องใช้ต่อการได้ดอกแห้ง 1 กิโลกรัม (สูตรมาตรฐาน) โดยระบบจะนำไปคำนวณน้ำหนักแห้งที่ควรได้ในโรงอบโดยอัตโนมัติ
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label for="drying-ratio-input" class="block text-sm font-bold text-gray-700 uppercase">
+              อัตราส่วนการอบแห้ง (สด : แห้ง 1 กก.) *
+            </label>
+            <div class="relative">
+              <input type="number" id="drying-ratio-input" name="standardRatio" required min="1" max="25" step="0.1" value="${currentRatio}"
+                class="w-full pl-5 pr-20 py-3 rounded-xl border-2 border-emerald-400 text-2xl font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+              <span class="absolute right-4 top-3.5 text-base font-bold text-gray-400 pointer-events-none">
+                : 1 กก.
+              </span>
+            </div>
+            <p class="text-xs text-gray-400">
+              เช่น ระบุ 8.0 หมายถึง ดอกสด 8 กิโลกรัม จะอบแห้งได้ดอกแห้ง 1 กิโลกรัม (Yield ${(100 / currentRatio).toFixed(1)}%)
+            </p>
+          </div>
+
+          <!-- Live Preview Card -->
+          <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">ตัวอย่างผลลัพธ์การคำนวณ</span>
+            <div class="grid grid-cols-2 gap-3 text-center">
+              <div class="p-3 bg-white rounded-xl border border-gray-200">
+                <span class="text-xs text-gray-500 block">เปอร์เซ็นต์ผลผลิต (Yield)</span>
+                <span id="preview-yield-pct" class="text-xl font-bold text-emerald-800 font-mono">${(100 / currentRatio).toFixed(1)}%</span>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-gray-200">
+                <span class="text-xs text-gray-500 block">สด 100 กก. ได้แห้ง</span>
+                <span id="preview-dry-weight" class="text-xl font-bold text-emerald-800 font-mono">${(100 / currentRatio).toFixed(1)} กก.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 active:scale-95">
+            <i class="fas fa-save"></i> บันทึกอัตราส่วน
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: `ปรับสูตรอบแห้ง: ${herbName}`,
+      icon: 'fa-solid fa-scale-balanced',
+      size: 'max-w-md',
+      headerColor: 'bg-emerald-800',
+      content: modalHtml,
+      onRender: (dialog) => {
+        const ratioInput = dialog.querySelector('#drying-ratio-input');
+        const yieldDisplay = dialog.querySelector('#preview-yield-pct');
+        const dryDisplay = dialog.querySelector('#preview-dry-weight');
+
+        if (ratioInput) {
+          ratioInput.addEventListener('input', () => {
+            const r = parseFloat(ratioInput.value) || 1;
+            if (r > 0) {
+              if (yieldDisplay) yieldDisplay.textContent = (100 / r).toFixed(1) + '%';
+              if (dryDisplay) dryDisplay.textContent = (100 / r).toFixed(1) + ' กก.';
+            }
+          });
+        }
+
+        const form = dialog.querySelector('#edit-drying-ratio-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newRatio = parseFloat(ratioInput ? ratioInput.value : 0);
+            if (!newRatio || newRatio <= 0) {
+              showToast('กรุณาระบุอัตราส่วนที่มากกว่า 0', 'error');
+              return;
+            }
+
+            try {
+              appState.setHerbRatio(herbName, newRatio);
+              closeGlobalModal();
+              showToast(`อัปเดตอัตราส่วนการอบแห้งของ "${herbName}" เป็น ${newRatio}:1 เรียบร้อยแล้ว`, 'success');
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
+  },
+
+  openEditHarvestModal(cropId) {
+    const crop = appState.getCropById(cropId);
+    if (!crop) return;
+
+    const plots = appState.getPlots();
+    const plot = plots.find(p => p.id === crop.plotId);
+    const members = appState.getMembers();
+    const owner = plot ? members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : null;
+    const cHerb = (crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย');
+    const masterHerb = appState.getHerbByName ? (appState.getHerbByName(cHerb) || appState.getHerbById(cHerb)) : null;
+    const currentPrice = typeof crop.freshBuyingPrice === 'number' 
+      ? crop.freshBuyingPrice 
+      : (masterHerb ? (parseFloat(masterHerb.freshBuyingPrice || masterHerb.baselinePriceFresh) || 50) : 50);
+    const currentYield = parseFloat(crop.yield) || 0;
+    const currentDate = crop.harvestDateActual || crop.harvestDateEst || new Date().toISOString().split('T')[0];
+    const initialPayout = currentYield * currentPrice;
+
+    const modalHtml = `
+      <form id="edit-fresh-harvest-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <!-- Information Banner -->
+          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+              <i class="fas fa-weight-scale"></i>
+            </span>
+            <div class="text-sm text-emerald-950 flex-1">
+              <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                <b class="font-bold text-base text-emerald-900">แก้ไขข้อมูลรับซื้อผลผลิตสด (รหัสล็อต: ${crop.id})</b>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-200 text-emerald-900">${cHerb}</span>
+              </div>
+              <p class="text-emerald-800">
+                แปลง: <b>${plot ? plot.name : crop.plotId}</b> | เกษตรกร: <b>${owner ? owner.name : '-'}</b>
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- วันที่เก็บเกี่ยว / รับซื้อ -->
+            <div>
+              <label for="harvest-date-input" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+                วันที่เก็บเกี่ยว / รับซื้อ *
+              </label>
+              <input type="date" id="harvest-date-input" name="harvestDate" required value="${currentDate}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- ปริมาณผลผลิตสด (กก.) -->
+            <div>
+              <label for="harvest-yield-input" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+                ปริมาณดอกสดที่รับซื้อ (กก.) *
+              </label>
+              <div class="relative">
+                <input type="number" id="harvest-yield-input" name="yield" required min="0.1" step="0.1" value="${currentYield}"
+                  class="w-full px-4 pr-12 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+                <span class="absolute right-4 top-2.5 text-sm font-bold text-gray-400 pointer-events-none">กก.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ราคารับซื้อสด (บาท/กก.) -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label for="harvest-price-input" class="block text-sm font-bold text-gray-700 uppercase">
+                ราคารับซื้อสด (บาท / กก.) *
+              </label>
+              <span class="text-xs text-gray-500">เกณฑ์กลางระบบ: <b>${masterHerb ? masterHerb.freshBuyingPrice : 50} บ./กก.</b></span>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold text-base">฿</span>
+              <input type="number" id="harvest-price-input" name="freshBuyingPrice" required min="0" step="any" value="${currentPrice}"
+                class="w-full pl-9 pr-20 py-3 rounded-xl border-2 border-emerald-400 text-2xl font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+              <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-sm font-bold text-gray-500 pointer-events-none">
+                บาท / กก.
+              </span>
+            </div>
+            <p class="text-xs text-gray-400">
+              * สามารถปรับราคาเฉพาะล็อตนี้ได้ตามคุณภาพผลผลิต (เกรด A/B) หรือหักลดตามความชื้น
+            </p>
+          </div>
+
+          <!-- สรุปยอดเงินจ่ายรับซื้อ Realtime -->
+          <div class="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+            <div class="space-y-0.5">
+              <span class="text-xs font-bold text-emerald-800 uppercase block">ยอดเงินรับซื้อที่ต้องจ่ายให้เกษตรกร</span>
+              <span class="text-xs text-emerald-600">คำนวณจาก (ปริมาณสด × ราคารับซื้อต่อ กก.)</span>
+            </div>
+            <div class="text-right">
+              <span id="harvest-total-payout-display" class="text-2xl font-extrabold text-emerald-950 font-mono">
+                ${formatBaht(initialPayout)}
+              </span>
+            </div>
+          </div>
+
+          <!-- หมายเหตุ -->
+          <div>
+            <label for="harvest-note-input" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+              หมายเหตุการรับซื้อ
+            </label>
+            <input type="text" id="harvest-note-input" name="harvestNote" value="${crop.harvestNote || ''}" placeholder="เช่น ดอกสดคัดเกรด A ความชื้นปกติ"
+              class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 active:scale-95">
+            <i class="fas fa-save"></i> บันทึกข้อมูลรับซื้อ
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: `แก้ไขการรับซื้อผลผลิตสด: ล็อต ${crop.id}`,
+      icon: 'fas fa-pen-to-square',
+      size: 'max-w-lg',
+      headerColor: 'bg-emerald-800',
+      content: modalHtml,
+      onRender: (dialog) => {
+        const yieldInput = dialog.querySelector('#harvest-yield-input');
+        const priceInput = dialog.querySelector('#harvest-price-input');
+        const payoutDisplay = dialog.querySelector('#harvest-total-payout-display');
+
+        const updatePayout = () => {
+          const y = parseFloat(yieldInput ? yieldInput.value : 0) || 0;
+          const p = parseFloat(priceInput ? priceInput.value : 0) || 0;
+          if (payoutDisplay) payoutDisplay.textContent = formatBaht(y * p);
+        };
+
+        if (yieldInput) yieldInput.addEventListener('input', updatePayout);
+        if (priceInput) priceInput.addEventListener('input', updatePayout);
+
+        const form = dialog.querySelector('#edit-fresh-harvest-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newDate = dialog.querySelector('#harvest-date-input').value;
+            const newYield = parseFloat(yieldInput ? yieldInput.value : 0) || 0;
+            const newPrice = parseFloat(priceInput ? priceInput.value : 0) || 0;
+            const newNote = (dialog.querySelector('#harvest-note-input').value || '').trim();
+
+            if (newYield <= 0) {
+              showToast('กรุณาระบุปริมาณดอกสดที่มากกว่า 0', 'error');
+              return;
+            }
+            if (newPrice < 0) {
+              showToast('ราคารับซื้อต้องไม่ติดลบ', 'error');
+              return;
+            }
+
+            try {
+              appState.updateCrop(cropId, {
+                harvestDateActual: newDate,
+                yield: newYield,
+                freshBuyingPrice: newPrice,
+                harvestNote: newNote
+              });
+              closeGlobalModal();
+              showToast(`บันทึกการแก้ไขรับซื้อผลผลิตสดล็อต ${cropId} สำเร็จ (ยอดเงิน ${formatBaht(newYield * newPrice)})`, 'success');
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
   },
 
   openQuickEditPriceModal(productId) {
@@ -836,17 +1140,21 @@ export const FreshProduceComponent = {
   // (Large fonts, simple layout, instant live calculation)
   // -------------------------------------------------------------
   getHerbRatio(h = '') {
-    if (h.includes('เก๊กฮวย')) return 10;
-    if (h.includes('คาโมมายล์')) return 10;
-    if (h.includes('ชา')) return 5;
-    if (h.includes('ดาวเรือง')) return 10;
-    if (h.includes('ฟ้าทะลายโจร')) return 6;
-    return 10;
+    const masterHerb = appState.getHerbByName ? (appState.getHerbByName(h) || appState.getHerbById(h)) : null;
+    if (masterHerb && masterHerb.standardRatio) {
+      return parseFloat(masterHerb.standardRatio) || 8.0;
+    }
+    if (h.includes('เก๊กฮวย')) return 8.0;
+    if (h.includes('คาโมมายล์')) return 6.0;
+    if (h.includes('ชา')) return 5.0;
+    if (h.includes('ดาวเรือง')) return 7.5;
+    if (h.includes('ฟ้าทะลายโจร')) return 6.0;
+    return 8.0;
   },
 
   getProducePrefix(h = '') {
     if (h.includes('ชา')) return `ใบ${h}`;
-    if (h.includes('ดอก') || h.includes('เก๊กฮวย') || h.includes('คาโมมายล์') || h.includes('ดาวเรือง')) return `ดอก${h}`;
+    if (h.includes('ดอก') || h.includes('เก๊กฮวย') || h.includes('คาโมมายล์') || h.includes('ดาวเรือง') || h.includes('กุหลาบ') || h.includes('อัญชัน')) return `ดอก${h}`;
     return `ผลผลิต${h}`;
   },
 

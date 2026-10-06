@@ -147,10 +147,11 @@ export const PlotsComponent = {
     }
 
     const plots = appState.getPlots();
-    const centerLat = 18.9142;
-    const centerLng = 98.9442;
+    // Centered at Sri Don Mun, Chiang Saen, Chiang Rai (covers Moo 12, Moo 7 Doi Sa-Ngo, Moo 1 Mae Ma)
+    const centerLat = 20.3350;
+    const centerLng = 100.0080;
 
-    mapInstance = L.map('plots-map').setView([centerLat, centerLng], 14);
+    mapInstance = L.map('plots-map').setView([centerLat, centerLng], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
@@ -291,9 +292,9 @@ export const PlotsComponent = {
       })
       .join('');
 
-    let defaultLat = 18.9142;
-    let defaultLng = 98.9442;
-    let zoomLevel = 14;
+    let defaultLat = 20.3350;
+    let defaultLng = 100.0080;
+    let zoomLevel = 13;
     let hasMarker = false;
 
     let plot = null;
@@ -378,12 +379,12 @@ export const PlotsComponent = {
               <div class="grid grid-cols-2 gap-2 pt-1">
                 <div>
                   <label for="modal-plot-lat" class="block text-sm font-semibold text-gray-500 uppercase mb-1">Latitude *</label>
-                  <input type="number" id="modal-plot-lat" name="lat" step="any" required value="${plot && plot.lat !== undefined ? plot.lat : ''}" placeholder="18.9142"
+                  <input type="number" id="modal-plot-lat" name="lat" step="any" required value="${plot && plot.lat !== undefined ? plot.lat : ''}" placeholder="20.3350"
                     class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
                 <div>
                   <label for="modal-plot-lng" class="block text-sm font-semibold text-gray-500 uppercase mb-1">Longitude *</label>
-                  <input type="number" id="modal-plot-lng" name="lng" step="any" required value="${plot && plot.lng !== undefined ? plot.lng : ''}" placeholder="98.9442"
+                  <input type="number" id="modal-plot-lng" name="lng" step="any" required value="${plot && plot.lng !== undefined ? plot.lng : ''}" placeholder="100.0080"
                     class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
               <div class="mt-4">

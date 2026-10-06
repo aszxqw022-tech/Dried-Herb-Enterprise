@@ -17,11 +17,11 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
   // 1. President (ประธานกลุ่ม)
   const president = activeMembers.find(m => m.role === 'ประธานกลุ่ม' || (m.role && m.role.includes('ประธาน') && !m.role.includes('รอง')))
     || (enterprise.chairman ? { name: enterprise.chairman, phone: enterprise.phone || '-', role: 'ประธานกลุ่ม' } : null)
-    || { name: 'นายสมเกียรติ พึ่งตน', phone: '081-234-5600', role: 'ประธานกลุ่ม' };
+    || { name: 'นายวีรวัฒน์ ปินทรายมูล', phone: '061-139-1105', role: 'ประธานกลุ่ม' };
 
   // 2. Vice President (รองประธานกลุ่ม)
   const vicePresidents = activeMembers.filter(m => m.role === 'รองประธาน' || (m.role && m.role.includes('รองประธาน')));
-  const vicePresident = vicePresidents[0] || { name: 'นางใจดี ศรีสมุนไพร', phone: '081-234-5602', role: 'รองประธาน' };
+  const vicePresident = vicePresidents[0] || { name: 'นางแหม่ม สุตินกาศ', phone: '089-765-4321', role: 'รองประธาน' };
 
   // 3. Treasurer (เหรัญญิก)
   const treasurer = activeMembers.find(m => m.role === 'เหรัญญิก' || (m.role && (m.role.includes('เหรัญญิก') || m.role.includes('การเงิน') || m.role.includes('บัญชี'))))
@@ -368,14 +368,14 @@ export const SettingsComponent = {
             <!-- Supabase URL -->
             <div class="md:col-span-2">
               <label for="sup-url" class="block text-sm font-medium text-gray-700 mb-2">Supabase Project URL</label>
-              <input type="url" id="sup-url" name="supabaseUrl" value="${escapeHtml(localStorage.getItem('supabase_url') || '')}" placeholder="เช่น https://xxxxxx.supabase.co"
+              <input type="url" id="sup-url" name="supabaseUrl" value="${escapeHtml(localStorage.getItem('supabase_url') || 'https://vqoyvedycwyqjpfbuaxw.supabase.co')}" placeholder="เช่น https://xxxxxx.supabase.co"
                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-mono">
             </div>
 
             <!-- Supabase Anon Key -->
             <div class="md:col-span-2">
               <label for="sup-key" class="block text-sm font-medium text-gray-700 mb-2">Supabase Anon Key</label>
-              <input type="text" id="sup-key" name="supabaseKey" value="${escapeHtml(localStorage.getItem('supabase_key') || '')}" placeholder="เช่น eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              <input type="text" id="sup-key" name="supabaseKey" value="${escapeHtml(localStorage.getItem('supabase_key') || 'sb_publishable_rwjQGqAeYDS-IwRAi2tKBQ_5bWxbKrt')}" placeholder="เช่น sb_publishable_..."
                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-mono">
             </div>
           </div>

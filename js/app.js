@@ -1,16 +1,16 @@
 // Main App Controller and Router for Single Page Application
-import { appState } from './state.js?v=42';
-import { DashboardComponent } from './components/dashboard.js?v=20';
-import { MembersComponent } from './components/members.js?v=4';
-import { PlotsComponent } from './components/plots.js?v=3';
+import { appState } from './state.js?v=50';
+import { DashboardComponent } from './components/dashboard.js?v=21';
+import { MembersComponent } from './components/members.js?v=5';
+import { PlotsComponent } from './components/plots.js?v=5';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=19';
-import { CropsComponent } from './components/crops.js?v=28';
+import { CropsComponent } from './components/crops.js?v=31';
 import { CropHistoryComponent } from './components/cropHistory.js?v=10';
-import { FreshProduceComponent } from './components/freshProduce.js?v=33';
-import { SettingsComponent } from './components/settings.js?v=7';
+import { FreshProduceComponent } from './components/freshProduce.js?v=36';
+import { SettingsComponent } from './components/settings.js?v=8';
 import { CustomersComponent } from './components/customers.js?v=5';
-import { InventoryComponent } from './components/inventory.js?v=26'; // Phase 2
-import { FinanceComponent } from './components/finance.js?v=2';
+import { InventoryComponent } from './components/inventory.js?v=29'; // Phase 2
+import { FinanceComponent } from './components/finance.js?v=3';
 import { CostRevenueComponent } from './components/costRevenue.js?v=16';
 import { SalesComponent } from './components/sales.js?v=16';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2

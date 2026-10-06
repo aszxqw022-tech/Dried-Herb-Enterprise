@@ -44,30 +44,7 @@ export const FinanceComponent = {
     // 2. Build Finance Ledger Tab HTML
     const ledgerRowsHtml = filteredReport.length === 0
       ? `<tr><td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500 bg-white">ไม่พบรายงานการเงินของสมาชิกรายที่ระบุ</td></tr>`
-      : filteredReport.map(r => {
-          const statusBadge = r.netProfit > 0 
-            ? `<span class="px-2.5 py-1 text-sm font-bold bg-green-50 text-green-700 rounded-full border border-green-200"><i class="fas fa-arrow-up mr-0.5"></i> กำไร</span>`
-            : r.netProfit < 0
-              ? `<span class="px-2.5 py-1 text-sm font-bold bg-red-50 text-red-700 rounded-full border border-red-200"><i class="fas fa-arrow-down mr-0.5"></i> ขาดทุน</span>`
-              : `<span class="px-2.5 py-1 text-sm font-bold bg-gray-50 text-gray-600 rounded-full border border-gray-200">เท่าทุน</span>`;
-          
-          return `
-            <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-              <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${r.id}</td>
-              <td class="px-6 py-4">
-                <div class="text-base font-bold text-gray-900">${r.name}</div>
-                <div class="text-sm text-gray-600 font-medium">บทบาท: ${r.role} (${r.villageNumber})</div>
-              </td>
-              <td class="px-6 py-4 text-center text-sm text-gray-700 font-medium">${r.totalCrops} รอบ</td>
-              <td class="px-6 py-4 text-sm text-gray-600 font-medium">${formatBaht(r.totalCost)}</td>
-              <td class="px-6 py-4 text-sm text-emerald-800 font-bold">${formatBaht(r.totalRevenue)}</td>
-              <td class="px-6 py-4 text-sm font-bold ${r.netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">
-                ${r.netProfit > 0 ? '+' : ''}${formatBaht(r.netProfit)}
-              </td>
-              <td class="px-6 py-4 text-center">${statusBadge}</td>
-            </tr>
-          `;
-        }).join('');
+      : filteredReport.map(r => this.renderLedgerRow(r)).join('');
 
     const ledgerTabHtml = `
       <div class="space-y-4">
@@ -142,7 +119,11 @@ export const FinanceComponent = {
           const owners = plot ? members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : [];
           const ownersNames = owners.map(o => o.name).join(', ') || '-';
           const herbType = crop ? (crop.seedlingSource || (plot ? plot.plantType : '-') || '-') : '-';
+          const herbInfo = appState.getHerbByName(herbType);
+          const herbIcon = herbInfo ? herbInfo.icon : '🌿';
           const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
+          const isCham = herbType.includes('คาโมมายล์');
+          const badgeClass = isChrys ? 'badge-chrysanthemum' : (isCham ? 'badge-chamomile' : 'bg-emerald-50 text-emerald-800 border-emerald-200');
           const isChecked = this.selectedSaleIds.includes(s.id);
           
           return `
@@ -155,9 +136,9 @@ export const FinanceComponent = {
               <td class="px-4 py-3.5 text-sm font-medium text-emerald-900">${s.cropId}</td>
               <td class="px-4 py-3.5 text-sm text-gray-800">${ownersNames}</td>
               <td class="px-4 py-3.5">
-                <span class="px-2.5 py-0.5 text-sm font-semibold border rounded-full ${
-                  isChrys ? 'badge-chrysanthemum' : 'badge-chamomile'
-                }">${herbType}อบแห้ง</span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold border rounded-full ${badgeClass}">
+                  <span>${herbIcon}</span> <span>${herbType}อบแห้ง</span>
+                </span>
               </td>
               <td class="px-4 py-3.5 text-sm text-gray-700 font-bold text-center">
                 ${s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`}
@@ -350,6 +331,44 @@ export const FinanceComponent = {
     }
   },
 
+  renderLedgerRow(r) {
+    const statusBadge = r.netProfit > 0 
+      ? `<span class="px-2.5 py-1 text-xs font-bold bg-green-50 text-green-700 rounded-full border border-green-200"><i class="fas fa-arrow-up mr-0.5"></i> กำไร</span>`
+      : r.netProfit < 0
+        ? `<span class="px-2.5 py-1 text-xs font-bold bg-red-50 text-red-700 rounded-full border border-red-200"><i class="fas fa-arrow-down mr-0.5"></i> ขาดทุน</span>`
+        : `<span class="px-2.5 py-1 text-xs font-bold bg-gray-50 text-gray-600 rounded-full border border-gray-200">เท่าทุน</span>`;
+
+    const herbBadges = Object.entries(r.herbBreakdown || {}).map(([hName, hData]) => {
+      const hInfo = appState.getHerbByName(hName);
+      const icon = hInfo ? hInfo.icon : '🌿';
+      return `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs bg-emerald-50 text-emerald-800 border border-emerald-100 font-medium" 
+          title="ส่งสด ${hData.freshYieldKg.toLocaleString()} กก. | รายได้ ${formatBaht(hData.revenue)}">
+          <span>${icon}</span>
+          <span class="font-bold">${hName}</span>
+          <span class="text-gray-400 font-normal">(${hData.cropsCount} รอบ · ${hData.freshYieldKg.toLocaleString()} กก.)</span>
+        </span>
+      `;
+    }).join('');
+
+    return `
+      <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+        <td class="px-6 py-4 text-sm font-semibold text-emerald-800 whitespace-nowrap">${r.id}</td>
+        <td class="px-6 py-4">
+          <div class="text-base font-bold text-gray-900">${r.name}</div>
+          <div class="text-xs text-gray-500 font-medium">บทบาท: ${r.role} (${r.villageNumber || '-'})</div>
+        </td>
+        <td class="px-6 py-4 text-center text-sm text-gray-700 font-medium whitespace-nowrap">${r.totalCrops} รอบ</td>
+        <td class="px-6 py-4 text-sm text-gray-600 font-medium whitespace-nowrap">${formatBaht(r.totalCost)}</td>
+        <td class="px-6 py-4 text-sm text-emerald-800 font-bold whitespace-nowrap">${formatBaht(r.totalRevenue)}</td>
+        <td class="px-6 py-4 text-sm font-bold whitespace-nowrap ${r.netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">
+          ${r.netProfit > 0 ? '+' : ''}${formatBaht(r.netProfit)}
+        </td>
+        <td class="px-6 py-4 text-center whitespace-nowrap">${statusBadge}</td>
+      </tr>
+    `;
+  },
+
   bindTabEvents() {
     const ledgerBtn = document.getElementById('tab-ledger-btn');
     const salesBtn = document.getElementById('tab-sales-btn');
@@ -387,30 +406,7 @@ export const FinanceComponent = {
 
         const rowsHtml = filteredReport.length === 0
           ? `<tr><td colspan="7" class="px-6 py-6 text-center text-sm text-gray-500">ไม่พบรายงานการเงินของสมาชิกรายที่ระบุ</td></tr>`
-          : filteredReport.map(r => {
-              const statusBadge = r.netProfit > 0 
-                ? `<span class="px-2.5 py-1 text-sm font-bold bg-green-50 text-green-700 rounded-full border border-green-200"><i class="fas fa-arrow-up mr-0.5"></i> กำไร</span>`
-                : r.netProfit < 0
-                  ? `<span class="px-2.5 py-1 text-sm font-bold bg-red-50 text-red-700 rounded-full border border-red-200"><i class="fas fa-arrow-down mr-0.5"></i> ขาดทุน</span>`
-                  : `<span class="px-2.5 py-1 text-sm font-bold bg-gray-50 text-gray-600 rounded-full border border-gray-200">เท่าทุน</span>`;
-              
-              return `
-                <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
-                  <td class="px-6 py-4 text-sm font-semibold text-emerald-800">${r.id}</td>
-                  <td class="px-6 py-4">
-                    <div class="text-base font-bold text-gray-900">${r.name}</div>
-                    <div class="text-sm text-gray-600 font-medium">บทบาท: ${r.role} (${r.villageNumber})</div>
-                  </td>
-                  <td class="px-6 py-4 text-center text-sm text-gray-700 font-medium">${r.totalCrops} รอบ</td>
-                  <td class="px-6 py-4 text-sm text-gray-600 font-medium">${formatBaht(r.totalCost)}</td>
-                  <td class="px-6 py-4 text-sm text-emerald-800 font-bold">${formatBaht(r.totalRevenue)}</td>
-                  <td class="px-6 py-4 text-sm font-bold ${r.netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">
-                    ${r.netProfit > 0 ? '+' : ''}${formatBaht(r.netProfit)}
-                  </td>
-                  <td class="px-6 py-4 text-center">${statusBadge}</td>
-                </tr>
-              `;
-            }).join('');
+          : filteredReport.map(r => this.renderLedgerRow(r)).join('');
         
         const tbody = document.querySelector('table tbody');
         if (tbody) tbody.innerHTML = rowsHtml;

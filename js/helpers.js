@@ -72,10 +72,10 @@ export function formatThaiArea(rai = 0, ngan = 0, sqWah = 0) {
 }
 
 /**
- * Generate a random coordinates within a box (e.g., for simulation around Chiang Mai/Northern Thailand)
- * Default bounds: Mae Rim, Chiang Mai (Lat 18.91, Lng 98.94)
+ * Generate a random coordinates within a box (e.g., around Sri Don Mun, Chiang Saen, Chiang Rai)
+ * Default bounds: Sri Don Mun, Chiang Saen, Chiang Rai (Lat 20.33, Lng 100.00)
  */
-export function generateRandomCoordinates(latBase = 18.914, lngBase = 98.944, variance = 0.05) {
+export function generateRandomCoordinates(latBase = 20.330, lngBase = 100.005, variance = 0.03) {
   const lat = latBase + (Math.random() - 0.5) * variance;
   const lng = lngBase + (Math.random() - 0.5) * variance;
   return { lat: parseFloat(lat.toFixed(6)), lng: parseFloat(lng.toFixed(6)) };
