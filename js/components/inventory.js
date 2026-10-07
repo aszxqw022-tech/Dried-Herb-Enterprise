@@ -217,6 +217,8 @@ export const InventoryComponent = {
       }
     });
 
+
+
     const standardPriceBarHtml = `
       <div class="rounded-2xl border border-emerald-800/20 shadow-md overflow-hidden">
 
@@ -228,10 +230,10 @@ export const InventoryComponent = {
             </div>
             <div>
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>เกณฑ์ราคาและฐานข้อมูลพืชสมุนไพร — วิสาหกิจชุมชน</span>
+                <span>เกณฑ์ราคาขายผลผลิตแปรรูป — วิสาหกิจชุมชน</span>
               </h2>
               <p class="text-sm text-emerald-200 mt-0.5">
-                กำหนดราคารับซื้อสด อัตราอบแห้ง ราคาขายส่ง และราคาขายปลีก · เชื่อมโยงอัตโนมัติทุกส่วนในระบบ
+                กำหนดราคาขายส่งและราคาขายปลีกมาตรฐาน · สินค้าแปรรูปพร้อมจำหน่ายในคลัง
               </p>
             </div>
           </div>
@@ -269,39 +271,37 @@ export const InventoryComponent = {
                 <h3 class="text-base font-bold text-gray-900 leading-snug mb-0.5">${item.name}</h3>
                 <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
                   <span>รหัส: <b class="text-gray-700">${item.id}</b></span>
-                  ${item.buyingPrice && item.buyingPrice !== '-' ? `
-                    <button class="edit-herb-master-btn bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-300 font-bold transition-all flex items-center gap-1 cursor-pointer" 
-                      data-herb="${item.herbName}" title="คลิกเพื่อแก้ไขราคารับซื้อสดและเกณฑ์ของ ${item.herbName}">
-                      <i class="fas fa-edit text-[10px] text-amber-700"></i>
-                      <span>รับซื้อสด ${item.buyingPrice} บ./กก.</span>
-                    </button>
-                  ` : ''}
+                  <span class="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">สินค้าพร้อมจำหน่าย</span>
                 </div>
 
-                <!-- Price display -->
-                <div class="mt-auto pt-2.5 border-t-2 border-dashed border-gray-100">
-                  <div class="flex items-center justify-between mb-0.5">
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">ราคาขายผลผลิต</span>
-                    ${item.yieldRatio ? `
-                      <button class="edit-herb-master-btn text-[11px] font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded border border-teal-200 transition-all cursor-pointer flex items-center gap-1"
-                        data-herb="${item.herbName}" title="คลิกเพื่อแก้ไขอัตราส่วนอบแห้งของ ${item.herbName}">
-                        <i class="fas fa-fire-burner text-[9px]"></i>
-                        <span>สูตร ${item.yieldRatio}:1</span>
+                <!-- Stock & Price display -->
+                <div class="mt-auto pt-2.5 border-t-2 border-dashed border-gray-100 space-y-2">
+                  <!-- คงเหลือ อยู่บน (ตัวหนังสือใหญ่ขึ้น ใส่สีสันเด่นชัด) -->
+                  <div>
+                    <div class="inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
+                      <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">คงเหลือ:</span>
+                      <span class="text-xl sm:text-2xl font-black font-mono tracking-tight ${item.priceColor}">
+                        ${typeof item.stock === 'number' ? (item.unit === 'กก.' ? item.stock.toFixed(2) : item.stock.toLocaleString()) : item.stock}
+                      </span>
+                      <span class="text-xs font-bold text-gray-600">${item.unit === 'กก.' ? 'กิโลกรัม' : item.unit}</span>
+                    </div>
+                  </div>
+
+                  <!-- ราคาขายผลผลิต อยู่ล่าง -->
+                  <div class="pt-1.5 border-t border-gray-100">
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ราคาขายผลผลิต</div>
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-bold ${item.priceColor} tabular-nums">${item.price.toLocaleString()}</span>
+                        <span class="text-sm font-bold text-gray-600">บาท</span>
+                        <span class="text-sm text-gray-500 font-medium">/ ${item.unit}</span>
+                      </div>
+                      <button class="quick-edit-price-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${item.editBtnStyle} text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 border cursor-pointer"
+                        data-id="${item.id}" title="แก้ไขราคาขายนี้">
+                        <i class="fas fa-pen-to-square text-sm"></i>
+                        <span>แก้ไขราคา</span>
                       </button>
-                    ` : ''}
-                  </div>
-                  <div class="flex items-baseline gap-1 mb-1">
-                    <span class="text-3xl font-bold ${item.priceColor} tabular-nums">${item.price.toLocaleString()}</span>
-                    <span class="text-sm font-bold text-gray-600">บาท</span>
-                    <span class="text-sm text-gray-500 font-medium">/ ${item.unit}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600">คงเหลือ: <b class="text-gray-900 font-bold font-mono text-base">${typeof item.stock === 'number' ? (item.unit === 'กก.' ? item.stock.toFixed(2) : item.stock.toLocaleString()) : item.stock}</b> ${item.unit}</span>
-                    <button class="quick-edit-price-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${item.editBtnStyle} text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 border cursor-pointer"
-                      data-id="${item.id}" title="แก้ไขราคาขายนี้">
-                      <i class="fas fa-pen-to-square text-sm"></i>
-                      <span>แก้ไขราคา</span>
-                    </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -575,23 +575,21 @@ export const InventoryComponent = {
               <span>+ เพิ่มรายการสินค้าใหม่</span>
             </button>
 
-            <a href="#fresh-produce" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
-              <i class="fa-solid fa-box-open text-amber-600"></i>
-              <span>ผลผลิตดอกสด &rarr;</span>
+            <a href="#fresh-buying" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
+              <i class="fa-solid fa-hand-holding-dollar text-amber-600"></i>
+              <span>รับซื้อดอกสด &rarr;</span>
             </a>
-            <a href="#finance" class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
-              <i class="fa-solid fa-hand-holding-dollar text-emerald-600"></i>
-              <span>การเงินรายสมาชิก &rarr;</span>
+            <a href="#fresh-produce" class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
+              <i class="fa-solid fa-fire-burner text-emerald-600"></i>
+              <span>โรงอบแห้ง &rarr;</span>
             </a>
           </div>
         </div>
 
-        <!-- กระป๋องสรุปภาพรวม: แสดงจำนวนสินค้ารวมทั้งหมดในคลัง แยกตามหน่วยเรียกชัดเจน -->
+        <!-- สรุปภาพรวมสต็อกคลัง -->
         ${summaryCardsHtml}
 
-
-
-        <!-- แถบเกณฑ์ราคาจำหน่ายผลผลิตมาตรฐานวิสาหกิจชุมชน -->
+        <!-- แถบเกณฑ์ราคาจำหน่ายผลผลิตแปรรูปวิสาหกิจชุมชน -->
         ${standardPriceBarHtml}
 
         <!-- ===== ตารางสินค้ากระป๋อง ===== -->
@@ -817,6 +815,157 @@ export const InventoryComponent = {
         if (herbName) this.openEditHerbModal(herbName);
       });
     });
+
+    // 7c. Action buttons: กำหนดราคารับซื้อดอกสดจากสมาชิก (Fresh Buying Price)
+    const freshBuyingBtns = document.querySelectorAll('.edit-fresh-buying-btn');
+    freshBuyingBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const herbName = btn.getAttribute('data-herb');
+        if (herbName) this.openEditFreshBuyingPriceModal(herbName);
+      });
+    });
+  },
+
+  // -------------------------------------------------------------
+  // แยก Modal กำหนดราคารับซื้อสดจากสมาชิกโดยเฉพาะ
+  // -------------------------------------------------------------
+  openEditFreshBuyingPriceModal(herbName) {
+    const isCham = herbName.includes('คาโมมายล์');
+    const masterHerb = appState.getHerbByName(herbName) || {
+      herbId: 'HRB-000',
+      name: herbName,
+      icon: getHerbDefaultIcon ? getHerbDefaultIcon(herbName) : '🌿',
+      freshBuyingPrice: isCham ? 70 : 50
+    };
+    const herbIcon = masterHerb.icon || (getHerbDefaultIcon ? getHerbDefaultIcon(herbName) : '🌿');
+    const currentPrice = masterHerb.freshBuyingPrice || (isCham ? 70 : 50);
+
+    const modalHtml = `
+      <form id="global-edit-fresh-buying-form" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
+          <!-- Information Banner -->
+          <div class="p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 flex items-start gap-3">
+            <span class="w-11 h-11 rounded-xl bg-amber-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+              <i class="fa-solid fa-hand-holding-dollar text-amber-200"></i>
+            </span>
+            <div class="text-sm text-amber-950">
+              <b class="font-bold block text-base text-amber-900 mb-0.5">จัดการรับซื้อดอกสด: ${herbIcon} ดอก${masterHerb.name}สด</b>
+              กำหนดเกณฑ์ราคารับซื้อผลผลิตดอกสดจากแปลงปลูกของสมาชิกกลุ่มวิสาหกิจชุมชนบ้านศรีดอนมูล
+            </div>
+          </div>
+
+          <input type="hidden" name="herbName" value="${masterHerb.name}">
+
+          <!-- Fresh Buying Price Input Field -->
+          <div class="p-4 bg-white rounded-2xl border-2 border-amber-300 shadow-2xs space-y-2">
+            <label for="modal-fresh-buying-input" class="block text-sm font-bold text-amber-950 uppercase">
+              <i class="fas fa-coins text-amber-600 mr-1.5"></i> ราคารับซื้อสดจากสมาชิก (บาท / กก.) *
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-amber-700 font-bold text-xl">฿</span>
+              <input type="number" id="modal-fresh-buying-input" name="freshBuyingPrice" required min="1" step="any" value="${currentPrice}"
+                class="w-full pl-10 pr-24 py-3 rounded-xl border-2 border-amber-400 text-2xl sm:text-3xl font-extrabold text-amber-950 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono shadow-inner">
+              <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-sm font-bold text-amber-800 pointer-events-none">
+                บาท / กก.
+              </span>
+            </div>
+            <p class="text-xs text-amber-800">
+              * ราคานี้จะถูกนำไปใช้อ้างอิงการรับซื้อผลผลิตในระบบโรงอบแห้ง และสรุปยอดเงินปันผล/การเงินของสมาชิกโดยอัตโนมัติ
+            </p>
+          </div>
+
+          <!-- Live Preview Calculation -->
+          <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
+            <span class="text-xs font-bold text-gray-700 block uppercase">
+              <i class="fas fa-calculator text-amber-700 mr-1"></i> ตัวอย่างการจ่ายเงินให้สมาชิกตามราคานี้
+            </span>
+            <div id="fresh-buying-calc-preview" class="grid grid-cols-3 gap-2.5 pt-1 text-center">
+              <div class="p-2.5 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                <span class="text-[11px] text-gray-500 block">รับซื้อ 50 กก.</span>
+                <span class="text-base font-bold text-amber-900 font-mono">฿${formatBaht(50 * currentPrice)}</span>
+              </div>
+              <div class="p-2.5 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                <span class="text-[11px] text-gray-500 block">รับซื้อ 100 กก.</span>
+                <span class="text-base font-bold text-amber-900 font-mono">฿${formatBaht(100 * currentPrice)}</span>
+              </div>
+              <div class="p-2.5 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                <span class="text-[11px] text-gray-500 block">รับซื้อ 500 กก.</span>
+                <span class="text-base font-bold text-amber-900 font-mono">฿${formatBaht(500 * currentPrice)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end p-4 md:px-6 bg-gray-50 border-t border-gray-100 gap-2.5 flex-shrink-0">
+          <button type="button" class="close-global-modal-btn px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm flex items-center gap-1.5 active:scale-95 cursor-pointer">
+            <i class="fas fa-save"></i> บันทึกราคารับซื้อสด
+          </button>
+        </div>
+      </form>
+    `;
+
+    openGlobalModal({
+      title: `จัดการราคารับซื้อดอกสด: ${herbIcon} ดอก${masterHerb.name}สด`,
+      icon: 'fa-solid fa-hand-holding-dollar',
+      size: 'max-w-lg',
+      headerColor: 'bg-amber-600',
+      content: modalHtml,
+      onRender: (dialog) => {
+        const input = dialog.querySelector('#modal-fresh-buying-input');
+        const preview = dialog.querySelector('#fresh-buying-calc-preview');
+        if (input && preview) {
+          input.addEventListener('input', () => {
+            const val = parseFloat(input.value) || 0;
+            preview.innerHTML = `
+              <div class="p-2.5 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                <span class="text-[11px] text-gray-500 block">รับซื้อ 50 กก.</span>
+                <span class="text-base font-bold text-amber-900 font-mono">฿${formatBaht(50 * val)}</span>
+              </div>
+              <div class="p-2.5 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                <span class="text-[11px] text-gray-500 block">รับซื้อ 100 กก.</span>
+                <span class="text-base font-bold text-amber-900 font-mono">฿${formatBaht(100 * val)}</span>
+              </div>
+              <div class="p-2.5 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                <span class="text-[11px] text-gray-500 block">รับซื้อ 500 กก.</span>
+                <span class="text-base font-bold text-amber-900 font-mono">฿${formatBaht(500 * val)}</span>
+              </div>
+            `;
+          });
+        }
+
+        const form = dialog.querySelector('#global-edit-fresh-buying-form');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newPrice = parseFloat(input ? input.value : 0);
+            if (isNaN(newPrice) || newPrice <= 0) {
+              showToast('กรุณาระบุราคารับซื้อที่ถูกต้องและมากกว่า 0', 'error');
+              return;
+            }
+
+            try {
+              const fullHerb = appState.getHerbByName(herbName) || {};
+              appState.addOrUpdateHerb({
+                ...fullHerb,
+                name: masterHerb.name,
+                freshBuyingPrice: newPrice,
+                baselinePriceFresh: newPrice
+              });
+              closeGlobalModal();
+              showToast(`บันทึกราคารับซื้อดอก${masterHerb.name}สดจากสมาชิก เป็น ${newPrice} บาท/กก. เรียบร้อยแล้ว`, 'success');
+              this.refreshView();
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          });
+        }
+      }
+    });
   },
 
   openEditHerbModal(herbName) {
@@ -883,14 +1032,14 @@ export const InventoryComponent = {
             <!-- Retail Selling Price (ราคาขายปลีก กระป๋อง 50G) -->
             <div>
               <label for="edit-modal-jar-price" class="block text-sm font-bold text-gray-700 uppercase mb-1">
-                ราคาขายปลีกกระป๋อง 50G (บาท / กระปุก) *
+                ราคาขายปลีกกระป๋อง 50G (บาท / กระป๋อง) *
               </label>
               <div class="relative">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold text-base">฿</span>
                 <input type="number" id="edit-modal-jar-price" name="jarSellingPrice50g" required min="1" step="any" value="${masterHerb.jarSellingPrice50g || 120}"
                   class="w-full pl-9 pr-20 py-2.5 rounded-xl border border-gray-200 text-lg font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
                 <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-bold text-gray-400 pointer-events-none">
-                  บาท/กระปุก
+                  บาท/กระป๋อง
                 </span>
               </div>
             </div>
@@ -1130,7 +1279,7 @@ export const InventoryComponent = {
             <!-- Jar Selling Price (50g) -->
             <div>
               <label for="modal-herb-jar-price" class="block text-sm font-bold text-indigo-900 uppercase mb-1">
-                ราคาขายปลีกกระป๋อง 50 G (บาท / กระปุก) *
+                ราคาขายปลีกกระป๋อง 50 G (บาท / กระป๋อง) *
               </label>
               <div class="relative">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 font-bold">฿</span>

@@ -141,10 +141,10 @@ export const FinanceComponent = {
                 </span>
               </td>
               <td class="px-4 py-3.5 text-sm text-gray-700 font-bold text-center">
-                ${s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`}
+                ${s.saleType === 'jar' ? `${s.amount || s.amountKg} กระป๋อง` : `${s.amountKg || s.amount} กก.`}
               </td>
               <td class="px-4 py-3.5 text-sm text-gray-500">
-                ${s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระปุก` : `${formatBaht(s.pricePerKg || s.price)}/กก.`}
+                ${s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระป๋อง` : `${formatBaht(s.pricePerKg || s.price)}/กก.`}
               </td>
               <td class="px-4 py-3.5 text-sm font-bold text-emerald-800">${formatBaht(s.totalPrice)}</td>
               <td class="px-4 py-3.5 text-sm text-gray-800">
@@ -624,8 +624,8 @@ export const FinanceComponent = {
     const tableRowsHtml = sales.map((s, idx) => {
       const crop = crops.find(c => c.id === s.cropId);
       const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-      const unitText = s.saleType === 'jar' ? `${s.amount || s.amountKg} กระปุก` : `${s.amountKg || s.amount} กก.`;
-      const priceText = s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระปุก` : `${formatBaht(s.pricePerKg || s.price)}/กก.`;
+      const unitText = s.saleType === 'jar' ? `${s.amount || s.amountKg} กระป๋อง` : `${s.amountKg || s.amount} กก.`;
+      const priceText = s.saleType === 'jar' ? `${formatBaht(s.price || s.pricePerKg)}/กระป๋อง` : `${formatBaht(s.pricePerKg || s.price)}/กก.`;
 
       return `
         <tr class="border-b border-gray-200 text-sm">
@@ -803,11 +803,11 @@ export const FinanceComponent = {
           <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
             <div class="flex justify-between items-center text-sm text-gray-600">
               <span>จำนวนที่ขาย:</span>
-              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระปุก` : `${sale.amountKg || sale.amount} กก.`}</span>
+              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${sale.amount || sale.amountKg} กระป๋อง` : `${sale.amountKg || sale.amount} กก.`}</span>
             </div>
             <div class="flex justify-between items-center text-sm text-gray-600">
               <span>ราคาต่อหน่วย:</span>
-              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระปุก` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`}</span>
+              <span class="font-bold text-gray-800">${sale.saleType === 'jar' ? `${formatBaht(sale.price || sale.pricePerKg)}/กระป๋อง` : `${formatBaht(sale.pricePerKg || sale.price)}/กก.`}</span>
             </div>
             <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
               <span class="text-sm font-bold text-gray-800">ยอดรวมทั้งสิ้น:</span>

@@ -286,6 +286,29 @@ export const MembersComponent = {
       ? `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`
       : `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
 
+    // แยกคำนำหน้าชื่อ และชื่อจริง
+    let selectedPrefix = 'นาย';
+    let cleanName = '';
+    if (member && member.name) {
+      const raw = member.name.trim();
+      if (raw.startsWith('นางสาว')) {
+        selectedPrefix = 'นางสาว';
+        cleanName = raw.slice(6).trim();
+      } else if (raw.startsWith('น.ส.')) {
+        selectedPrefix = 'นางสาว';
+        cleanName = raw.slice(4).trim();
+      } else if (raw.startsWith('นาย')) {
+        selectedPrefix = 'นาย';
+        cleanName = raw.slice(3).trim();
+      } else if (raw.startsWith('นาง')) {
+        selectedPrefix = 'นาง';
+        cleanName = raw.slice(3).trim();
+      } else {
+        selectedPrefix = 'นาย';
+        cleanName = raw;
+      }
+    }
+
     const formHtml = `
       <form id="global-member-modal-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
@@ -311,11 +334,18 @@ export const MembersComponent = {
             
             <!-- Left Column -->
             <div class="space-y-4">
-              <!-- Name -->
+              <!-- Name with Prefix Selector -->
               <div>
-                <label for="mem-name" class="block text-sm font-semibold text-gray-700 uppercase mb-1">ชื่อ-นามสกุลสมาชิก *</label>
-                <input type="text" id="mem-name" name="name" required value="${member ? member.name : ''}" placeholder="เช่น นายเกษตร มั่นคง"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                <label class="block text-sm font-semibold text-gray-700 uppercase mb-1">คำนำหน้า และชื่อ-นามสกุลสมาชิก *</label>
+                <div class="flex gap-2">
+                  <select id="mem-prefix" name="prefix" class="w-28 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white flex-shrink-0">
+                    <option value="นาย" ${selectedPrefix === 'นาย' ? 'selected' : ''}>นาย</option>
+                    <option value="นาง" ${selectedPrefix === 'นาง' ? 'selected' : ''}>นาง</option>
+                    <option value="นางสาว" ${selectedPrefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+                  </select>
+                  <input type="text" id="mem-name" name="name" required value="${cleanName}" placeholder="ชื่อ และนามสกุล (เช่น เกษตร มั่นคง)"
+                    class="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                </div>
               </div>
 
               <!-- Role -->
@@ -461,8 +491,18 @@ export const MembersComponent = {
               return;
             }
 
+            const prefixVal = (formData.get('prefix') || '').trim();
+            let nameVal = (formData.get('name') || '').trim();
+            // ป้องกันกรณีผู้ใช้พิมพ์คำนำหน้าซ้ำในช่องชื่อ
+            ['นางสาว', 'น.ส.', 'นาย', 'นาง'].forEach(p => {
+              if (nameVal.startsWith(p)) {
+                nameVal = nameVal.slice(p.length).trim();
+              }
+            });
+            const fullName = prefixVal ? `${prefixVal}${nameVal}` : nameVal;
+
             const data = {
-              name: formData.get('name'),
+              name: fullName,
               houseNumber: houseVal,
               role: formData.get('role'),
               phone: formData.get('phone'),

@@ -13,116 +13,15 @@ const HERB_THEMES = {
   'ดาวเรือง': { icon: '🌻', name: 'ดอกดาวเรือง', stdRatio: 7.5, pricePerKg: 280, freshColor: 'rgba(253, 224, 71, 0.85)', freshBorder: '#ca8a04', dryColor: 'rgba(161, 98, 7, 0.9)', dryBorder: '#713f12' }
 };
 
-// Seed demo sales transactions if direct sales is empty
-const DEFAULT_RECENT_SALES = [
-  {
-    id: 'INV-2568-013',
-    invoiceNo: 'INV-2568-013',
-    receiptNo: 'INV-2568-013',
-    date: '2026-10-05',
-    customerName: 'คุณกานดา พิมลวรรณ',
-    customerType: 'ลูกค้าทั่วไป',
-    sellerName: 'นายวีรวัฒน์ ปินทรายมูล',
-    productName: 'กระปุกเก๊กฮวย 50g',
-    quantity: 20,
-    unit: 'กระป๋อง',
-    unitPrice: 150,
-    totalPrice: 3000,
-    totalAmount: 3000,
-    payment: 'โอนเงิน',
-    items: [
-      { productId: 'PRD-003', productName: 'เก๊กฮวยกระป๋อง (50 G)', quantity: 20, unit: 'กระป๋อง', unitPrice: 150, totalPrice: 3000 }
-    ]
-  },
-  {
-    id: 'INV-2568-012',
-    invoiceNo: 'INV-2568-012',
-    receiptNo: 'INV-2568-012',
-    date: '2026-10-04',
-    customerName: 'บริษัท เชียงรายทีแลนด์ จำกัด',
-    customerType: 'ตัวแทนจำหน่าย',
-    sellerName: 'นายวีรวัฒน์ ปินทรายมูล',
-    productName: 'กระปุกเก๊กฮวย 50g',
-    quantity: 30,
-    unit: 'กระป๋อง',
-    unitPrice: 150,
-    totalPrice: 4500,
-    totalAmount: 4500,
-    payment: 'โอนเงิน',
-    items: [
-      { productId: 'PRD-003', productName: 'เก๊กฮวยกระป๋อง (50 G)', quantity: 30, unit: 'กระป๋อง', unitPrice: 150, totalPrice: 4500 }
-    ]
-  },
-  {
-    id: 'INV-2568-011',
-    invoiceNo: 'INV-2568-011',
-    receiptNo: 'INV-2568-011',
-    date: '2026-10-02',
-    customerName: 'ร้านชาสมุนไพรม่อนแจ่ม',
-    customerType: 'ร้านคาเฟ่/ร้านขายของฝาก',
-    sellerName: 'นายวีรวัฒน์ ปินทรายมูล',
-    productName: 'ดอกคาโมมายล์อบแห้ง (กก.)',
-    quantity: 5,
-    unit: 'กก.',
-    unitPrice: 1500,
-    totalPrice: 7500,
-    totalAmount: 7500,
-    payment: 'โอนเงิน',
-    items: [
-      { productId: 'PRD-002', productName: 'ดอกคาโมมายล์อบแห้ง', quantity: 5, unit: 'กก.', unitPrice: 1500, totalPrice: 7500 }
-    ]
-  },
-  {
-    id: 'INV-2568-010',
-    invoiceNo: 'INV-2568-010',
-    receiptNo: 'INV-2568-010',
-    date: '2026-09-28',
-    customerName: 'คุณสมหญิง อารีย์พร',
-    customerType: 'ลูกค้าทั่วไป',
-    sellerName: 'นางแหม่ม สุตินกาศ',
-    productName: 'กระปุกคาโมมายล์ 50g',
-    quantity: 15,
-    unit: 'กระป๋อง',
-    unitPrice: 100,
-    totalPrice: 1500,
-    totalAmount: 1500,
-    payment: 'เงินสด',
-    items: [
-      { productId: 'PRD-004', productName: 'คาโมมายล์กระป๋อง (50 G)', quantity: 15, unit: 'กระป๋อง', unitPrice: 100, totalPrice: 1500 }
-    ]
-  },
-  {
-    id: 'INV-2568-009',
-    invoiceNo: 'INV-2568-009',
-    receiptNo: 'INV-2568-009',
-    date: '2026-09-25',
-    customerName: 'ร้านคาเฟ่บ้านชาดอนมูล',
-    customerType: 'ร้านคาเฟ่/ร้านขายของฝาก',
-    sellerName: 'นายมานะ รักเกษตร',
-    productName: 'ดอกเก๊กฮวยอบแห้ง (กก.)',
-    quantity: 3,
-    unit: 'กก.',
-    unitPrice: 1000,
-    totalPrice: 3000,
-    totalAmount: 3000,
-    payment: 'โอนเงิน',
-    items: [
-      { productId: 'PRD-001', productName: 'ดอกเก๊กฮวยอบแห้ง', quantity: 3, unit: 'กก.', unitPrice: 1000, totalPrice: 3000 }
-    ]
-  }
-];
-
 function getDirectSales(activeHerbs = null) {
   let sales = [];
   try {
     let raw = JSON.parse(localStorage.getItem(DIRECT_SALES_KEY));
-    if (Array.isArray(raw) && raw.length > 0) {
+    if (Array.isArray(raw)) {
       sales = raw;
     }
-  } catch (e) {}
-
-  if (sales.length === 0) {
-    sales = [...DEFAULT_RECENT_SALES];
+  } catch (e) {
+    sales = [];
   }
 
   // Filter out any sales of herbs that are not currently active
@@ -154,6 +53,97 @@ function getActiveHerbs() {
     set.add('คาโมมายล์');
   }
   return Array.from(set);
+}
+
+function parseSalesBreakdown(sales, activeHerbsList) {
+  const herbDryMap = {};
+  const herbJarMap = {};
+  const monthlyRevenueMap = {};
+  const productCatMap = {};
+
+  activeHerbsList.forEach(h => {
+    herbDryMap[h] = { revenue: 0, qty: 0 };
+    herbJarMap[h] = { revenue: 0, qty: 0 };
+  });
+
+  let totalRevenue = 0;
+  let totalDrySalesAmt = 0;
+  let totalDrySalesKg = 0;
+  let totalJarSalesAmt = 0;
+  let totalJarSalesCount = 0;
+
+  sales.forEach(sale => {
+    const saleDate = sale.date || sale.saleDate || '';
+    const items = (sale.items && Array.isArray(sale.items) && sale.items.length > 0)
+      ? sale.items
+      : [{
+          productName: sale.productName || 'สินค้า',
+          unit: sale.unit || 'หน่วย',
+          quantity: parseFloat(sale.quantity) || 1,
+          totalPrice: parseFloat(sale.totalPrice || sale.totalAmount) || 0
+        }];
+
+    let saleTotal = 0;
+
+    items.forEach(it => {
+      const pName = (it.productName || '').trim();
+      const unit = (it.unit || '').trim();
+      const qty = parseFloat(it.quantity) || 0;
+      const price = parseFloat(it.totalPrice) || ((parseFloat(it.unitPrice) || 0) * qty);
+
+      saleTotal += price;
+
+      // Identify herb
+      const matchedHerb = activeHerbsList.find(h => pName.includes(h)) || activeHerbsList[0] || 'สมุนไพร';
+      const isJar = unit === 'กระป๋อง' || unit === 'กระปุก' || pName.includes('กระปุก') || pName.includes('กระป๋อง');
+      const isDry = unit === 'กก.' || unit === 'kg' || pName.includes('แห้ง');
+
+      if (!herbDryMap[matchedHerb]) herbDryMap[matchedHerb] = { revenue: 0, qty: 0 };
+      if (!herbJarMap[matchedHerb]) herbJarMap[matchedHerb] = { revenue: 0, qty: 0 };
+
+      if (isJar) {
+        herbJarMap[matchedHerb].revenue += price;
+        herbJarMap[matchedHerb].qty += qty;
+        totalJarSalesAmt += price;
+        totalJarSalesCount += qty;
+
+        const catKey = `กระป๋อง${matchedHerb} (50g)`;
+        productCatMap[catKey] = (productCatMap[catKey] || 0) + price;
+      } else {
+        // Bulk dry or standard dry
+        herbDryMap[matchedHerb].revenue += price;
+        herbDryMap[matchedHerb].qty += qty;
+        totalDrySalesAmt += price;
+        totalDrySalesKg += qty;
+
+        const catKey = `ดอก${matchedHerb}แห้ง (กก.)`;
+        productCatMap[catKey] = (productCatMap[catKey] || 0) + price;
+      }
+    });
+
+    totalRevenue += saleTotal;
+
+    // Monthly breakdown
+    if (saleDate) {
+      const parts = saleDate.split('-');
+      if (parts.length >= 2) {
+        const mKey = `${parts[0]}-${parts[1]}`;
+        monthlyRevenueMap[mKey] = (monthlyRevenueMap[mKey] || 0) + saleTotal;
+      }
+    }
+  });
+
+  return {
+    herbDryMap,
+    herbJarMap,
+    monthlyRevenueMap,
+    productCatMap,
+    totalRevenue,
+    totalDrySalesAmt,
+    totalDrySalesKg,
+    totalJarSalesAmt,
+    totalJarSalesCount
+  };
 }
 
 export const DashboardComponent = {
@@ -287,39 +277,17 @@ export const DashboardComponent = {
     if (totalStockCans === 0) totalStockCans = 150;
     if (totalDryInventoryKg === 0) totalDryInventoryKg = 25.0;
 
-    // 4. Sales Calculations (Dry Bulk vs Canned Jars by Herb)
-    const dryHerbBaseline = {
-      'เก๊กฮวย': { revenue: 38600, qty: 38.6 },
-      'คาโมมายล์': { revenue: 27000, qty: 18.0 },
-      'อัญชัน': { revenue: 15400, qty: 22.0 },
-      'ดาวเรือง': { revenue: 8400, qty: 12.0 }
-    };
+    // 4. Sales Calculations (Direct from Sales Records)
+    const directSales = getDirectSales(activeHerbsList);
+    const salesSummary = parseSalesBreakdown(directSales, activeHerbsList);
 
-    const jarHerbBaseline = {
-      'เก๊กฮวย': { revenue: 48500, qty: 323 },
-      'คาโมมายล์': { revenue: 35200, qty: 352 },
-      'อัญชัน': { revenue: 18600, qty: 155 },
-      'ดาวเรือง': { revenue: 9600, qty: 80 }
-    };
-
-    let totalDrySalesAmt = 0;
-    let totalDrySalesKg = 0;
-    let totalJarSalesAmt = 0;
-    let totalJarSalesCount = 0;
-
-    activeHerbsList.forEach(h => {
-      const d = dryHerbBaseline[h] || { revenue: 10000, qty: 10.0 };
-      const j = jarHerbBaseline[h] || { revenue: 12000, qty: 100 };
-      totalDrySalesAmt += d.revenue;
-      totalDrySalesKg += d.qty;
-      totalJarSalesAmt += j.revenue;
-      totalJarSalesCount += j.qty;
-    });
-
-    const totalRevenueVal = totalDrySalesAmt + totalJarSalesAmt;
+    const totalDrySalesAmt = salesSummary.totalDrySalesAmt;
+    const totalDrySalesKg = salesSummary.totalDrySalesKg;
+    const totalJarSalesAmt = salesSummary.totalJarSalesAmt;
+    const totalJarSalesCount = salesSummary.totalJarSalesCount;
+    const totalRevenueVal = salesSummary.totalRevenue;
 
     // Recent 4 Sales Transactions
-    const directSales = getDirectSales(activeHerbsList);
     const recentSales = directSales.slice(0, 4);
 
     return `
@@ -368,9 +336,9 @@ export const DashboardComponent = {
             </div>
             <div class="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
               <span class="text-emerald-700 font-bold flex items-center gap-1">
-                <i class="fas fa-arrow-trend-up"></i> +28.5% MoM
+                <i class="fas fa-receipt"></i> บันทึกขาย ${directSales.length} รายการ
               </span>
-              <span class="text-gray-400">รายได้สะสมปี 2568</span>
+              <span class="text-gray-400">จากหน้าบันทึกการขาย</span>
             </div>
           </div>
 
@@ -437,7 +405,7 @@ export const DashboardComponent = {
 
         <!-- ============================================================== -->
         <!-- 2. โซนกราฟแท่งเปรียบเทียบยอดขาย (Sales Comparison Bar Charts)  -->
-        <!-- ฝั่งซ้าย: ยอดขายดอกแห้ง (กก.) | ฝั่งขวา: ยอดขายแบบกระปุกแยกต่างหาก -->
+        <!-- ฝั่งซ้าย: ยอดขายดอกแห้ง (กก.) | ฝั่งขวา: ยอดขายแบบกระป๋องแยกต่างหาก -->
         <!-- ============================================================== -->
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
@@ -477,17 +445,17 @@ export const DashboardComponent = {
             </div>
           </div>
 
-          <!-- ฝั่งขวา: กราฟแท่งยอดขายผลิตภัณฑ์ชาดอกไม้แบบกระปุก (Canned Herbal Tea Jars) -->
+          <!-- ฝั่งขวา: กราฟแท่งยอดขายผลิตภัณฑ์ชาดอกไม้แบบกระป๋อง (Canned Herbal Tea Cans) -->
           <div class="bg-white rounded-2xl border border-gray-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
             <div>
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
                 <div>
                   <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
                     <i class="fas fa-jar text-emerald-700"></i>
-                    <span>ยอดขายผลิตภัณฑ์ชาดอกไม้แบบกระปุก (กระปุก)</span>
+                    <span>ยอดขายผลิตภัณฑ์ชาดอกไม้แบบกระป๋อง (กระป๋อง)</span>
                   </h2>
                   <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                    เปรียบเทียบยอดขายกระปุก: ${activeHerbsList.map(h => 'กระปุก' + h).join(', ')} (บาท)
+                    เปรียบเทียบยอดขายกระป๋อง: ${activeHerbsList.map(h => 'กระป๋อง' + h).join(', ')} (บาท)
                   </p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -500,10 +468,10 @@ export const DashboardComponent = {
               <!-- Jar Sales Summary Badges -->
               <div class="flex items-center gap-2 flex-wrap pt-3 text-xs">
                 <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold">
-                  💰 รวมยอดขายชากระปุก: ฿${totalJarSalesAmt.toLocaleString()}
+                  💰 รวมยอดขายชากระป๋อง: ฿${totalJarSalesAmt.toLocaleString()}
                 </span>
                 <span class="px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  📦 ปริมาณรวม: ${totalJarSalesCount.toLocaleString()} กระปุก
+                  📦 ปริมาณรวม: ${totalJarSalesCount.toLocaleString()} กระป๋อง
                 </span>
               </div>
             </div>
@@ -542,8 +510,8 @@ export const DashboardComponent = {
 
               <!-- Revenue Summary Mini Info -->
               <div class="flex items-center justify-between pt-3 text-xs">
-                <span class="text-gray-500">มกราคม - กันยายน 2568 (9 เดือน)</span>
-                <span class="text-emerald-800 font-bold">เฉลี่ย ฿${Math.round(totalRevenueVal / 9).toLocaleString()}/เดือน</span>
+                <span class="text-gray-500">ข้อมูลรายรับจากการขายจริงตามช่วงเวลา</span>
+                <span class="text-emerald-800 font-bold">ยอดขายสุทธิ ฿${totalRevenueVal.toLocaleString()}</span>
               </div>
             </div>
 
@@ -565,7 +533,7 @@ export const DashboardComponent = {
                 </span>
               </div>
               <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                เปรียบเทียบสัดส่วนรายได้: กระปุก 50g vs ดอกแห้งยกกิโลกรัม (กก.)
+                เปรียบเทียบสัดส่วนรายได้: กระป๋อง 50g vs ดอกแห้งยกกิโลกรัม (กก.)
               </p>
             </div>
 
@@ -621,7 +589,7 @@ export const DashboardComponent = {
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
-                ${recentSales.map(s => {
+                ${recentSales.length > 0 ? recentSales.map(s => {
                   const invoiceId = s.invoiceNo || s.id || 'INV-2568-001';
                   const itemTitle = s.productName || (s.items && s.items[0] ? s.items[0].productName : 'ผลิตภัณฑ์สมุนไพร');
                   const itemQtyText = s.quantity ? `${s.quantity} ${s.unit || 'ชิ้น'}` : (s.items && s.items[0] ? `${s.items[0].quantity} ${s.items[0].unit || 'ชิ้น'}` : '');
@@ -661,14 +629,26 @@ export const DashboardComponent = {
                       </td>
                     </tr>
                   `;
-                }).join('')}
+                }).join('') : `
+                  <tr>
+                    <td colspan="7" class="py-12 px-4 text-center text-slate-400">
+                      <div class="flex flex-col items-center justify-center gap-2">
+                        <i class="fa-solid fa-receipt text-3xl text-slate-300"></i>
+                        <span class="text-sm font-medium">ยังไม่มีรายการบันทึกการขายในระบบ</span>
+                        <a href="#sales" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition">
+                          + ไปที่หน้าบันทึกการขาย
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                `}
               </tbody>
             </table>
           </div>
 
           <!-- Bottom Footer Link -->
           <div class="p-3 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 px-5">
-            <span>แสดง 4 รายการล่าสุดจากระบบบันทึกการขาย</span>
+            <span>แสดง ${recentSales.length} รายการล่าสุดจากระบบบันทึกการขาย</span>
             <a href="#sales" class="font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">
               <span>ดูประวัติการขายทั้งหมด (${directSales.length} รายการ)</span>
               <i class="fas fa-arrow-right text-xs"></i>
@@ -729,20 +709,9 @@ export const DashboardComponent = {
     const harvestedCrops = allCrops.filter(c => c.status === 'harvested');
     const dryingBatches = appState.getDryingBatches ? appState.getDryingBatches() : [];
 
-    // Baseline definitions for product sales
-    const dryHerbBaseline = {
-      'เก๊กฮวย': { revenue: 38600, qty: 38.6 },
-      'คาโมมายล์': { revenue: 27000, qty: 18.0 },
-      'อัญชัน': { revenue: 15400, qty: 22.0 },
-      'ดาวเรือง': { revenue: 8400, qty: 12.0 }
-    };
-
-    const jarHerbBaseline = {
-      'เก๊กฮวย': { revenue: 48500, qty: 323 },
-      'คาโมมายล์': { revenue: 35200, qty: 352 },
-      'อัญชัน': { revenue: 18600, qty: 155 },
-      'ดาวเรือง': { revenue: 9600, qty: 80 }
-    };
+    // Retrieve real sales data from Sales Screen (herb_enterprise_direct_sales_v1)
+    const directSales = getDirectSales(activeHerbsList);
+    const salesSummary = parseSalesBreakdown(directSales, activeHerbsList);
 
     // Helper for top bar labels plugin
     const makeTopBarPlugin = (pluginId, prefix = '฿', suffix = '', color = '#065f46') => ({
@@ -776,7 +745,7 @@ export const DashboardComponent = {
     const ctxDry = document.getElementById('chart-dry-sales-by-herb');
     if (ctxDry) {
       const dryLabels = activeHerbsList.map(h => `${HERB_THEMES[h]?.icon || roadmaps[h]?.icon || '🌿'} ดอก${h}แห้ง`);
-      const dryData = activeHerbsList.map(h => dryHerbBaseline[h]?.revenue || 10000);
+      const dryData = activeHerbsList.map(h => salesSummary.herbDryMap[h]?.revenue || 0);
       const dryColors = activeHerbsList.map(h => {
         if (h === 'เก๊กฮวย') return 'rgba(217, 119, 6, 0.85)';
         if (h === 'คาโมมายล์') return 'rgba(5, 150, 105, 0.85)';
@@ -829,7 +798,7 @@ export const DashboardComponent = {
               callbacks: {
                 label: (ctx) => {
                   const herb = activeHerbsList[ctx.dataIndex] || '';
-                  const qty = dryHerbBaseline[herb]?.qty || 0;
+                  const qty = salesSummary.herbDryMap[herb]?.qty || 0;
                   return ` ยอดขาย: ฿${ctx.raw.toLocaleString()} (ปริมาณ ${qty.toLocaleString()} กก.)`;
                 }
               }
@@ -855,12 +824,12 @@ export const DashboardComponent = {
     }
 
     // ==============================================================
-    // 2. Chart B: กราฟแท่งยอดขายชาดอกไม้แบบกระปุก (Canned Herbal Tea Jars)
+    // 2. Chart B: กราฟแท่งยอดขายชาดอกไม้แบบกระป๋อง (Canned Herbal Tea Cans)
     // ==============================================================
     const ctxJar = document.getElementById('chart-jar-sales-by-herb');
     if (ctxJar) {
-      const jarLabels = activeHerbsList.map(h => `${HERB_THEMES[h]?.icon || roadmaps[h]?.icon || '🌿'} กระปุก${h}`);
-      const jarData = activeHerbsList.map(h => jarHerbBaseline[h]?.revenue || 12000);
+      const jarLabels = activeHerbsList.map(h => `${HERB_THEMES[h]?.icon || roadmaps[h]?.icon || '🌿'} กระป๋อง${h}`);
+      const jarData = activeHerbsList.map(h => salesSummary.herbJarMap[h]?.revenue || 0);
       const jarColors = activeHerbsList.map(h => {
         if (h === 'เก๊กฮวย') return 'rgba(245, 158, 11, 0.85)';
         if (h === 'คาโมมายล์') return 'rgba(16, 185, 129, 0.85)';
@@ -880,7 +849,7 @@ export const DashboardComponent = {
           labels: jarLabels,
           datasets: [
             {
-              label: 'ยอดขายชากระปุก (บาท)',
+              label: 'ยอดขายชากระป๋อง (บาท)',
               data: jarData,
               backgroundColor: jarColors,
               borderColor: jarBorders,
@@ -913,8 +882,8 @@ export const DashboardComponent = {
               callbacks: {
                 label: (ctx) => {
                   const herb = activeHerbsList[ctx.dataIndex] || '';
-                  const qty = jarHerbBaseline[herb]?.qty || 0;
-                  return ` ยอดขาย: ฿${ctx.raw.toLocaleString()} (จำนวน ${qty.toLocaleString()} กระปุก)`;
+                  const qty = salesSummary.herbJarMap[herb]?.qty || 0;
+                  return ` ยอดขาย: ฿${ctx.raw.toLocaleString()} (จำนวน ${qty.toLocaleString()} กระป๋อง)`;
                 }
               }
             }
@@ -943,8 +912,31 @@ export const DashboardComponent = {
     // ==============================================================
     const ctx2 = document.getElementById('chart-monthly-revenue');
     if (ctx2) {
-      const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.'];
-      const revenueData = [9200, 11800, 14500, 16800, 19500, 23500, 27500, 32000, 28500];
+      const THAI_MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const monthlyKeys = Object.keys(salesSummary.monthlyRevenueMap).sort();
+      let monthLabels = [];
+      let revenueData = [];
+
+      if (monthlyKeys.length > 0) {
+        monthLabels = monthlyKeys.map(k => {
+          const parts = k.split('-');
+          const mNum = parseInt(parts[1]) || 1;
+          const yNum = parseInt(parts[0]) || 2026;
+          const thYearShort = String(yNum + 543).slice(-2);
+          return `${THAI_MONTH_NAMES[mNum]} '${thYearShort}`;
+        });
+        revenueData = monthlyKeys.map(k => salesSummary.monthlyRevenueMap[k]);
+      } else {
+        // Fallback placeholder with 0 amounts
+        const currentMonthIdx = new Date().getMonth() + 1;
+        const currentThYearShort = String(new Date().getFullYear() + 543).slice(-2);
+        monthLabels = [
+          `${THAI_MONTH_NAMES[Math.max(1, currentMonthIdx - 2)]} '${currentThYearShort}`,
+          `${THAI_MONTH_NAMES[Math.max(1, currentMonthIdx - 1)]} '${currentThYearShort}`,
+          `${THAI_MONTH_NAMES[currentMonthIdx]} '${currentThYearShort}'`
+        ];
+        revenueData = [0, 0, 0];
+      }
 
       this.charts.monthlyRevenue = new Chart(ctx2.getContext('2d'), {
         type: 'bar',
@@ -1000,7 +992,7 @@ export const DashboardComponent = {
             },
             x: {
               grid: { display: false },
-              ticks: { font: { size: 12, weight: 'bold' } }
+              ticks: { font: { size: 14, weight: 'bold' } }
             }
           }
         }
@@ -1012,9 +1004,9 @@ export const DashboardComponent = {
     // ==============================================================
     const ctx3 = document.getElementById('chart-product-category-pie');
     if (ctx3) {
-      const catLabels = [];
-      const catRevenue = [];
-      const catColors = [];
+      let catLabels = [];
+      let catRevenue = [];
+      let catColors = [];
 
       const colorPalette = {
         'เก๊กฮวย': { jar: '#f59e0b', dry: '#d97706' },
@@ -1030,11 +1022,11 @@ export const DashboardComponent = {
         { jar: '#14b8a6', dry: '#0f766e' }
       ];
 
-      // 1. เพิ่มกลุ่มกระปุก (50g) เฉพาะพืชสมุนไพรที่ยังเปิดใช้งานในระบบ
+      // 1. เพิ่มกลุ่มกระป๋อง (50g) เฉพาะพืชสมุนไพรที่ยังเปิดใช้งานในระบบ
       activeHerbsList.forEach((h, idx) => {
         const pal = colorPalette[h] || fallbackPalettes[idx % fallbackPalettes.length];
-        const rev = jarHerbBaseline[h]?.revenue || 12000;
-        catLabels.push(`กระปุก${h} (50g)`);
+        const rev = salesSummary.herbJarMap[h]?.revenue || 0;
+        catLabels.push(`กระป๋อง${h} (50g)`);
         catRevenue.push(rev);
         catColors.push(pal.jar);
       });
@@ -1042,11 +1034,19 @@ export const DashboardComponent = {
       // 2. เพิ่มกลุ่มดอกแห้ง (กก.) เฉพาะพืชสมุนไพรที่ยังเปิดใช้งานในระบบ
       activeHerbsList.forEach((h, idx) => {
         const pal = colorPalette[h] || fallbackPalettes[idx % fallbackPalettes.length];
-        const rev = dryHerbBaseline[h]?.revenue || 10000;
+        const rev = salesSummary.herbDryMap[h]?.revenue || 0;
         catLabels.push(`ดอก${h}แห้ง (กก.)`);
         catRevenue.push(rev);
         catColors.push(pal.dry);
       });
+
+      // If all revenue is 0, show friendly zero distribution
+      const totalPieRev = catRevenue.reduce((a, b) => a + b, 0);
+      if (totalPieRev === 0) {
+        catLabels = ['ยังไม่มีข้อมูลการขาย'];
+        catRevenue = [1];
+        catColors = ['#cbd5e1'];
+      }
 
       this.charts.productCategoryPie = new Chart(ctx3.getContext('2d'), {
         type: 'pie',
@@ -1076,6 +1076,16 @@ export const DashboardComponent = {
                 font: { size: 16, weight: 'bold', family: "'Prompt', 'Sarabun', sans-serif" },
                 generateLabels: (chart) => {
                   const data = chart.data;
+                  if (data.labels[0] === 'ยังไม่มีข้อมูลการขาย') {
+                    return [{
+                      text: 'ยังไม่มีข้อมูลการขาย',
+                      fillStyle: '#cbd5e1',
+                      strokeStyle: '#ffffff',
+                      lineWidth: 2,
+                      fontColor: '#94a3b8',
+                      index: 0
+                    }];
+                  }
                   const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
                   return data.labels.map((label, i) => {
                     const val = data.datasets[0].data[i];
@@ -1100,6 +1110,9 @@ export const DashboardComponent = {
               cornerRadius: 10,
               callbacks: {
                 label: (ctx) => {
+                  if (ctx.label === 'ยังไม่มีข้อมูลการขาย') {
+                    return ' ยังไม่มีประวัติการขายในระบบ';
+                  }
                   const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
                   const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
                   return ` ยอดขาย: ฿${ctx.raw.toLocaleString()} (${pct}%)`;

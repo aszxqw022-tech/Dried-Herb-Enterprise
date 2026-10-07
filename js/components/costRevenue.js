@@ -137,8 +137,8 @@ export const CostRevenueComponent = {
     });
 
     const defaultMeta = {
-      'เก๊กฮวย': { emoji: '🌼', ratioText: '8 : 1 (สด 8 กก. ➔ แห้ง 1 กก. ➔ 20 กระปุก)', badgeBg: 'bg-amber-100 text-amber-900 border-amber-300' },
-      'คาโมมายล์': { emoji: '🌿', ratioText: '6 : 1 (สด 6 กก. ➔ แห้ง 1 กก. ➔ 20 กระปุก)', badgeBg: 'bg-sky-100 text-sky-900 border-sky-300' }
+      'เก๊กฮวย': { emoji: '🌼', ratioText: '8 : 1 (สด 8 กก. ➔ แห้ง 1 กก. ➔ 20 กระป๋อง)', badgeBg: 'bg-amber-100 text-amber-900 border-amber-300' },
+      'คาโมมายล์': { emoji: '🌿', ratioText: '6 : 1 (สด 6 กก. ➔ แห้ง 1 กก. ➔ 20 กระป๋อง)', badgeBg: 'bg-sky-100 text-sky-900 border-sky-300' }
     };
 
     const colorPalettes = [
@@ -164,7 +164,7 @@ export const CostRevenueComponent = {
       return {
         name,
         emoji: herbEmoji,
-        ratioText: '8 : 1 (สด 8 กก. ➔ แห้ง 1 กก. ➔ 20 กระปุก)',
+        ratioText: '8 : 1 (สด 8 กก. ➔ แห้ง 1 กก. ➔ 20 กระป๋อง)',
         badgeBg: palette.badgeBg
       };
     });
@@ -215,8 +215,8 @@ export const CostRevenueComponent = {
         label: 'อัตราการอบแห้งมาตรฐาน',
         value: uniqueHerbs.length > 2 ? `${uniqueHerbs.length} ชนิดพืช` : '8:1 / 6:1',
         sub: uniqueHerbs.length > 2 
-          ? `${uniqueHerbs.join(' · ')} (20 กระปุก/กก.)` 
-          : 'เก๊กฮวย 8:1 · คาโมมายล์ 6:1 (20 กระปุก/กก.)',
+          ? `${uniqueHerbs.join(' · ')} (20 กระป๋อง/กก.)` 
+          : 'เก๊กฮวย 8:1 · คาโมมายล์ 6:1 (20 กระป๋อง/กก.)',
         icon: 'fa-temperature-half',
         valColor: 'text-amber-900',
         iconBg: 'bg-orange-50 text-orange-700 border border-orange-100'
@@ -236,7 +236,7 @@ export const CostRevenueComponent = {
       </div>
     `).join('');
 
-    // ---- By Herb Type Breakdown (เปรียบเทียบทุกชนิดพืชในระบบ บรรจุ 20 กระปุก/กก.) ----
+    // ---- By Herb Type Breakdown (เปรียบเทียบทุกชนิดพืชในระบบ บรรจุ 20 กระป๋อง/กก.) ----
     const herbRows = herbTypes.map(h => {
       const herb = h.name;
       const herbCrops = crops.filter(c => {
@@ -300,7 +300,7 @@ export const CostRevenueComponent = {
         </td>
         <td class="py-4 px-4 sm:px-5 text-right font-bold text-gray-800 font-mono">${r.freshKg.toFixed(1)} กก.</td>
         <td class="py-4 px-4 sm:px-5 text-right font-bold text-indigo-800 font-mono">${r.dryKg.toFixed(1)} กก.</td>
-        <td class="py-4 px-4 sm:px-5 text-right font-bold text-teal-800 font-mono">${Math.round(r.dryKg * 20).toLocaleString()} กระปุก</td>
+        <td class="py-4 px-4 sm:px-5 text-right font-bold text-teal-800 font-mono">${Math.round(r.dryKg * 20).toLocaleString()} กระป๋อง</td>
         <td class="py-4 px-5 text-right font-bold text-amber-800 font-mono">${formatBaht(r.cost)}</td>
         <td class="py-4 px-5 text-right font-bold text-emerald-800 font-mono">${formatBaht(r.rev)}</td>
         <td class="py-4 px-5 text-right font-bold text-base sm:text-lg font-mono ${r.profit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
@@ -605,7 +605,7 @@ export const CostRevenueComponent = {
                   </div>
                   <div>
                     <h2 class="text-base sm:text-lg font-bold text-emerald-950">วิเคราะห์ต้นทุน-รายได้ เปรียบเทียบชนิดพืช</h2>
-                    <p class="text-xs sm:text-sm text-emerald-900/80">เปรียบเทียบผลผลิต ต้นทุน รายได้ และกำไรสุทธิทุกชนิดพืช (${uniqueHerbs.join(', ')}) · มาตรฐานบรรจุ 20 กระปุก/กก.</p>
+                    <p class="text-xs sm:text-sm text-emerald-900/80">เปรียบเทียบผลผลิต ต้นทุน รายได้ และกำไรสุทธิทุกชนิดพืช (${uniqueHerbs.join(', ')}) · มาตรฐานบรรจุ 20 กระป๋อง/กก.</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -622,7 +622,7 @@ export const CostRevenueComponent = {
                       <th class="py-3.5 px-4 sm:px-5">ชนิดพืช</th>
                       <th class="py-3.5 px-4 text-right">ผลผลิตสดรวม</th>
                       <th class="py-3.5 px-4 text-right">อบแห้งรวม (กก.)</th>
-                      <th class="py-3.5 px-4 text-right">จำนวนกระปุก (50g)</th>
+                      <th class="py-3.5 px-4 text-right">จำนวนกระป๋อง (50g)</th>
                       <th class="py-3.5 px-4 text-right">ต้นทุนรวม</th>
                       <th class="py-3.5 px-4 text-right">รายได้รวม</th>
                       <th class="py-3.5 px-4 text-right">กำไรสุทธิ</th>
@@ -637,7 +637,7 @@ export const CostRevenueComponent = {
                       <td class="py-4 px-4 sm:px-5 text-emerald-950 font-bold">รวมทุกชนิดพืช (${herbRows.length} พืช)</td>
                       <td class="py-4 px-4 text-right text-gray-800 font-mono">${totalFreshKg.toFixed(1)} กก.</td>
                       <td class="py-4 px-4 text-right text-indigo-900 font-mono">${totalDryKg.toFixed(1)} กก.</td>
-                      <td class="py-4 px-4 text-right text-teal-900 font-mono">${Math.round(totalDryKg * 20).toLocaleString()} กระปุก</td>
+                      <td class="py-4 px-4 text-right text-teal-900 font-mono">${Math.round(totalDryKg * 20).toLocaleString()} กระป๋อง</td>
                       <td class="py-4 px-4 text-right text-amber-900 font-mono">${formatBaht(totalCost)}</td>
                       <td class="py-4 px-4 text-right text-emerald-900 font-mono">${formatBaht(totalRevenue)}</td>
                       <td class="py-4 px-4 text-right font-mono ${totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
@@ -849,7 +849,7 @@ export const CostRevenueComponent = {
                     </div>
                     <div class="p-3.5 rounded-xl bg-white/90 border border-emerald-200 shadow-2xs">
                       <b class="text-indigo-900 block font-bold mb-1">☀️ อัตราส่วนอบแห้งมาตรฐาน (Drying Ratio):</b>
-                      ${herbTypes.map(h => `• <b>${h.name}:</b> อัตราส่วน <b>${h.name === 'คาโมมายล์' ? '6 : 1' : '8 : 1'}</b> (บรรจุได้ ~20 กระปุก ขนาด 50 กรัม)`).join('<br>')}
+                      ${herbTypes.map(h => `• <b>${h.name}:</b> อัตราส่วน <b>${h.name === 'คาโมมายล์' ? '6 : 1' : '8 : 1'}</b> (บรรจุได้ ~20 กระป๋อง ขนาด 50 กรัม)`).join('<br>')}
                     </div>
                   </div>
                   <div class="pt-2 flex items-center justify-between flex-wrap gap-2 text-xs sm:text-sm text-emerald-800 font-medium">

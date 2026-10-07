@@ -109,7 +109,7 @@ export const CropHistoryComponent = {
           date: s.date,
           productId: s.cropId,
           productName: s.cropId && s.cropId.startsWith('PRD') ? (appState.getProductById(s.cropId)?.name || s.cropId) : `ผลผลิตรอบ ${s.cropId}`,
-          unit: s.saleType === 'jar' ? 'กระปุก' : 'กก.',
+          unit: s.saleType === 'jar' ? 'กระป๋อง' : 'กก.',
           quantity: s.amount || s.amountKg || 0,
           unitPrice: s.price || s.pricePerKg || 0,
           totalPrice: s.totalPrice || 0,
@@ -541,7 +541,7 @@ export const CropHistoryComponent = {
                 <div>
                   <span class="text-sm font-bold opacity-75 uppercase tracking-wider block">ปริมาณสินค้าที่ตัดสต็อกไปแล้ว</span>
                   <div class="text-3xl font-bold mt-1 tabular-nums">${totalSalesQty.toLocaleString()}</div>
-                  <span class="text-sm opacity-75">หน่วย (กระปุก 50G / กิโลกรัม)</span>
+                  <span class="text-sm opacity-75">หน่วย (กระป๋อง 50G / กิโลกรัม)</span>
                 </div>
                 <div class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-xl"><i class="fas fa-cart-arrow-down"></i></div>
               </div>

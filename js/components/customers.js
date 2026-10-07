@@ -839,10 +839,10 @@ export const CustomersComponent = {
                               <span class="px-2 py-0.5 rounded-md text-sm font-bold ${
                                 s.saleType === 'jar' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                               }">
-                                ${s.saleType === 'jar' ? 'กระปุก' : 'กก. วัตถุดิบ'}
+                                ${s.saleType === 'jar' ? 'กระป๋อง' : 'กก. วัตถุดิบ'}
                               </span>
                             </td>
-                            <td class="p-3.5 text-right font-bold text-gray-900">${s.amount || s.amountKg || 1} ${s.saleType === 'jar' ? 'กระปุก' : 'กก.'}</td>
+                            <td class="p-3.5 text-right font-bold text-gray-900">${s.amount || s.amountKg || 1} ${s.saleType === 'jar' ? 'กระป๋อง' : 'กก.'}</td>
                             <td class="p-3.5 text-right font-bold text-emerald-800">${formatBaht(s.totalPrice)}</td>
                             <td class="p-3.5 text-gray-500">${formatThaiDate(s.date)}</td>
                           </tr>

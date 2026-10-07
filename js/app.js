@@ -6,6 +6,7 @@ import { PlotsComponent } from './components/plots.js?v=5';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=19';
 import { CropsComponent } from './components/crops.js?v=31';
 import { CropHistoryComponent } from './components/cropHistory.js?v=10';
+import { FreshBuyingComponent } from './components/freshBuying.js?v=1';
 import { FreshProduceComponent } from './components/freshProduce.js?v=36';
 import { SettingsComponent } from './components/settings.js?v=8';
 import { CustomersComponent } from './components/customers.js?v=5';
@@ -26,6 +27,7 @@ class AppController {
       roadmap: PlantingRoadmapComponent,
       crops: CropsComponent,
       'crop-history': CropHistoryComponent,
+      'fresh-buying': FreshBuyingComponent,
       'fresh-produce': FreshProduceComponent,
       customers: CustomersComponent,
       settings: SettingsComponent,

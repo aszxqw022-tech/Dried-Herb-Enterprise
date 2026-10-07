@@ -175,12 +175,6 @@ export const FreshProduceComponent = {
                 <span class="text-3xl sm:text-4xl font-extrabold text-amber-950 font-mono tracking-tight">${selectedPool.actualDryKg.toFixed(1)}</span>
                 <span class="text-sm font-bold text-amber-700">กก.</span>
               </div>
-              <div class="mt-2.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100/80 text-amber-900 border border-amber-200/80">
-                  <i class="fas fa-coins text-amber-600"></i>
-                  มูลค่า ~${formatBaht(selectedPool.actualDryKg * pricePerKg)}
-                </span>
-              </div>
             </div>
           </div>
 
@@ -196,12 +190,6 @@ export const FreshProduceComponent = {
               <div class="flex items-baseline gap-1.5">
                 <span class="text-3xl sm:text-4xl font-extrabold text-teal-950 font-mono tracking-tight">${currentJarsInStock}</span>
                 <span class="text-sm font-bold text-teal-700">กระป๋อง</span>
-              </div>
-              <div class="mt-2.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-100/80 text-teal-900 border border-teal-200/80">
-                  <i class="fas fa-tag text-teal-600"></i>
-                  มูลค่า ~${formatBaht(currentJarsInStock * pricePerJar)}
-                </span>
               </div>
             </div>
           </div>
@@ -221,13 +209,6 @@ export const FreshProduceComponent = {
             <div class="relative z-10">
               <div class="flex items-baseline gap-2">
                 <span class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">${selectedPool.ratio}:1</span>
-                <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-950">Yield ${(100 / selectedPool.ratio).toFixed(1)}%</span>
-              </div>
-              <div class="mt-2.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white/15 text-emerald-200 border border-white/10">
-                  <i class="fas fa-arrows-spin text-amber-300"></i>
-                  สด ${(selectedPool.ratio * 10).toFixed(0)} kg ➔ แห้ง 10 kg
-                </span>
               </div>
             </div>
           </div>
@@ -373,55 +354,6 @@ export const FreshProduceComponent = {
               
               <!-- Clean Process Pipeline Card -->
               ${this.renderCanningProcessCard(selectedPool)}
-
-              <!-- Specification Layout with Rich Color Accents -->
-              <div class="bg-white rounded-3xl border-2 border-teal-200 shadow-md overflow-hidden">
-                <div class="bg-gradient-to-r from-teal-800 via-emerald-800 to-teal-900 px-6 py-4 flex items-center justify-between flex-wrap gap-2 text-white">
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm">
-                      <i class="fas fa-clipboard-list"></i>
-                    </span>
-                    <h3 class="text-base font-bold">ข้อมูลมาตรฐานผลิตภัณฑ์ & ศักยภาพการผลิต</h3>
-                  </div>
-                  <span class="px-3 py-1 rounded-lg text-xs font-bold bg-white/15 border border-white/20 text-teal-100">
-                    อัตรา 1 กก. = 20 กระป๋อง (50 G)
-                  </span>
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div class="bg-gradient-to-br from-teal-50 to-cyan-50/50 p-4 rounded-2xl border border-teal-200/80 flex items-start gap-3.5">
-                    <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-                      <i class="fas fa-jar"></i>
-                    </div>
-                    <div>
-                      <div class="text-xs font-bold text-teal-800 uppercase tracking-wide">ขนาดบรรจุภัณฑ์</div>
-                      <div class="text-lg font-extrabold text-teal-950 mt-0.5">50 กรัม / กระป๋อง</div>
-                      <div class="text-xs text-gray-500 mt-1 font-medium">กระป๋องมาตรฐานพร้อมฝาดึง ซีลสุญญากาศ</div>
-                    </div>
-                  </div>
-
-                  <div class="bg-gradient-to-br from-emerald-50 to-green-50/50 p-4 rounded-2xl border border-emerald-200/80 flex items-start gap-3.5">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-                      <i class="fas fa-tag"></i>
-                    </div>
-                    <div>
-                      <div class="text-xs font-bold text-emerald-800 uppercase tracking-wide">ราคาจำหน่ายมาตรฐาน</div>
-                      <div class="text-lg font-extrabold text-emerald-950 mt-0.5">${pricePerJar} บาท / กระป๋อง</div>
-                      <div class="text-xs text-gray-500 mt-1 font-medium">ราคากลางวิสาหกิจชุมชน</div>
-                    </div>
-                  </div>
-
-                  <div class="bg-gradient-to-br from-amber-50 to-yellow-50/50 p-4 rounded-2xl border border-amber-200/80 flex items-start gap-3.5">
-                    <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-                      <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                      <div class="text-xs font-bold text-amber-900 uppercase tracking-wide">ศักยภาพผลิตปัจจุบัน</div>
-                      <div class="text-lg font-extrabold text-amber-950 mt-0.5">~${potentialJars} กระป๋อง</div>
-                      <div class="text-xs text-gray-500 mt-1 font-medium">คำนวณจากสต็อกดอกแห้ง ${selectedPool.actualDryKg.toFixed(1)} กก.</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           ` : `
             <!-- ===== TAB 3: ประวัติย้อนหลัง ===== -->
@@ -548,10 +480,6 @@ export const FreshProduceComponent = {
             <i class="fa-solid fa-fire-alt text-lg text-yellow-200"></i>
             <span>นำเข้าเตาอบแห้ง</span>
           </button>
-          <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-amber-300 text-amber-900 text-xs font-bold mt-3 shadow-2xs">
-            <i class="fas fa-scale-balanced text-amber-600"></i>
-            <span>อัตราส่วนมาตรฐาน 10:1 (ได้ ~${estDryYield} กก.)</span>
-          </div>
         </div>
 
         <!-- Right: Dry Yield -->
@@ -586,9 +514,6 @@ export const FreshProduceComponent = {
           </div>
           <div class="text-sm font-bold text-amber-900 mb-0.5">วัตถุดิบดอกแห้งในคลัง</div>
           <div class="text-3xl sm:text-4xl font-extrabold text-amber-950 font-mono tracking-tight">${pool.actualDryKg.toFixed(1)} <span class="text-base text-amber-700 font-bold">กก.</span></div>
-          <span class="inline-flex items-center gap-1 mt-2.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">
-            <i class="fas fa-coins text-amber-600"></i> มูลค่าวัตถุดิบ ~${formatBaht(pool.actualDryKg * pricePerKg)}
-          </span>
         </div>
 
         <!-- Middle: Action Transform Button -->
@@ -599,7 +524,7 @@ export const FreshProduceComponent = {
           </button>
           <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-teal-300 text-teal-900 text-xs font-bold mt-3 shadow-2xs">
             <i class="fas fa-bolt text-teal-600"></i>
-            <span>สูตร 50 G : 1 กก. = 20 กระป๋อง</span>
+            <span>50 กรัม = 1 กระป๋อง</span>
           </div>
         </div>
 
@@ -610,9 +535,6 @@ export const FreshProduceComponent = {
           </div>
           <div class="text-sm font-bold text-teal-900 mb-0.5">กระป๋อง 50G สำเร็จ</div>
           <div class="text-3xl sm:text-4xl font-extrabold text-teal-950 font-mono tracking-tight">${potentialJars} <span class="text-base text-teal-700 font-bold">กป.</span></div>
-          <span class="inline-flex items-center gap-1 mt-2.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-900 border border-teal-200">
-            <i class="fas fa-tag text-teal-600"></i> มูลค่าเพิ่ม ~${formatBaht(potentialJars * pricePerJar)}
-          </span>
         </div>
 
       </div>
@@ -723,18 +645,6 @@ export const FreshProduceComponent = {
     const modalHtml = `
       <form id="edit-drying-ratio-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-5">
-          <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-3">
-            <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
-              <i class="fa-solid fa-scale-balanced"></i>
-            </span>
-            <div class="text-sm text-emerald-950 flex-1">
-              <b class="font-bold text-base text-emerald-900 block mb-0.5">แก้ไขอัตราส่วนการอบแห้ง / แปรรูป: ${herbName}</b>
-              <p class="text-emerald-800">
-                กำหนดสัดส่วนน้ำหนักสดที่ต้องใช้ต่อการได้ดอกแห้ง 1 กิโลกรัม (สูตรมาตรฐาน) โดยระบบจะนำไปคำนวณน้ำหนักแห้งที่ควรได้ในโรงอบโดยอัตโนมัติ
-              </p>
-            </div>
-          </div>
-
           <div class="space-y-2">
             <label for="drying-ratio-input" class="block text-sm font-bold text-gray-700 uppercase">
               อัตราส่วนการอบแห้ง (สด : แห้ง 1 กก.) *
@@ -747,23 +657,8 @@ export const FreshProduceComponent = {
               </span>
             </div>
             <p class="text-xs text-gray-400">
-              เช่น ระบุ 8.0 หมายถึง ดอกสด 8 กิโลกรัม จะอบแห้งได้ดอกแห้ง 1 กิโลกรัม (Yield ${(100 / currentRatio).toFixed(1)}%)
+              เช่น ระบุ 8.0 หมายถึง ดอกสด 8 กิโลกรัม จะอบแห้งได้ดอกแห้ง 1 กิโลกรัม
             </p>
-          </div>
-
-          <!-- Live Preview Card -->
-          <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
-            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">ตัวอย่างผลลัพธ์การคำนวณ</span>
-            <div class="grid grid-cols-2 gap-3 text-center">
-              <div class="p-3 bg-white rounded-xl border border-gray-200">
-                <span class="text-xs text-gray-500 block">เปอร์เซ็นต์ผลผลิต (Yield)</span>
-                <span id="preview-yield-pct" class="text-xl font-bold text-emerald-800 font-mono">${(100 / currentRatio).toFixed(1)}%</span>
-              </div>
-              <div class="p-3 bg-white rounded-xl border border-gray-200">
-                <span class="text-xs text-gray-500 block">สด 100 กก. ได้แห้ง</span>
-                <span id="preview-dry-weight" class="text-xl font-bold text-emerald-800 font-mono">${(100 / currentRatio).toFixed(1)} กก.</span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -786,19 +681,6 @@ export const FreshProduceComponent = {
       content: modalHtml,
       onRender: (dialog) => {
         const ratioInput = dialog.querySelector('#drying-ratio-input');
-        const yieldDisplay = dialog.querySelector('#preview-yield-pct');
-        const dryDisplay = dialog.querySelector('#preview-dry-weight');
-
-        if (ratioInput) {
-          ratioInput.addEventListener('input', () => {
-            const r = parseFloat(ratioInput.value) || 1;
-            if (r > 0) {
-              if (yieldDisplay) yieldDisplay.textContent = (100 / r).toFixed(1) + '%';
-              if (dryDisplay) dryDisplay.textContent = (100 / r).toFixed(1) + ' กก.';
-            }
-          });
-        }
-
         const form = dialog.querySelector('#edit-drying-ratio-form');
         if (form) {
           form.addEventListener('submit', (e) => {
@@ -1513,9 +1395,6 @@ export const FreshProduceComponent = {
             <span class="px-3 py-1.5 rounded-xl text-sm font-bold text-teal-950 bg-white border border-teal-300 shadow-2xs flex items-center gap-1.5 whitespace-nowrap">
               <i class="fa-solid fa-jar text-teal-600"></i> ขนาด 50 G
             </span>
-            <span class="px-3 py-1.5 rounded-xl text-sm font-bold text-emerald-950 bg-emerald-100 border border-emerald-300 shadow-2xs flex items-center gap-1.5 whitespace-nowrap">
-              <i class="fas fa-bolt text-emerald-600"></i> สูตร: 1 กก. = 20 กระป๋อง
-            </span>
           </div>
         </div>
 
@@ -1574,40 +1453,8 @@ export const FreshProduceComponent = {
                 กระป๋อง
               </span>
             </div>
-            <div class="mt-1.5 py-1 px-2 text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 rounded-lg text-center truncate">
-              คำนวณอัตโนมัติ (1 กก. = 20 กป.)
-            </div>
           </div>
 
-        </div>
-
-        <!-- แถวที่ 2.5: กระป๋อง Live Summary สรุปผลการบรรจุกระป๋องและมูลค่าเศรษฐกิจ -->
-        <div id="canning-live-summary-box" class="p-3.5 bg-gradient-to-r from-teal-50 via-emerald-50 to-amber-50 rounded-2xl border border-teal-300 shadow-2xs space-y-1">
-          <div class="flex items-center justify-between text-sm font-bold text-teal-950">
-            <span class="flex items-center gap-1.5">
-              <i class="fa-solid fa-jar text-teal-700 text-sm"></i>
-              <span>สรุปข้อมูลการบรรจุกระป๋องและมูลค่าสินค้าสำเร็จรูป:</span>
-            </span>
-            <span id="canning-live-unit-price-badge" class="px-2 py-0.5 rounded-md text-sm font-bold bg-white text-teal-900 border border-teal-200">
-              ราคาขาย: ${formatBaht(jarPrice50g)}/กระป๋อง (50 G)
-            </span>
-          </div>
-          <div id="canning-live-summary-text" class="text-sm font-medium text-gray-800 leading-relaxed pt-0.5">
-            <div>
-              วันที่ <b>${formatThaiDate(today)}</b>: ใช้<b>ดอก${herb}แห้ง</b> <b class="text-amber-950 font-bold font-mono">${defaultUsedKg}</b> กก. ➔ บรรจุได้ <b class="text-teal-900 font-bold font-mono text-base">${initialJars}</b> กระป๋อง (ขนาด 50 G)
-            </div>
-            <div class="mt-2 pt-2 border-t border-teal-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-sm text-teal-950">
-              <span class="flex items-center gap-1 font-bold">
-                <i class="fas fa-coins text-amber-600"></i>
-                <span>ประเมินมูลค่าสินค้าบรรจุกระป๋องที่ได้:</span>
-              </span>
-              <div class="flex items-baseline gap-2 font-mono flex-wrap">
-                <span class="text-gray-700">มูลค่าเพิ่มเข้าคลัง:</span>
-                <b id="canning-live-total-value" class="text-teal-800 text-base font-bold">${formatBaht(initialJars * jarPrice50g)}</b>
-                <span class="text-gray-500 font-sans">(@${formatBaht(jarPrice50g)}/กป.)</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- แถวที่ 3: ผู้รับผิดชอบ & หมายเหตุ / เลขล็อต -->

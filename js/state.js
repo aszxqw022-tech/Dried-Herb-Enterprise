@@ -177,6 +177,16 @@ const MOCK_USERS = [
     color: 'emerald'
   },
   {
+    username: '12/5',
+    password: '0897654321',
+    name: 'นางแหม่ม สุตินกาศ',
+    role: 'Officer',
+    roleDisplay: 'รองประธานกลุ่ม',
+    memberId: 'MEM-002',
+    avatarText: 'แ',
+    color: 'blue'
+  },
+  {
     username: '45/1',
     password: '0812345699',
     name: 'นายมานะ รักเกษตร',
@@ -185,16 +195,6 @@ const MOCK_USERS = [
     memberId: 'MEM-003',
     avatarText: 'ม',
     color: 'amber'
-  },
-  {
-    username: '12/5',
-    password: '0897654321',
-    name: 'นางแหม่ม สุตินกาศ',
-    role: 'Member',
-    roleDisplay: 'รองประธานกลุ่ม',
-    memberId: 'MEM-002',
-    avatarText: 'แ',
-    color: 'blue'
   }
 ];
 
@@ -223,82 +223,18 @@ const DEFAULT_ENTERPRISE = {
   }
 };
 
-// Mock 33 Members
+// Mock Members (3 คน)
 const MOCK_MEMBERS = [
   { id: 'MEM-001', name: 'นายวีรวัฒน์ ปินทรายมูล', role: 'ประธานกลุ่ม', phone: '061-139-1105', status: 'active', villageNumber: 'หมู่ 12', joinDate: '2024-01-10', houseNumber: '12/4' },
   { id: 'MEM-002', name: 'นางแหม่ม สุตินกาศ', role: 'รองประธาน', phone: '089-765-4321', status: 'active', villageNumber: 'หมู่ 12', joinDate: '2024-01-15', houseNumber: '12/5' },
-  { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '081-234-5699', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-01-15', houseNumber: '45/1' },
-  { id: 'MEM-004', name: 'นางสมศรี มีวิถี', role: 'เลขานุการ', phone: '081-234-5604', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-01-20', houseNumber: '18' },
-  { id: 'MEM-005', name: 'นายวิชัย ปัญญาดี', role: 'กรรมการ', phone: '081-234-5605', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-02-01', houseNumber: '99/2' },
-  { id: 'MEM-006', name: 'นางนภา สุขสบาย', role: 'กรรมการ', phone: '081-234-5606', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-05', houseNumber: '24/1' },
-  { id: 'MEM-007', name: 'นายดำรง รักชาติ', role: 'กรรมการ', phone: '081-234-5607', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-02-10', houseNumber: '55' },
-  { id: 'MEM-008', name: 'นางสมปอง สุขสำราญ', role: 'สมาชิกทั่วไป', phone: '081-234-5608', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-10', houseNumber: '102' },
-  { id: 'MEM-009', name: 'นายบุญมี ทองคำ', role: 'สมาชิกทั่วไป', phone: '081-234-5609', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-02-12', houseNumber: '7/3' },
-  { id: 'MEM-010', name: 'นางประกาย แสงทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5610', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-02-15', houseNumber: '88' },
-  { id: 'MEM-011', name: 'นายสุรพล เด่นดี', role: 'สมาชิกทั่วไป', phone: '081-234-5611', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-02-20', houseNumber: '14/2' },
-  { id: 'MEM-012', name: 'นางวิมล รุ่งเรือง', role: 'สมาชิกทั่วไป', phone: '081-234-5612', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-02-22', houseNumber: '33' },
-  { id: 'MEM-013', name: 'นายเกรียงไกร ใฝ่ดี', role: 'สมาชิกทั่วไป', phone: '081-234-5613', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-01', houseNumber: '61/4' },
-  { id: 'MEM-014', name: 'นางนงนุช สุดสวย', role: 'สมาชิกทั่วไป', phone: '081-234-5614', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-03-05', houseNumber: '40' },
-  { id: 'MEM-015', name: 'นายทวีลาภ ลาภดี', role: 'สมาชิกทั่วไป', phone: '081-234-5615', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-10', houseNumber: '115' },
-  { id: 'MEM-016', name: 'นางพิศมัย ใจธรรม', role: 'สมาชิกทั่วไป', phone: '081-234-5616', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-03-12', houseNumber: '29' },
-  { id: 'MEM-017', name: 'นายอดุลย์ อบอุ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5617', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-15', houseNumber: '82/1' },
-  { id: 'MEM-018', name: 'นางสาวสุดา ชาเขียว', role: 'สมาชิกทั่วไป', phone: '081-234-5618', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-03-18', houseNumber: '19' },
-  { id: 'MEM-019', name: 'นายสมหมาย มั่นคง', role: 'สมาชิกทั่วไป', phone: '081-234-5619', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-20', houseNumber: '104' },
-  { id: 'MEM-020', name: 'นางอรอนงค์ โฉมงาม', role: 'สมาชิกทั่วไป', phone: '081-234-5620', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-03-22', houseNumber: '73/2' },
-  { id: 'MEM-021', name: 'นายประจักษ์ รักสงบ', role: 'สมาชิกทั่วไป', phone: '081-234-5621', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-03-25', houseNumber: '51' },
-  { id: 'MEM-022', name: 'นางสาวรุ่งทิวา แสงดาว', role: 'สมาชิกทั่วไป', phone: '081-234-5622', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-04-01', houseNumber: '95' },
-  { id: 'MEM-023', name: 'นายประเสริฐ ดีเลิศ', role: 'สมาชิกทั่วไป', phone: '081-234-5623', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-05', houseNumber: '37/1' },
-  { id: 'MEM-024', name: 'นางสาวกมลวรรณ ชื่นใจ', role: 'สมาชิกทั่วไป', phone: '081-234-5624', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-04-10', houseNumber: '6/2' },
-  { id: 'MEM-025', name: 'นายพิชัย ชูชาติ', role: 'สมาชิกทั่วไป', phone: '081-234-5625', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-12', houseNumber: '128' },
-  { id: 'MEM-026', name: 'นางชลลดา ปันแก้ว', role: 'สมาชิกทั่วไป', phone: '081-234-5626', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-04-15', houseNumber: '84' },
-  { id: 'MEM-027', name: 'นายธวัชชัย ยอดดี', role: 'สมาชิกทั่วไป', phone: '081-234-5627', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-04-20', houseNumber: '111/3' },
-  { id: 'MEM-028', name: 'นางมธุรส หอมกลิ่น', role: 'สมาชิกทั่วไป', phone: '081-234-5628', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-04-22', houseNumber: '48' },
-  { id: 'MEM-029', name: 'นายเสนาะ ร้องเพราะ', role: 'สมาชิกทั่วไป', phone: '081-234-5629', status: 'inactive', villageNumber: 'หมู่ 1', joinDate: '2024-04-25', houseNumber: '15/1' },
-  { id: 'MEM-030', name: 'นางอัญชลี รื่นรมย์', role: 'สมาชิกทั่วไป', phone: '081-234-5630', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-04-28', houseNumber: '67' },
-  { id: 'MEM-031', name: 'นายอุดม ศรีทอง', role: 'สมาชิกทั่วไป', phone: '081-234-5631', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-05-01', houseNumber: '2/1' },
-  { id: 'MEM-032', name: 'นางรักษ์ชนก อุดมดี', role: 'สมาชิกทั่วไป', phone: '081-234-5632', status: 'active', villageNumber: 'หมู่ 7', joinDate: '2024-05-05', houseNumber: '93' },
-  { id: 'MEM-033', name: 'นายพชรพล อิ่มเอม', role: 'สมาชิกทั่วไป', phone: '081-234-5633', status: 'active', villageNumber: 'หมู่ 1', joinDate: '2024-05-10', houseNumber: '58/2' }
+  { id: 'MEM-003', name: 'นายมานะ รักเกษตร', role: 'เหรัญญิก', phone: '081-234-5699', status: 'active', villageNumber: 'หมู่ 12', joinDate: '2024-02-01', houseNumber: '45/1' }
 ];
 
-// Mock plots for members (Generated for active members matching their village & crop zone in Sri Don Mun, Chiang Saen, Chiang Rai)
+// Mock plots for members (3 แปลง: 1 คน 1 แปลง)
 const MOCK_PLOTS = [
-  // หมู่ 12 บ้านศรีดอนมูล (ที่ตั้งสำนักงานวิสาหกิจ/ประธาน & รองประธาน: Lat ~20.311, Lng ~99.996)
   { id: 'P - 001', memberIds: ['MEM-001'], name: 'แปลงสวนหน้าบ้าน', sizeRai: 3, sizeNgan: 1, sizeSqWah: 50, lat: 20.3112, lng: 99.9964, status: 'active', plantType: 'เก๊กฮวย' },
   { id: 'P - 002', memberIds: ['MEM-002'], name: 'แปลงริมคลองส่งน้ำ', sizeRai: 2, sizeNgan: 2, sizeSqWah: 20, lat: 20.3125, lng: 99.9948, status: 'active', plantType: 'คาโมมายล์' },
-
-  // หมู่ 7 บ้านดอยสะโง้ (โซนโครงการหลวง/ที่สูง ปลูกเก๊กฮวย: Lat ~20.338 - 20.345, Lng ~100.015 - 100.023)
-  { id: 'P - 003', memberIds: ['MEM-003'], name: 'แปลงเชิงเขาม่อนแก้ว', sizeRai: 4, sizeNgan: 0, sizeSqWah: 80, lat: 20.3402, lng: 100.0185, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 004', memberIds: ['MEM-005'], name: 'แปลงทุ่งรวงทอง', sizeRai: 2, sizeNgan: 3, sizeSqWah: 0, lat: 20.3395, lng: 100.0168, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 005', memberIds: ['MEM-007'], name: 'แปลงหนองบัวงาม', sizeRai: 3, sizeNgan: 1, sizeSqWah: 40, lat: 20.3418, lng: 100.0192, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 006', memberIds: ['MEM-009'], name: 'แปลงม่อนแสงจันทร์', sizeRai: 3, sizeNgan: 0, sizeSqWah: 50, lat: 20.3384, lng: 100.0210, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 007', memberIds: ['MEM-010'], name: 'แปลงสวนเกสรทอง', sizeRai: 1, sizeNgan: 2, sizeSqWah: 80, lat: 20.3425, lng: 100.0174, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 008', memberIds: ['MEM-012'], name: 'แปลงดอนมูลพัฒนา', sizeRai: 2, sizeNgan: 1, sizeSqWah: 60, lat: 20.3408, lng: 100.0225, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 009', memberIds: ['MEM-014'], name: 'แปลงสวนสมุนไพรทวีสุข', sizeRai: 2, sizeNgan: 3, sizeSqWah: 10, lat: 20.3432, lng: 100.0159, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 010', memberIds: ['MEM-016'], name: 'แปลงเนินดินทอง', sizeRai: 3, sizeNgan: 2, sizeSqWah: 0, lat: 20.3376, lng: 100.0188, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 011', memberIds: ['MEM-018'], name: 'แปลงชาเขียวเกสร', sizeRai: 2, sizeNgan: 0, sizeSqWah: 45, lat: 20.3441, lng: 100.0205, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 012', memberIds: ['MEM-020'], name: 'แปลงสวนงามตา', sizeRai: 1, sizeNgan: 3, sizeSqWah: 50, lat: 20.3390, lng: 100.0238, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 013', memberIds: ['MEM-022'], name: 'แปลงแสงดาวสว่าง', sizeRai: 2, sizeNgan: 1, sizeSqWah: 20, lat: 20.3415, lng: 100.0146, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 014', memberIds: ['MEM-024'], name: 'แปลงชื่นใจสมุนไพร', sizeRai: 3, sizeNgan: 0, sizeSqWah: 0, lat: 20.3381, lng: 100.0171, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 015', memberIds: ['MEM-026'], name: 'แปลงแก้วตาปันสุข', sizeRai: 2, sizeNgan: 2, sizeSqWah: 30, lat: 20.3429, lng: 100.0218, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 016', memberIds: ['MEM-028'], name: 'แปลงหอมกลิ่นดอกไม้', sizeRai: 1, sizeNgan: 3, sizeSqWah: 80, lat: 20.3400, lng: 100.0245, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 017', memberIds: ['MEM-030'], name: 'แปลงรื่นรมย์สมถะ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 15, lat: 20.3438, lng: 100.0182, status: 'active', plantType: 'เก๊กฮวย' },
-  { id: 'P - 018', memberIds: ['MEM-032'], name: 'แปลงอุดมสุขทรัพย์', sizeRai: 3, sizeNgan: 1, sizeSqWah: 0, lat: 20.3368, lng: 100.0162, status: 'active', plantType: 'เก๊กฮวย' },
-
-  // หมู่ 1 บ้านแม่มะ (โซนชุมชนแม่มะ ราบลุ่ม ปลูกคาโมมายล์: Lat ~20.354 - 20.360, Lng ~99.998 - 100.006)
-  { id: 'P - 019', memberIds: ['MEM-004'], name: 'แปลงใกล้หอประชุม', sizeRai: 1, sizeNgan: 3, sizeSqWah: 50, lat: 20.3572, lng: 100.0018, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 020', memberIds: ['MEM-006'], name: 'แปลงสวนดอนแก้ว', sizeRai: 2, sizeNgan: 1, sizeSqWah: 40, lat: 20.3561, lng: 100.0035, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 021', memberIds: ['MEM-008'], name: 'แปลงร่มไม้ชายทุ่ง', sizeRai: 3, sizeNgan: 0, sizeSqWah: 0, lat: 20.3585, lng: 100.0004, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 022', memberIds: ['MEM-011'], name: 'แปลงห้วยน้ำริน', sizeRai: 2, sizeNgan: 2, sizeSqWah: 25, lat: 20.3548, lng: 100.0022, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 023', memberIds: ['MEM-013'], name: 'แปลงสันป่าเปา', sizeRai: 3, sizeNgan: 1, sizeSqWah: 0, lat: 20.3592, lng: 100.0041, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 024', memberIds: ['MEM-015'], name: 'แปลงลาภดีมีสุข', sizeRai: 1, sizeNgan: 2, sizeSqWah: 70, lat: 20.3556, lng: 99.9992, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 025', memberIds: ['MEM-017'], name: 'แปลงอบอุ่นใจ', sizeRai: 2, sizeNgan: 0, sizeSqWah: 50, lat: 20.3578, lng: 100.0053, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 026', memberIds: ['MEM-019'], name: 'แปลงมั่นคงถาวร', sizeRai: 3, sizeNgan: 2, sizeSqWah: 10, lat: 20.3540, lng: 100.0010, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 027', memberIds: ['MEM-021'], name: 'แปลงสงบร่มเย็น', sizeRai: 2, sizeNgan: 1, sizeSqWah: 35, lat: 20.3568, lng: 99.9981, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 028', memberIds: ['MEM-023'], name: 'แปลงเลิศรสสมุนไพร', sizeRai: 1, sizeNgan: 3, sizeSqWah: 80, lat: 20.3589, lng: 100.0028, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 029', memberIds: ['MEM-025'], name: 'แปลงชูชาติเกษตร', sizeRai: 2, sizeNgan: 3, sizeSqWah: 0, lat: 20.3550, lng: 100.0048, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 030', memberIds: ['MEM-027'], name: 'แปลงยอดดีพัฒนา', sizeRai: 3, sizeNgan: 0, sizeSqWah: 60, lat: 20.3601, lng: 100.0015, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 031', memberIds: ['MEM-031'], name: 'แปลงศรีทองพืชผล', sizeRai: 2, sizeNgan: 2, sizeSqWah: 40, lat: 20.3564, lng: 100.0060, status: 'active', plantType: 'คาโมมายล์' },
-  { id: 'P - 032', memberIds: ['MEM-033'], name: 'แปลงอิ่มเอมใจ', sizeRai: 1, sizeNgan: 3, sizeSqWah: 20, lat: 20.3580, lng: 99.9998, status: 'active', plantType: 'คาโมมายล์' }
+  { id: 'P - 003', memberIds: ['MEM-003'], name: 'แปลงท้ายหมู่บ้าน', sizeRai: 4, sizeNgan: 0, sizeSqWah: 0, lat: 20.3140, lng: 99.9980, status: 'active', plantType: 'เก๊กฮวย' }
 ];
 
 // Mock crop seasons for initial plots (Format: [YearBE2digits][Running2digits], e.g. 6901)
@@ -341,576 +277,6 @@ const MOCK_CROPS = [
     fertilizingLog: [
       { date: '2026-08-28', type: 'ปุ๋ยคอกมูลไก่หมัก', amount: '25 กิโลกรัม', cost: 300, note: 'บำรุงต้นกล้าเริ่มต้น' },
       { date: '2026-09-12', type: 'น้ำหมักปลาชีวภาพเร่งราก', amount: '15 ลิตร', cost: 280, note: 'บำรุงต้นรอบ 1' }
-    ]
-  },
-  {
-    id: '2569/P003-R1',
-    plotId: 'P - 003',
-    plantDate: '2026-08-29',
-    harvestDateEst: '2026-11-29',
-    fertDateEst: '2026-09-15',
-    harvestDateActual: null,
-    seedlingCount: 1200,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 5500,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงเชิงเขาม่อนแก้ว (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-08-29', type: 'ปุ๋ยหมักชีวภาพรองพื้น', amount: '40 กิโลกรัม', cost: 500, note: 'เตรียมดินรองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P004-R1',
-    plotId: 'P - 004',
-    plantDate: '2026-08-30',
-    harvestDateEst: '2026-11-30',
-    fertDateEst: '2026-09-15',
-    harvestDateActual: null,
-    seedlingCount: 850,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4200,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงทุ่งรวงทอง (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-08-30', type: 'ปุ๋ยอินทรีย์อัดเม็ดรองพื้น', amount: '30 กิโลกรัม', cost: 420, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P005-R1',
-    plotId: 'P - 005',
-    plantDate: '2026-08-31',
-    harvestDateEst: '2026-12-01',
-    fertDateEst: '2026-09-16',
-    harvestDateActual: null,
-    seedlingCount: 1000,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4800,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงหนองบัวงาม (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-08-31', type: 'ปุ๋ยหมักใบไม้ผุและมูลวัว', amount: '35 กิโลกรัม', cost: 450, note: 'รองพื้นก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P006-R1',
-    plotId: 'P - 006',
-    plantDate: '2026-09-01',
-    harvestDateEst: '2026-12-01',
-    fertDateEst: '2026-09-16',
-    harvestDateActual: null,
-    seedlingCount: 950,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4600,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงม่อนแสงจันทร์ (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-01', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '30 กิโลกรัม', cost: 400, note: 'เตรียมดินแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P007-R1',
-    plotId: 'P - 007',
-    plantDate: '2026-09-01',
-    harvestDateEst: '2026-12-01',
-    fertDateEst: '2026-09-17',
-    harvestDateActual: null,
-    seedlingCount: 550,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3200,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงสวนเกสรทอง (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-01', type: 'ปุ๋ยคอกหมักอินทรีย์', amount: '20 กิโลกรัม', cost: 300, note: 'รองพื้นก่อนลงกล้า' }
-    ]
-  },
-  {
-    id: '2569/P008-R1',
-    plotId: 'P - 008',
-    plantDate: '2026-09-02',
-    harvestDateEst: '2026-12-02',
-    fertDateEst: '2026-09-17',
-    harvestDateActual: null,
-    seedlingCount: 750,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3900,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงดอนมูลพัฒนา (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-02', type: 'ปุ๋ยหมักชีวภาพผสมแกลบดำ', amount: '25 กิโลกรัม', cost: 350, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P009-R1',
-    plotId: 'P - 009',
-    plantDate: '2026-09-02',
-    harvestDateEst: '2026-12-02',
-    fertDateEst: '2026-09-18',
-    harvestDateActual: null,
-    seedlingCount: 880,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4300,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงสวนสมุนไพรทวีสุข (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-02', type: 'ปุ๋ยอินทรีย์ชีวภาพสูตรพิเศษ', amount: '30 กิโลกรัม', cost: 420, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P010-R1',
-    plotId: 'P - 010',
-    plantDate: '2026-09-03',
-    harvestDateEst: '2026-12-03',
-    fertDateEst: '2026-09-18',
-    harvestDateActual: null,
-    seedlingCount: 1100,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 5100,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงเนินดินทอง (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-03', type: 'ปุ๋ยหมักชีวภาพสูตรดินเขา', amount: '35 กิโลกรัม', cost: 480, note: 'รองพื้นก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P011-R1',
-    plotId: 'P - 011',
-    plantDate: '2026-09-03',
-    harvestDateEst: '2026-12-03',
-    fertDateEst: '2026-09-19',
-    harvestDateActual: null,
-    seedlingCount: 700,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3800,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงชาเขียวเกสร (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-03', type: 'ปุ๋ยหมักอินทรีย์ธรรมชาติ', amount: '25 กิโลกรัม', cost: 360, note: 'เตรียมดินปลูก' }
-    ]
-  },
-  {
-    id: '2569/P012-R1',
-    plotId: 'P - 012',
-    plantDate: '2026-09-04',
-    harvestDateEst: '2026-12-04',
-    fertDateEst: '2026-09-19',
-    harvestDateActual: null,
-    seedlingCount: 600,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3400,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงสวนงามตา (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-04', type: 'ปุ๋ยคอกหมักมูลวัว', amount: '22 กิโลกรัม', cost: 310, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P013-R1',
-    plotId: 'P - 013',
-    plantDate: '2026-09-04',
-    harvestDateEst: '2026-12-04',
-    fertDateEst: '2026-09-20',
-    harvestDateActual: null,
-    seedlingCount: 750,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4000,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงแสงดาวสว่าง (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-04', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '28 กิโลกรัม', cost: 390, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P014-R1',
-    plotId: 'P - 014',
-    plantDate: '2026-09-05',
-    harvestDateEst: '2026-12-05',
-    fertDateEst: '2026-09-20',
-    harvestDateActual: null,
-    seedlingCount: 950,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4700,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงชื่นใจสมุนไพร (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-05', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '32 กิโลกรัม', cost: 440, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P015-R1',
-    plotId: 'P - 015',
-    plantDate: '2026-09-05',
-    harvestDateEst: '2026-12-05',
-    fertDateEst: '2026-09-21',
-    harvestDateActual: null,
-    seedlingCount: 820,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4200,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงแก้วตาปันสุข (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-05', type: 'ปุ๋ยอินทรีย์อัดเม็ด', amount: '26 กิโลกรัม', cost: 380, note: 'รองพื้นก่อนลงกล้า' }
-    ]
-  },
-  {
-    id: '2569/P016-R1',
-    plotId: 'P - 016',
-    plantDate: '2026-09-06',
-    harvestDateEst: '2026-12-06',
-    fertDateEst: '2026-09-21',
-    harvestDateActual: null,
-    seedlingCount: 620,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3500,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงหอมกลิ่นดอกไม้ (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-06', type: 'ปุ๋ยคอกหมักธรรมชาติ', amount: '20 กิโลกรัม', cost: 300, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P017-R1',
-    plotId: 'P - 017',
-    plantDate: '2026-09-06',
-    harvestDateEst: '2026-12-06',
-    fertDateEst: '2026-09-22',
-    harvestDateActual: null,
-    seedlingCount: 700,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3700,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงรื่นรมย์สมถะ (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-06', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '25 กิโลกรัม', cost: 360, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P018-R1',
-    plotId: 'P - 018',
-    plantDate: '2026-09-07',
-    harvestDateEst: '2026-12-07',
-    fertDateEst: '2026-09-22',
-    harvestDateActual: null,
-    seedlingCount: 1000,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4900,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าเก๊กฮวย แปลงอุดมสุขทรัพย์ (หมู่ 7 ดอยสะโง้)',
-    fertilizingLog: [
-      { date: '2026-09-07', type: 'ปุ๋ยหมักชีวภาพสูตรใบเขา', amount: '35 กิโลกรัม', cost: 470, note: 'เตรียมดินและรองหลุม' }
-    ]
-  },
-  {
-    id: '2569/P019-R1',
-    plotId: 'P - 019',
-    plantDate: '2026-08-29',
-    harvestDateEst: '2026-11-29',
-    fertDateEst: '2026-09-14',
-    harvestDateActual: null,
-    seedlingCount: 650,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3600,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงใกล้หอประชุม (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-08-29', type: 'ปุ๋ยหมักชีวภาพเตรียมดิน', amount: '25 กิโลกรัม', cost: 350, note: 'รองพื้นแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P020-R1',
-    plotId: 'P - 020',
-    plantDate: '2026-08-30',
-    harvestDateEst: '2026-11-30',
-    fertDateEst: '2026-09-15',
-    harvestDateActual: null,
-    seedlingCount: 720,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3900,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงสวนดอนแก้ว (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-08-30', type: 'ปุ๋ยคอกหมักมูลไก่', amount: '28 กิโลกรัม', cost: 380, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P021-R1',
-    plotId: 'P - 021',
-    plantDate: '2026-08-31',
-    harvestDateEst: '2026-12-01',
-    fertDateEst: '2026-09-16',
-    harvestDateActual: null,
-    seedlingCount: 950,
-    seedlingSource: 'คาโมมายล์',
-    cost: 4700,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงร่มไม้ชายทุ่ง (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-08-31', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '35 กิโลกรัม', cost: 460, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P022-R1',
-    plotId: 'P - 022',
-    plantDate: '2026-09-01',
-    harvestDateEst: '2026-12-01',
-    fertDateEst: '2026-09-16',
-    harvestDateActual: null,
-    seedlingCount: 800,
-    seedlingSource: 'คาโมมายล์',
-    cost: 4100,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงห้วยน้ำริน (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-01', type: 'ปุ๋ยหมักชีวภาพผสมขุยมะพร้าว', amount: '30 กิโลกรัม', cost: 400, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P023-R1',
-    plotId: 'P - 023',
-    plantDate: '2026-09-01',
-    harvestDateEst: '2026-12-01',
-    fertDateEst: '2026-09-17',
-    harvestDateActual: null,
-    seedlingCount: 1000,
-    seedlingSource: 'คาโมมายล์',
-    cost: 4900,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงสันป่าเปา (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-01', type: 'ปุ๋ยอินทรีย์อัดเม็ด', amount: '35 กิโลกรัม', cost: 470, note: 'เตรียมดินและรองหลุม' }
-    ]
-  },
-  {
-    id: '2569/P024-R1',
-    plotId: 'P - 024',
-    plantDate: '2026-09-02',
-    harvestDateEst: '2026-12-02',
-    fertDateEst: '2026-09-17',
-    harvestDateActual: null,
-    seedlingCount: 550,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3200,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงลาภดีมีสุข (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-02', type: 'ปุ๋ยคอกหมักอินทรีย์', amount: '22 กิโลกรัม', cost: 310, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P025-R1',
-    plotId: 'P - 025',
-    plantDate: '2026-09-02',
-    harvestDateEst: '2026-12-02',
-    fertDateEst: '2026-09-18',
-    harvestDateActual: null,
-    seedlingCount: 680,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3700,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงอบอุ่นใจ (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-02', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '26 กิโลกรัม', cost: 360, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P026-R1',
-    plotId: 'P - 026',
-    plantDate: '2026-09-03',
-    harvestDateEst: '2026-12-03',
-    fertDateEst: '2026-09-18',
-    harvestDateActual: null,
-    seedlingCount: 1100,
-    seedlingSource: 'คาโมมายล์',
-    cost: 5200,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงมั่นคงถาวร (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-03', type: 'ปุ๋ยหมักชีวภาพสูตรพิเศษ', amount: '38 กิโลกรัม', cost: 500, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P027-R1',
-    plotId: 'P - 027',
-    plantDate: '2026-09-03',
-    harvestDateEst: '2026-12-03',
-    fertDateEst: '2026-09-19',
-    harvestDateActual: null,
-    seedlingCount: 720,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3900,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงสงบร่มเย็น (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-03', type: 'ปุ๋ยคอกหมักมูลวัว', amount: '25 กิโลกรัม', cost: 350, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P028-R1',
-    plotId: 'P - 028',
-    plantDate: '2026-09-04',
-    harvestDateEst: '2026-12-04',
-    fertDateEst: '2026-09-19',
-    harvestDateActual: null,
-    seedlingCount: 600,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3400,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงเลิศรสสมุนไพร (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-04', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '22 กิโลกรัม', cost: 320, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P029-R1',
-    plotId: 'P - 029',
-    plantDate: '2026-09-04',
-    harvestDateEst: '2026-12-04',
-    fertDateEst: '2026-09-20',
-    harvestDateActual: null,
-    seedlingCount: 880,
-    seedlingSource: 'คาโมมายล์',
-    cost: 4400,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงชูชาติเกษตร (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-04', type: 'ปุ๋ยอินทรีย์อัดเม็ด', amount: '30 กิโลกรัม', cost: 410, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P030-R1',
-    plotId: 'P - 030',
-    plantDate: '2026-09-05',
-    harvestDateEst: '2026-12-05',
-    fertDateEst: '2026-09-20',
-    harvestDateActual: null,
-    seedlingCount: 950,
-    seedlingSource: 'คาโมมายล์',
-    cost: 4800,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงยอดดีพัฒนา (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-05', type: 'ปุ๋ยหมักชีวภาพสูตร 1', amount: '32 กิโลกรัม', cost: 440, note: 'เตรียมแปลงปลูก' }
-    ]
-  },
-  {
-    id: '2569/P031-R1',
-    plotId: 'P - 031',
-    plantDate: '2026-09-05',
-    harvestDateEst: '2026-12-05',
-    fertDateEst: '2026-09-21',
-    harvestDateActual: null,
-    seedlingCount: 800,
-    seedlingSource: 'คาโมมายล์',
-    cost: 4200,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงศรีทองพืชผล (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-05', type: 'ปุ๋ยคอกหมักมูลไก่', amount: '28 กิโลกรัม', cost: 380, note: 'รองก้นหลุม' }
-    ]
-  },
-  {
-    id: '2569/P032-R1',
-    plotId: 'P - 032',
-    plantDate: '2026-09-06',
-    harvestDateEst: '2026-12-06',
-    fertDateEst: '2026-09-21',
-    harvestDateActual: null,
-    seedlingCount: 600,
-    seedlingSource: 'คาโมมายล์',
-    cost: 3500,
-    yield: null,
-    status: 'growing',
-    cropYear: 2569,
-    cropCycle: 1,
-    note: 'ลงกล้าคาโมมายล์ แปลงอิ่มเอมใจ (หมู่ 1 แม่มะ)',
-    fertilizingLog: [
-      { date: '2026-09-06', type: 'ปุ๋ยหมักชีวภาพสูตรเตรียมดิน', amount: '22 กิโลกรัม', cost: 320, note: 'เตรียมดินปลูก' }
     ]
   },
   {
@@ -1004,129 +370,6 @@ const MOCK_CROPS = [
     fertilizingLog: [
       { date: '2026-05-10', type: 'น้ำหมักชีวภาพปลาทะเล', amount: '20 ลิตร', cost: 320 }
     ]
-  },
-  {
-    id: '2568/P003-R1',
-    plotId: 'P - 003',
-    plantDate: '2026-01-20',
-    harvestDateEst: '2026-04-20',
-    harvestDateActual: '2026-04-25',
-    seedlingCount: 1000,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4800,
-    yield: 180.0,
-    status: 'harvested',
-    isProcessed: true,
-    dryingDate: '2026-04-28',
-    freshUsed: 180.0,
-    dryWeight: 18.0,
-    cropYear: 2568,
-    cropCycle: 1,
-    note: 'เก๊กฮวยม่อนแก้ว รอบที่ 1 สด 180 กก. ได้แห้ง 18 กก. (10:1)',
-    harvestNote: 'ดอกสวย สีเหลืองทองสว่าง คัดเกรดพิเศษ',
-    fertilizingLog: []
-  },
-  {
-    id: '2568/P003-R2',
-    plotId: 'P - 003',
-    plantDate: '2026-05-10',
-    harvestDateEst: '2026-08-10',
-    harvestDateActual: '2026-08-15',
-    seedlingCount: 1100,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 5100,
-    yield: 190.0,
-    status: 'harvested',
-    isProcessed: true,
-    dryingDate: '2026-08-18',
-    freshUsed: 190.0,
-    dryWeight: 19.0,
-    cropYear: 2568,
-    cropCycle: 2,
-    note: 'เก๊กฮวยม่อนแก้ว รอบที่ 2 เก็บเกี่ยวและอบแห้งแล้ว (10:1)',
-    harvestNote: 'ได้ผลผลิตสูง ดอกแน่น ส่งอบแห้งทันที',
-    fertilizingLog: []
-  },
-  {
-    id: '2568/P003-R3',
-    plotId: 'P - 003',
-    plantDate: '2026-08-20',
-    harvestDateEst: '2026-11-20',
-    harvestDateActual: '2026-11-25',
-    seedlingCount: 1050,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 5000,
-    yield: 180.0,
-    status: 'harvested',
-    isProcessed: true,
-    dryingDate: '2026-11-28',
-    freshUsed: 180.0,
-    dryWeight: 18.0,
-    cropYear: 2568,
-    cropCycle: 3,
-    note: 'เก๊กฮวยม่อนแก้ว รอบที่ 3 สด 180 กก. ได้แห้ง 18 กก. (10:1)',
-    harvestNote: 'คุณภาพดีเยี่ยม สีทอง กลิ่นหอมฟุ้ง',
-    fertilizingLog: []
-  },
-  {
-    id: '2568/P004-R1',
-    plotId: 'P - 004',
-    plantDate: '2026-02-01',
-    harvestDateEst: '2026-05-01',
-    harvestDateActual: '2026-05-05',
-    seedlingCount: 600,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 3500,
-    yield: 85.0,
-    status: 'harvested',
-    isProcessed: false,
-    cropYear: 2568,
-    cropCycle: 1,
-    note: 'เก็บเกี่ยวดอกสดเก๊กฮวยรอบ 1 เรียบร้อยแล้ว รอส่งเข้าตู้อบแห้ง',
-    harvestNote: 'ดอกสดสมบูรณ์ รอคิวเตาอบที่ 2',
-    fertilizingLog: []
-  },
-  {
-    id: '2568/P005-R1',
-    plotId: 'P - 005',
-    plantDate: '2026-02-10',
-    harvestDateEst: '2026-05-10',
-    harvestDateActual: '2026-05-15',
-    seedlingCount: 750,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4100,
-    yield: 140.0,
-    status: 'harvested',
-    isProcessed: true,
-    dryingDate: '2026-05-18',
-    freshUsed: 140.0,
-    dryWeight: 14.0,
-    cropYear: 2568,
-    cropCycle: 1,
-    note: 'แปลงทุ่งรวงทอง รอบที่ 1 สด 140 กก. ได้แห้ง 14 กก. (10:1)',
-    harvestNote: 'ดอกสดสวยงาม ไร้สารเคมี',
-    fertilizingLog: []
-  },
-  {
-    id: '2568/P005-R2',
-    plotId: 'P - 005',
-    plantDate: '2026-06-01',
-    harvestDateEst: '2026-09-01',
-    harvestDateActual: '2026-09-05',
-    seedlingCount: 800,
-    seedlingSource: 'เก๊กฮวย',
-    cost: 4300,
-    yield: 150.0,
-    status: 'harvested',
-    isProcessed: true,
-    dryingDate: '2026-09-08',
-    freshUsed: 150.0,
-    dryWeight: 15.0,
-    cropYear: 2568,
-    cropCycle: 2,
-    note: 'แปลงทุ่งรวงทอง รอบที่ 2 สด 150 กก. ได้แห้ง 15 กก. (10:1)',
-    harvestNote: 'ดอกสมบูรณ์ดีมาก เก็บเกี่ยวได้ตามเป้าหมาย',
-    fertilizingLog: []
   }
 ];
 
@@ -1311,12 +554,21 @@ export class AppState {
   constructor() {
     this.onAuthChange = null;
     this.onEnterpriseChange = null;
-    this.membersCache = [];
-    this.plotsCache = [];
-    this.cropsCache = [];
-    this.inventoryCache = [];
-    this.salesCache = [];
-    this.customersCache = [];
+    try {
+      this.membersCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBERS)) || JSON.parse(JSON.stringify(MOCK_MEMBERS));
+      this.plotsCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)) || JSON.parse(JSON.stringify(MOCK_PLOTS));
+      this.cropsCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS)) || JSON.parse(JSON.stringify(MOCK_CROPS));
+      this.inventoryCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY)) || JSON.parse(JSON.stringify(MOCK_INVENTORY));
+      this.salesCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || JSON.parse(JSON.stringify(MOCK_SALES));
+      this.customersCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) || JSON.parse(JSON.stringify(MOCK_CUSTOMERS));
+    } catch (e) {
+      this.membersCache = JSON.parse(JSON.stringify(MOCK_MEMBERS));
+      this.plotsCache = JSON.parse(JSON.stringify(MOCK_PLOTS));
+      this.cropsCache = JSON.parse(JSON.stringify(MOCK_CROPS));
+      this.inventoryCache = JSON.parse(JSON.stringify(MOCK_INVENTORY));
+      this.salesCache = JSON.parse(JSON.stringify(MOCK_SALES));
+      this.customersCache = JSON.parse(JSON.stringify(MOCK_CUSTOMERS));
+    }
     this.init();
   }
 
@@ -1381,6 +633,12 @@ export class AppState {
       } else if (membersData && membersData.length === 0) {
         await supabaseClient.from('members').insert(MOCK_MEMBERS);
         this.membersCache = JSON.parse(JSON.stringify(MOCK_MEMBERS));
+      } else if (memError) {
+        console.warn("Supabase members sync skipped:", memError.message);
+        if (!this.membersCache || this.membersCache.length === 0) {
+          const stored = localStorage.getItem(STORAGE_KEYS.MEMBERS);
+          this.membersCache = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(MOCK_MEMBERS));
+        }
       }
 
       // 3. Sync plots
@@ -1413,6 +671,12 @@ export class AppState {
         }));
         await supabaseClient.from('plots').insert(plotsToInsert);
         this.plotsCache = JSON.parse(JSON.stringify(MOCK_PLOTS));
+      } else if (plotsError) {
+        console.warn("Supabase plots sync skipped:", plotsError.message);
+        if (!this.plotsCache || this.plotsCache.length === 0) {
+          const stored = localStorage.getItem(STORAGE_KEYS.PLOTS);
+          this.plotsCache = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(MOCK_PLOTS));
+        }
       }
 
       // 4. Sync crops
@@ -1445,6 +709,12 @@ export class AppState {
         }));
         await supabaseClient.from('crops').insert(cropsToInsert);
         this.cropsCache = JSON.parse(JSON.stringify(MOCK_CROPS));
+      } else if (cropsError) {
+        console.warn("Supabase crops sync skipped:", cropsError.message);
+        if (!this.cropsCache || this.cropsCache.length === 0) {
+          const stored = localStorage.getItem(STORAGE_KEYS.CROPS);
+          this.cropsCache = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(MOCK_CROPS));
+        }
       }
 
       // 5. Sync inventory
@@ -1474,6 +744,12 @@ export class AppState {
           history: i.history || []
         }));
         this.inventoryCache = JSON.parse(JSON.stringify(MOCK_INVENTORY));
+      } else if (invError) {
+        console.warn("Supabase inventory sync skipped:", invError.message);
+        if (!this.inventoryCache || this.inventoryCache.length === 0) {
+          const stored = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+          this.inventoryCache = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(MOCK_INVENTORY));
+        }
       }
 
       // 6. Sync sales
@@ -1521,6 +797,12 @@ export class AppState {
             totalPrice: s.amountKg * s.pricePerKg
           };
         });
+      } else if (salesError) {
+        console.warn("Supabase sales sync skipped:", salesError.message);
+        if (!this.salesCache || this.salesCache.length === 0) {
+          const stored = localStorage.getItem(STORAGE_KEYS.SALES);
+          this.salesCache = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(MOCK_SALES));
+        }
       }
 
       // 7. Sync customers
@@ -1535,6 +817,12 @@ export class AppState {
           lineId: c.line_id || c.lineId,
           contactChannel: c.contact_channel || c.contactChannel
         }));
+      } else if (custError) {
+        console.warn("Supabase customers sync skipped:", custError.message);
+        if (!this.customersCache || this.customersCache.length === 0) {
+          const stored = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
+          this.customersCache = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(MOCK_CUSTOMERS));
+        }
       }
 
       // 8. Sync herbs_catalog
@@ -1616,7 +904,7 @@ export class AppState {
     let appRole = 'Member';
     if (member.id === 'MEM-001' || member.role === 'ประธานกลุ่ม') {
       appRole = 'Admin';
-    } else if (member.id === 'MEM-003' || member.role === 'เหรัญญิก') {
+    } else if (member.id === 'MEM-002' || member.role === 'รองประธาน' || member.role === 'เหรัญญิก') {
       appRole = 'Officer';
     }
 
@@ -1686,7 +974,7 @@ export class AppState {
   init() {
     this.initSupabase();
 
-    const SIMULATION_RESET_KEY = 'herb_enterprise_sim_ver_v15';
+    const SIMULATION_RESET_KEY = 'herb_enterprise_sim_ver_v18';
     if (localStorage.getItem('herb_enterprise_sim_ver') !== SIMULATION_RESET_KEY) {
       this.resetAllSimulationData();
       localStorage.setItem('herb_enterprise_sim_ver', SIMULATION_RESET_KEY);
@@ -1714,11 +1002,19 @@ export class AppState {
     
     // 2. Members
     const storedMembers = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-    if (!storedMembers) {
+    if (!storedMembers || JSON.parse(storedMembers).length < 3) {
       localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(MOCK_MEMBERS));
     } else {
       try {
         const list = JSON.parse(storedMembers);
+        let hasNew = false;
+        MOCK_MEMBERS.forEach(mockM => {
+          const found = list.find(m => m.id === mockM.id);
+          if (!found) {
+            list.push(mockM);
+            hasNew = true;
+          }
+        });
         const mem1 = list.find(m => m.id === 'MEM-001');
         // Migrate to houseNumber structure if needed
         if (mem1 && (!mem1.houseNumber || mem1.citizenId)) {
@@ -1730,8 +1026,16 @@ export class AppState {
             }
             delete m.citizenId;
           });
-          localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
+          hasNew = true;
           localStorage.removeItem(STORAGE_KEYS.AUTH); // Clear old session
+        }
+        if (hasNew) {
+          list.sort((a, b) => {
+            const numA = parseInt((a.id || '').replace(/\D/g, '')) || 0;
+            const numB = parseInt((b.id || '').replace(/\D/g, '')) || 0;
+            return numA - numB;
+          });
+          localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
         }
       } catch (e) {
         console.error("Migration error:", e);
@@ -1740,7 +1044,7 @@ export class AppState {
 
     // 3. Plots
     const storedPlots = localStorage.getItem(STORAGE_KEYS.PLOTS);
-    if (!storedPlots || JSON.parse(storedPlots).length === 0) {
+    if (!storedPlots || JSON.parse(storedPlots).length < 3) {
       localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
     } else {
       try {
@@ -1960,12 +1264,16 @@ export class AppState {
 
   // --- Members Methods ---
   getMembers() {
-    if (supabaseClient) {
+    if (supabaseClient && Array.isArray(this.membersCache) && this.membersCache.length > 0) {
       return this.membersCache;
     }
     try {
       const data = localStorage.getItem(STORAGE_KEYS.MEMBERS);
       let list = data ? JSON.parse(data) : MOCK_MEMBERS;
+      if (!Array.isArray(list) || list.length < 3) {
+        list = JSON.parse(JSON.stringify(MOCK_MEMBERS));
+        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
+      }
       // Auto-migrate leader names and distribute members across หมู่ 1 (คาโมมายล์) and หมู่ 7 (เก๊กฮวย)
       let needsSave = false;
       if (Array.isArray(list)) {
@@ -1995,9 +1303,15 @@ export class AppState {
           } else {
             // Match with MOCK_MEMBERS for หมู่ 1 (คาโมมายล์) and หมู่ 7 (เก๊กฮวย)
             const mock = MOCK_MEMBERS.find(mockM => mockM.id === m.id);
-            if (mock && m.villageNumber !== mock.villageNumber) {
-              m.villageNumber = mock.villageNumber;
-              needsSave = true;
+            if (mock) {
+              if (m.villageNumber !== mock.villageNumber) {
+                m.villageNumber = mock.villageNumber;
+                needsSave = true;
+              }
+              if (m.status !== mock.status) {
+                m.status = mock.status;
+                needsSave = true;
+              }
             }
           }
         });
@@ -2005,8 +1319,15 @@ export class AppState {
           localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
         }
       }
-      return (list || []).filter(m => m && typeof m === 'object' && m.id);
+      const filtered = (list || []).filter(m => m && typeof m === 'object' && m.id);
+      if (supabaseClient && (!this.membersCache || this.membersCache.length === 0)) {
+        this.membersCache = filtered;
+      }
+      return filtered;
     } catch (e) {
+      if (supabaseClient && (!this.membersCache || this.membersCache.length === 0)) {
+        this.membersCache = MOCK_MEMBERS;
+      }
       return MOCK_MEMBERS;
     }
   }
@@ -2092,18 +1413,25 @@ export class AppState {
 
   // --- Plots Methods ---
   getPlots() {
-    if (supabaseClient) {
+    if (supabaseClient && Array.isArray(this.plotsCache) && this.plotsCache.length > 0) {
       return this.plotsCache;
     }
     try {
       let plots = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)) || [];
-      // Auto-migrate if stored plots are from previous schema or contain legacy village suffix in plot names
-      if (!Array.isArray(plots) || plots.length < 20 || (plots[0] && (plots[0].name.includes('หมู่') || plots[0].name.includes('ประธาน') || plots[0].lat < 20))) {
+      // Auto-migrate if stored plots are empty or invalid
+      if (!Array.isArray(plots) || plots.length < 3 || (plots[0] && (plots[0].name.includes('หมู่') || plots[0].name.includes('ประธาน') || plots[0].lat < 20))) {
         plots = JSON.parse(JSON.stringify(MOCK_PLOTS));
         localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(plots));
       }
-      return (plots || []).filter(p => p && typeof p === 'object' && p.id);
+      const filtered = (plots || []).filter(p => p && typeof p === 'object' && p.id);
+      if (supabaseClient && (!this.plotsCache || this.plotsCache.length === 0)) {
+        this.plotsCache = filtered;
+      }
+      return filtered;
     } catch (e) {
+      if (supabaseClient && (!this.plotsCache || this.plotsCache.length === 0)) {
+        this.plotsCache = MOCK_PLOTS;
+      }
       return MOCK_PLOTS;
     }
   }
@@ -2237,10 +1565,15 @@ export class AppState {
 
   // --- Crop Seasons Methods ---
   getCrops() {
-    if (supabaseClient) {
+    if (supabaseClient && Array.isArray(this.cropsCache) && this.cropsCache.length > 0) {
       return this.cropsCache;
     }
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS)) || [];
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS)) || [];
+    const result = (Array.isArray(stored) && stored.length > 0) ? stored : MOCK_CROPS;
+    if (supabaseClient && (!this.cropsCache || this.cropsCache.length === 0)) {
+      this.cropsCache = result;
+    }
+    return result;
   }
 
   getCropById(id) {
@@ -2426,10 +1759,15 @@ export class AppState {
 
   // --- Inventory Methods (Phase 2) ---
   getInventory() {
-    if (supabaseClient) {
+    if (supabaseClient && Array.isArray(this.inventoryCache) && this.inventoryCache.length > 0) {
       return this.inventoryCache;
     }
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY)) || [];
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY)) || [];
+    const result = (Array.isArray(stored) && stored.length > 0) ? stored : MOCK_INVENTORY;
+    if (supabaseClient && (!this.inventoryCache || this.inventoryCache.length === 0)) {
+      this.inventoryCache = result;
+    }
+    return result;
   }
 
   getInventoryByCropId(cropId) {
@@ -2439,10 +1777,14 @@ export class AppState {
   // --- Sales Methods (Phase 2) ---
   getSales() {
     let sales = [];
-    if (supabaseClient) {
-      sales = this.salesCache || [];
+    if (supabaseClient && Array.isArray(this.salesCache) && this.salesCache.length > 0) {
+      sales = this.salesCache;
     } else {
       sales = JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || [];
+      if (!Array.isArray(sales) || sales.length === 0) sales = MOCK_SALES;
+      if (supabaseClient && (!this.salesCache || this.salesCache.length === 0)) {
+        this.salesCache = sales;
+      }
     }
 
     try {
@@ -3062,7 +2404,15 @@ export class AppState {
 
   // --- Customer Methods ---
   getCustomers() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) || [];
+    if (supabaseClient && Array.isArray(this.customersCache) && this.customersCache.length > 0) {
+      return this.customersCache;
+    }
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) || [];
+    const result = (Array.isArray(stored) && stored.length > 0) ? stored : MOCK_CUSTOMERS;
+    if (supabaseClient && (!this.customersCache || this.customersCache.length === 0)) {
+      this.customersCache = result;
+    }
+    return result;
   }
 
   getCustomerById(id) {
