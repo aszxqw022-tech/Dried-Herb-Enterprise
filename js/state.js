@@ -1022,33 +1022,8 @@ export class AppState {
 
     // 3. Plots
     const storedPlots = localStorage.getItem(STORAGE_KEYS.PLOTS);
-    if (!storedPlots || JSON.parse(storedPlots).length < 3) {
+    if (storedPlots === null) {
       localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
-    } else {
-      try {
-        const currentPlots = JSON.parse(storedPlots);
-        let hasNew = false;
-        MOCK_PLOTS.forEach(mockP => {
-          const found = currentPlots.find(p => p.id === mockP.id);
-          if (!found) {
-            currentPlots.push(mockP);
-            hasNew = true;
-          } else if (!found.plantType && mockP.plantType) {
-            found.plantType = mockP.plantType;
-            hasNew = true;
-          }
-        });
-        if (hasNew) {
-          currentPlots.sort((a, b) => {
-            const numA = parseInt((a.id || '').replace(/\D/g, '')) || 0;
-            const numB = parseInt((b.id || '').replace(/\D/g, '')) || 0;
-            return numA - numB;
-          });
-          localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(currentPlots));
-        }
-      } catch (err) {
-        console.error("Plots sync error:", err);
-      }
     }
 
     // 4. Crop Seasons (1 รอบมีได้ 1 แปลงเท่านั้น ไม่เขียนทับข้อมูลที่บันทึกแล้ว)
@@ -1386,16 +1361,16 @@ export class AppState {
       });
     }
 
+    const filtered = members.filter(m => m.id !== id);
+    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(filtered));
+    this.membersCache = filtered;
+
     if (supabaseClient) {
-      this.membersCache = this.membersCache.filter(m => m.id !== id);
       supabaseClient.from('members').delete().eq('id', id).then(({ error }) => {
         if (error) {
           console.error("Supabase deleteMember error:", error);
         }
       });
-    } else {
-      const filtered = members.filter(m => m.id !== id);
-      localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(filtered));
     }
     return true;
   }
@@ -1406,22 +1381,19 @@ export class AppState {
       return this.plotsCache;
     }
     try {
-      let plots = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)) || [];
-      // Auto-migrate if stored plots are empty or invalid
-      if (!Array.isArray(plots) || plots.length < 3 || (plots[0] && (plots[0].name.includes('หมู่') || plots[0].name.includes('ประธาน') || plots[0].lat < 20))) {
-        plots = JSON.parse(JSON.stringify(MOCK_PLOTS));
-        localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(plots));
+      const stored = localStorage.getItem(STORAGE_KEYS.PLOTS);
+      if (stored === null) {
+        localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(MOCK_PLOTS));
+        return JSON.parse(JSON.stringify(MOCK_PLOTS));
       }
+      let plots = JSON.parse(stored) || [];
       const filtered = (plots || []).filter(p => p && typeof p === 'object' && p.id);
       if (supabaseClient && (!this.plotsCache || this.plotsCache.length === 0)) {
         this.plotsCache = filtered;
       }
       return filtered;
     } catch (e) {
-      if (supabaseClient && (!this.plotsCache || this.plotsCache.length === 0)) {
-        this.plotsCache = MOCK_PLOTS;
-      }
-      return MOCK_PLOTS;
+      return [];
     }
   }
 
@@ -1543,16 +1515,16 @@ export class AppState {
       }
     });
 
+    const filtered = plots.filter(p => p.id !== id);
+    localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(filtered));
+    this.plotsCache = filtered;
+
     if (supabaseClient) {
-      this.plotsCache = this.plotsCache.filter(p => p.id !== id);
       supabaseClient.from('plots').delete().eq('id', id).then(({ error }) => {
         if (error) {
           console.error("Supabase deletePlot error:", error);
         }
       });
-    } else {
-      const filtered = plots.filter(p => p.id !== id);
-      localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(filtered));
     }
     return true;
   }
