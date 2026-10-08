@@ -368,14 +368,14 @@ export const SettingsComponent = {
             <!-- Supabase URL -->
             <div class="md:col-span-2">
               <label for="sup-url" class="block text-sm font-medium text-gray-700 mb-2">Supabase Project URL</label>
-              <input type="url" id="sup-url" name="supabaseUrl" value="${escapeHtml(localStorage.getItem('supabase_url') || 'https://vqoyvedycwyqjpfbuaxw.supabase.co')}" placeholder="เช่น https://xxxxxx.supabase.co"
+              <input type="url" id="sup-url" name="supabaseUrl" value="${escapeHtml(localStorage.getItem('supabase_url') || 'https://fhoszzgibwlgzggopeux.supabase.co')}" placeholder="เช่น https://xxxxxx.supabase.co"
                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-mono">
             </div>
 
             <!-- Supabase Anon Key -->
             <div class="md:col-span-2">
               <label for="sup-key" class="block text-sm font-medium text-gray-700 mb-2">Supabase Anon Key</label>
-              <input type="text" id="sup-key" name="supabaseKey" value="${escapeHtml(localStorage.getItem('supabase_key') || 'sb_publishable_rwjQGqAeYDS-IwRAi2tKBQ_5bWxbKrt')}" placeholder="เช่น sb_publishable_..."
+              <input type="text" id="sup-key" name="supabaseKey" value="${escapeHtml(localStorage.getItem('supabase_key') || 'sb_publishable_upI8AP-NK_GUbvtcZw7WLw_sh63HUPy')}" placeholder="เช่น sb_publishable_..."
                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-mono">
             </div>
           </div>

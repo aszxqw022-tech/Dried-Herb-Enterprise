@@ -573,30 +573,8 @@ export class AppState {
   }
 
   initSupabase() {
-    const defaultUrl = 'https://vqoyvedycwyqjpfbuaxw.supabase.co';
-    const defaultKey = 'sb_publishable_rwjQGqAeYDS-IwRAi2tKBQ_5bWxbKrt';
-
-    const url = localStorage.getItem('supabase_url') || defaultUrl;
-    const key = localStorage.getItem('supabase_key') || defaultKey;
-
-    if (!localStorage.getItem('supabase_url')) {
-      localStorage.setItem('supabase_url', defaultUrl);
-    }
-    if (!localStorage.getItem('supabase_key')) {
-      localStorage.setItem('supabase_key', defaultKey);
-    }
-
-    if (url && key && typeof supabase !== 'undefined') {
-      try {
-        supabaseClient = supabase.createClient(url, key);
-        console.log("Supabase Client initialized successfully with URL:", url);
-      } catch (e) {
-        console.error("Failed to initialize Supabase client:", e);
-        supabaseClient = null;
-      }
-    } else {
-      supabaseClient = null;
-    }
+    // Disabled for now as requested - run 100% locally on LocalStorage
+    supabaseClient = null;
   }
 
   async syncFromSupabase() {
@@ -1391,9 +1369,21 @@ export class AppState {
 
   deleteMember(id) {
     let members = this.getMembers();
-    const plots = this.getPlots().filter(p => p.memberIds && p.memberIds.includes(id));
-    if (plots.length > 0) {
-      throw new Error(`ไม่สามารถลบสมาชิกได้เนื่องจากสมาชิกมีแปลงปลูกอยู่ในระบบ (${plots.length} แปลง)`);
+    
+    // Also unassign or clean up member from plots
+    let plots = this.getPlots();
+    plots.forEach(p => {
+      if (p.memberIds && p.memberIds.includes(id)) {
+        p.memberIds = p.memberIds.filter(mId => mId !== id);
+      }
+    });
+    localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(plots));
+    if (this.plotsCache) {
+      this.plotsCache.forEach(p => {
+        if (p.memberIds && p.memberIds.includes(id)) {
+          p.memberIds = p.memberIds.filter(mId => mId !== id);
+        }
+      });
     }
 
     if (supabaseClient) {
@@ -1401,7 +1391,6 @@ export class AppState {
       supabaseClient.from('members').delete().eq('id', id).then(({ error }) => {
         if (error) {
           console.error("Supabase deleteMember error:", error);
-          showToast("ล้มเหลวในการลบออนไลน์: " + error.message, "error");
         }
       });
     } else {
@@ -1544,16 +1533,21 @@ export class AppState {
   deletePlot(id) {
     let plots = this.getPlots();
     const crops = this.getCrops().filter(c => c.plotId === id);
-    if (crops.length > 0) {
-      throw new Error(`ไม่สามารถลบแปลงปลูกได้เนื่องจากมีข้อมูลรอบการเพาะปลูกผูกอยู่ (${crops.length} รอบ)`);
-    }
+    
+    // Auto-cascade: delete any crops tied to this plot
+    crops.forEach(c => {
+      try {
+        this.deleteCrop(c.id);
+      } catch (e) {
+        console.warn("Failed to cascade delete crop:", c.id, e);
+      }
+    });
 
     if (supabaseClient) {
       this.plotsCache = this.plotsCache.filter(p => p.id !== id);
       supabaseClient.from('plots').delete().eq('id', id).then(({ error }) => {
         if (error) {
           console.error("Supabase deletePlot error:", error);
-          showToast("ล้มเหลวในการลบออนไลน์: " + error.message, "error");
         }
       });
     } else {

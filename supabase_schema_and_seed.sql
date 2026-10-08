@@ -1,8 +1,8 @@
 -- =========================================================================
 -- สคริปต์สร้างตารางและบรรจุข้อมูลทั้งหมดเข้า Supabase (DDL & Complete Seed)
 -- สำหรับ: วิสาหกิจชุมชนสมุนไพรอบแห้งบ้านศรีดอนมูล
--- URL: https://vqoyvedycwyqjpfbuaxw.supabase.co
--- Key: sb_publishable_rwjQGqAeYDS-IwRAi2tKBQ_5bWxbKrt
+-- URL: https://fhoszzgibwlgzggopeux.supabase.co
+-- Key: sb_publishable_upI8AP-NK_GUbvtcZw7WLw_sh63HUPy
 -- =========================================================================
 
 -- 1. ตารางข้อมูลวิสาหกิจชุมชน (Enterprise Profile)
