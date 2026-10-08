@@ -181,13 +181,6 @@ export const DashboardComponent = {
       }
     });
 
-    // Ensure total matches 14 plots if empty
-    if (plots.length === 14 && growingPlotsCount === 0 && harvestedPlotsCount === 0 && idlePlotsCount === 0) {
-      growingPlotsCount = 7;
-      harvestedPlotsCount = 4;
-      idlePlotsCount = 3;
-    }
-
     // 2. Fresh & Dry Produce Calculations
     const roadmaps = appState.getRoadmaps ? appState.getRoadmaps() : {};
     const activeHerbsList = getActiveHerbs();
@@ -237,20 +230,6 @@ export const DashboardComponent = {
       }
     });
 
-    // Provide realistic baseline yields if initial state
-    if (produceMap['เก๊กฮวย'] && produceMap['เก๊กฮวย'].freshKg === 0) {
-      produceMap['เก๊กฮวย'].freshKg = 335.5;
-      produceMap['เก๊กฮวย'].dryKg = 42.0;
-    }
-    if (produceMap['คาโมมายล์'] && produceMap['คาโมมายล์'].freshKg === 0) {
-      produceMap['คาโมมายล์'].freshKg = 175.0;
-      produceMap['คาโมมายล์'].dryKg = 29.2;
-    }
-    if (produceMap['อัญชัน'] && produceMap['อัญชัน'].freshKg === 0) {
-      produceMap['อัญชัน'].freshKg = 120.0;
-      produceMap['อัญชัน'].dryKg = 17.1;
-    }
-
     const totalFreshAll = Object.values(produceMap).reduce((sum, h) => sum + h.freshKg, 0);
     const totalDryAll = Object.values(produceMap).reduce((sum, h) => sum + h.dryKg, 0);
     const totalDryEstValue = Object.values(produceMap).reduce((sum, h) => sum + (h.dryKg * (h.theme.pricePerKg || 300)), 0);
@@ -272,10 +251,6 @@ export const DashboardComponent = {
         totalDryInventoryKg += stock;
       }
     });
-
-    if (totalInventoryValue === 0) totalInventoryValue = 82400;
-    if (totalStockCans === 0) totalStockCans = 150;
-    if (totalDryInventoryKg === 0) totalDryInventoryKg = 25.0;
 
     // 4. Sales Calculations (Direct from Sales Records)
     const directSales = getDirectSales(activeHerbsList);
@@ -358,7 +333,7 @@ export const DashboardComponent = {
             </div>
             <div class="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
               <span class="text-gray-600 font-medium">${activeHerbsList.map(h => `${h} ${(produceMap[h]?.freshKg || 0).toFixed(1)}`).join(' · ')}</span>
-              <span class="text-emerald-700 font-bold">14 แปลง</span>
+              <span class="text-emerald-700 font-bold">${plots.length} แปลง</span>
             </div>
           </div>
 

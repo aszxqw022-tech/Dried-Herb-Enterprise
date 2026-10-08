@@ -9,11 +9,12 @@ export const CropsComponent = {
   searchQuery: '',
   viewMode: (function() {
     try {
-      return localStorage.getItem('crops_view_mode') || 'matrix';
+      localStorage.setItem('crops_view_mode', 'table');
+      return 'table';
     } catch (e) {
-      return 'matrix';
+      return 'table';
     }
-  })(), // 'matrix' (หลัก) | 'table'
+  })(), // 'table' (ตารางสรุป ดูง่าย เป็นหลัก)
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -99,81 +100,32 @@ export const CropsComponent = {
     const yearOptions = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
 
     const showCardsClass = 'hidden';
-    const showCleanTableClass = this.viewMode === 'table' ? 'block' : 'hidden';
-    const showMatrixTableClass = this.viewMode === 'matrix' ? 'block' : 'hidden';
+    const showCleanTableClass = 'block'; // ตารางสรุป (ดูง่าย) เป็นหลัก
+    const showMatrixTableClass = 'hidden';
 
     return `
       <div class="space-y-5 sm:space-y-6 pb-12 fade-in">
         
         <!-- Header Title & Overview -->
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex items-center justify-between gap-4">
           <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-sm font-bold uppercase tracking-wider mb-2">
-              <i class="fas fa-network-wired"></i>
-              <span>ตารางติดตามรอบปลูกแบบ Matrix Workflow</span>
-            </div>
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2.5">
               <i class="fa-solid fa-seedling text-emerald-700"></i>
               <span>บันทึกรอบเพาะปลูกสมุนไพร</span>
             </h1>
-            <p class="text-sm md:text-base text-gray-500 mt-1 leading-relaxed">
-              ติดตามกระบวนการเพาะปลูกตามขั้นตอนมาตรฐานทีละขั้น (Step-by-step) บล็อกการข้ามขั้นตอน และคำนวณวันรอบปลูกอัตโนมัติ
-            </p>
-          </div>
-
-          <!-- Quick Navigation / Roadmap Link -->
-          <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            <a href="#roadmap" class="flex-1 sm:flex-none justify-center px-3.5 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-sm shadow-xs transition-all flex items-center gap-1.5">
-              <i class="fa-solid fa-route text-emerald-600"></i>
-              <span>แผนการปลูก</span>
-            </a>
-            <a href="#crop-history" class="flex-1 sm:flex-none justify-center px-3.5 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-bold text-sm shadow-xs transition-all flex items-center gap-1.5">
-              <i class="fa-solid fa-layer-group text-emerald-600"></i>
-              <span>ข้อมูลแปลงปลูก</span>
-            </a>
-            <button id="quick-start-step1-btn" class="w-full sm:w-auto justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer transform hover:-translate-y-0.5">
-              <i class="fas fa-seedling text-emerald-200"></i>
-              <span>+ เริ่มลงต้นกล้า (ขั้นตอนที่ 1)</span>
-            </button>
           </div>
         </div>
 
-        <!-- 1. แถบตัวกรองและเลือกเงื่อนไขด้านบน (Top Filters) -->
-        <div class="bg-white rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-emerald-100/80 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-            <span class="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-              <i class="fas fa-filter text-emerald-600"></i> ตัวกรองเงื่อนไขรอบการเพาะปลูก
-            </span>
-            <div class="flex items-center gap-2">
-              <span class="text-sm sm:text-sm font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
-                พ.ศ. ${this.selectedYear} | รอบที่ ${this.selectedCycle} | ${this.selectedHerb}
-              </span>
-
-              <!-- View Switcher Toggle (สลับมุมมอง ตาราง Matrix เป็นหลัก / ตารางสรุปย่อ) -->
-              <div class="flex items-center bg-gray-100 p-0.5 sm:p-1 rounded-xl border border-gray-200 shrink-0">
-                <button id="toggle-view-matrix-btn" class="px-2.5 sm:px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  this.viewMode === 'matrix' ? 'bg-white text-emerald-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
-                }" title="มุมมองตาราง Matrix ละเอียดทุกขั้นตอน (มุมมองหลัก)">
-                  <i class="fas fa-table-cells"></i>
-                  <span>ตาราง Matrix (หลัก)</span>
-                </button>
-                <button id="toggle-view-clean-btn" class="px-2.5 sm:px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  this.viewMode === 'table' ? 'bg-white text-emerald-900 shadow-2xs font-bold' : 'text-gray-500 hover:text-gray-900'
-                }" title="มุมมองตารางสรุปมาตรฐาน (อ่านง่าย สบายตา)">
-                  <i class="fas fa-table-list"></i>
-                  <span>ตารางสรุป (ดูง่าย)</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <!-- 1.1 ปีการเพาะปลูก (Default ปีปัจจุบัน เช่น 2569) -->
-            <div>
-              <label for="filter-crop-year" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+        <!-- 1. แถบตัวกรองและเลือกเงื่อนไขด้านบน พร้อมสรุปภาพรวม (Top Filters & Summary) -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-emerald-100/80 space-y-4">
+          <!-- แถวตัวกรอง: ช่องใส่ข้อมูลปรับขนาดให้พอดีกับข้อมูลแต่ละช่อง ไม่กว้างเกินไป -->
+          <div class="flex flex-wrap items-end gap-3 sm:gap-4">
+            <!-- 1.1 ปีการเพาะปลูก -->
+            <div class="w-full sm:w-auto">
+              <label for="filter-crop-year" class="block text-xs font-bold text-gray-700 uppercase mb-1">
                 <i class="fas fa-calendar-alt text-emerald-600 mr-1"></i> 1. ปีการเพาะปลูก (พ.ศ.) *
               </label>
-              <select id="filter-crop-year" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <select id="filter-crop-year" class="w-full sm:w-52 px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer">
                 ${yearOptions.map(y => `
                   <option value="${y}" ${Number(this.selectedYear) === Number(y) ? 'selected' : ''}>
                     พ.ศ. ${y} ${Number(y) === currentYear ? '(ปีปัจจุบัน)' : ''}
@@ -182,23 +134,23 @@ export const CropsComponent = {
               </select>
             </div>
 
-            <!-- 1.2 รอบที่ปลูก (Dropdown 2 รอบต่อปี) -->
-            <div>
-              <label for="filter-crop-cycle" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+            <!-- 1.2 รอบที่ปลูก -->
+            <div class="w-full sm:w-auto">
+              <label for="filter-crop-cycle" class="block text-xs font-bold text-gray-700 uppercase mb-1">
                 <i class="fas fa-rotate text-emerald-600 mr-1"></i> 2. รอบที่ปลูก (2 รอบ/ปี) *
               </label>
-              <select id="filter-crop-cycle" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <select id="filter-crop-cycle" class="w-full sm:w-52 px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer">
                 <option value="1" ${Number(this.selectedCycle) === 1 ? 'selected' : ''}>รอบที่ 1 (ม.ค. - มิ.ย.)</option>
                 <option value="2" ${Number(this.selectedCycle) === 2 ? 'selected' : ''}>รอบที่ 2 (ก.ค. - ธ.ค.)</option>
               </select>
             </div>
 
-            <!-- 1.3 ชนิดพืช (ดึงจาก Roadmap) -->
-            <div>
-              <label for="filter-crop-herb" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+            <!-- 1.3 ชนิดพืช -->
+            <div class="w-full sm:w-auto">
+              <label for="filter-crop-herb" class="block text-xs font-bold text-gray-700 uppercase mb-1">
                 <i class="fas fa-leaf text-emerald-600 mr-1"></i> 3. ชนิดพืชสมุนไพร *
               </label>
-              <select id="filter-crop-herb" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+              <select id="filter-crop-herb" class="w-full sm:w-44 px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer">
                 ${herbList.map(h => `
                   <option value="${h}" ${this.selectedHerb === h ? 'selected' : ''}>${h}</option>
                 `).join('')}
@@ -206,47 +158,39 @@ export const CropsComponent = {
             </div>
 
             <!-- 1.4 ค้นหาแปลงปลูก -->
-            <div>
-              <label for="filter-crop-search" class="block text-sm font-bold text-gray-700 uppercase mb-1">
+            <div class="w-full sm:w-auto sm:flex-1 min-w-[220px] max-w-sm">
+              <label for="filter-crop-search" class="block text-xs font-bold text-gray-700 uppercase mb-1">
                 <i class="fas fa-search text-gray-400 mr-1"></i> ค้นหาแปลง / เจ้าของ
               </label>
               <input type="text" id="filter-crop-search" value="${this.searchQuery}" placeholder="รหัสแปลง หรือชื่อเกษตรกร..." 
-                class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
-            </div>
-          </div>
-        </div>
-
-        <!-- Summary KPI Metrics Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-          <div class="p-3 sm:p-4 bg-white rounded-2xl border border-gray-100 shadow-2xs">
-            <span class="text-sm sm:text-sm font-bold text-gray-400 block uppercase truncate">แปลงทั้งหมด</span>
-            <div class="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 flex items-center justify-between">
-              <span>${totalPlotsCount} แปลง</span>
-              <i class="fas fa-map-marked text-gray-300 text-base sm:text-xl"></i>
+                class="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
             </div>
           </div>
 
-          <div class="p-3 sm:p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 shadow-2xs">
-            <span class="text-sm sm:text-sm font-bold text-emerald-800 block uppercase truncate">กำลังปลูกรอบนี้</span>
-            <div class="text-xl sm:text-2xl font-bold text-emerald-900 mt-0.5 flex items-center justify-between">
-              <span>${plantedPlotsCount} แปลง</span>
-              <i class="fas fa-seedling text-emerald-600 text-base sm:text-xl"></i>
+          <!-- ช่องสรุปข้อมูล (Summary KPI Badges): พอดีกับข้อมูล ไม่กินพื้นที่หน้าจอ -->
+          <div class="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2 sm:gap-3">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gray-50 hover:bg-gray-100/80 rounded-xl border border-gray-200 text-gray-700 transition-all shadow-2xs">
+              <i class="fas fa-map-marked text-gray-400 text-sm"></i>
+              <span class="text-xs font-semibold text-gray-500">แปลงทั้งหมด:</span>
+              <span class="text-sm font-bold text-gray-900">${totalPlotsCount} แปลง</span>
             </div>
-          </div>
 
-          <div class="p-3 sm:p-4 bg-amber-50/80 rounded-2xl border border-amber-200/80 shadow-2xs">
-            <span class="text-sm sm:text-sm font-bold text-amber-800 block uppercase truncate">ยังไม่เริ่มปลูก</span>
-            <div class="text-xl sm:text-2xl font-bold text-amber-900 mt-0.5 flex items-center justify-between">
-              <span>${notStartedPlotsCount} แปลง</span>
-              <i class="fas fa-hourglass-start text-amber-600 text-base sm:text-xl"></i>
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl border border-emerald-200 text-emerald-900 transition-all shadow-2xs">
+              <i class="fas fa-seedling text-emerald-600 text-sm"></i>
+              <span class="text-xs font-semibold text-emerald-700">กำลังปลูกรอบนี้:</span>
+              <span class="text-sm font-bold text-emerald-900">${plantedPlotsCount} แปลง</span>
             </div>
-          </div>
 
-          <div class="p-3 sm:p-4 bg-sky-50/80 rounded-2xl border border-sky-200/80 shadow-2xs">
-            <span class="text-sm sm:text-sm font-bold text-sky-800 block uppercase truncate">เก็บเกี่ยวแล้วเสร็จ</span>
-            <div class="text-xl sm:text-2xl font-bold text-sky-900 mt-0.5 flex items-center justify-between">
-              <span>${harvestingPlotsCount} แปลง</span>
-              <i class="fas fa-box-open text-sky-600 text-base sm:text-xl"></i>
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100/80 rounded-xl border border-amber-200 text-amber-900 transition-all shadow-2xs">
+              <i class="fas fa-hourglass-start text-amber-600 text-sm"></i>
+              <span class="text-xs font-semibold text-amber-700">ยังไม่เริ่มปลูก:</span>
+              <span class="text-sm font-bold text-amber-900">${notStartedPlotsCount} แปลง</span>
+            </div>
+
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100/80 rounded-xl border border-sky-200 text-sky-900 transition-all shadow-2xs">
+              <i class="fas fa-box-open text-sky-600 text-sm"></i>
+              <span class="text-xs font-semibold text-sky-700">เก็บเกี่ยวแล้วเสร็จ:</span>
+              <span class="text-sm font-bold text-sky-900">${harvestingPlotsCount} แปลง</span>
             </div>
           </div>
         </div>
@@ -264,9 +208,9 @@ export const CropsComponent = {
             </div>
             <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
               ${roadmapSteps.map(step => `
-                <button data-step-no="${step.stepNo}" class="batch-step-header-btn px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-700 text-emerald-900 hover:text-white border border-emerald-200 font-bold text-sm shrink-0 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer">
-                  <span class="w-5 h-5 rounded-full bg-emerald-800 text-white flex items-center justify-center text-sm font-bold">${step.stepNo}</span>
-                  <span>+ บันทึกกลุ่ม (ขั้นที่ ${step.stepNo})</span>
+                <button data-step-no="${step.stepNo}" class="batch-step-header-btn px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-700 text-emerald-900 hover:text-white border border-emerald-200 font-bold text-sm shrink-0 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer" title="คลิกเพื่อบันทึกขั้นตอนที่ ${step.stepNo}: ${step.title} แบบกลุ่ม">
+                  <span class="w-4 h-4 rounded-full bg-emerald-800 text-white flex items-center justify-center text-xs font-bold">${step.stepNo}</span>
+                  <span>ขั้น ${step.stepNo}: ${step.title}</span>
                 </button>
               `).join('')}
             </div>
@@ -294,18 +238,21 @@ export const CropsComponent = {
                 </p>
               </div>
 
-              <!-- Top Batch Action Buttons -->
+              <!-- Top Batch Action Buttons with Step Names -->
               <div class="flex items-center gap-1.5 flex-wrap">
-                <button class="row-start-step1-btn px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer">
-                  <i class="fas fa-plus text-sm"></i>
-                  <span>+ เริ่มลงกล้ากลุ่ม (ขั้น 1)</span>
-                </button>
-                ${roadmapSteps.slice(1).map(s => `
-                  <button data-step-no="${s.stepNo}" class="batch-step-header-btn px-2.5 py-1.5 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-sm rounded-xl flex items-center gap-1 cursor-pointer shadow-2xs" title="คลิกเพื่อบันทึกขั้นตอนที่ ${s.stepNo}: ${s.title} แบบกลุ่ม">
-                    <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-sm flex items-center justify-center font-bold">${s.stepNo}</span>
-                    <span>บันทึกขั้น ${s.stepNo}</span>
+                ${roadmapSteps.length > 0 ? `
+                  <button class="row-start-step1-btn px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer" title="บันทึกขั้นตอนที่ 1: ${roadmapSteps[0].title} แบบกลุ่ม">
+                    <i class="fas fa-plus text-xs"></i>
+                    <span class="w-4 h-4 rounded-full bg-white text-emerald-800 text-xs flex items-center justify-center font-bold">1</span>
+                    <span>ขั้น 1: ${roadmapSteps[0].title}</span>
                   </button>
-                `).join('')}
+                  ${roadmapSteps.slice(1).map(s => `
+                    <button data-step-no="${s.stepNo}" class="batch-step-header-btn px-2.5 py-1.5 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-900 font-bold text-sm rounded-xl flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors" title="คลิกเพื่อบันทึกขั้นตอนที่ ${s.stepNo}: ${s.title} แบบกลุ่ม">
+                      <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-xs flex items-center justify-center font-bold">${s.stepNo}</span>
+                      <span>ขั้น ${s.stepNo}: ${s.title}</span>
+                    </button>
+                  `).join('')}
+                ` : ''}
               </div>
             </div>
 
@@ -319,7 +266,7 @@ export const CropsComponent = {
                     <th class="py-3.5 px-4 min-w-[200px]">ความคืบหน้า (${roadmapSteps.length} ขั้นตอน)</th>
                     <th class="py-3.5 px-4 min-w-[200px]">ขั้นตอนถัดไป / ผลผลิตที่เก็บเกี่ยว</th>
                     <th class="py-3.5 px-4 min-w-[190px]">วันที่ทำจริง / ปรับปรุงแก้ไข</th>
-                    <th class="py-3.5 px-4 min-w-[110px] text-center">จัดการ</th>
+                    <th class="py-3.5 px-4 min-w-[170px] text-center">จัดการ / บันทึกขั้นตอน</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -830,7 +777,7 @@ export const CropsComponent = {
             ` : `
               <div class="text-sm text-emerald-700 font-bold flex items-center gap-1">
                 <i class="fas fa-arrow-right text-sm"></i>
-                <span>ขั้นที่ 1: เริ่มลงต้นกล้า</span>
+                <span>ขั้น 1: ${roadmapSteps[0]?.title || 'ลงต้นกล้า'}</span>
               </div>
             `)}
           </td>
@@ -863,14 +810,14 @@ export const CropsComponent = {
           </td>
 
           <!-- Column 6: จัดการ / บันทึก (Action) -->
-          <td class="py-3.5 px-4 align-middle text-center w-32">
+          <td class="py-3.5 px-4 align-middle text-center min-w-[170px]">
             ${crop ? `
               <div class="flex items-center justify-center gap-1.5">
                 ${crop.status !== 'harvested' && currentActiveStep ? `
                   <button data-plot-id="${plot.id}" data-step-no="${currentActiveStep.step.stepNo}" data-crop-id="${crop.id}"
                     class="action-single-step-btn px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-1 shadow-2xs cursor-pointer" title="บันทึกขั้นที่ ${currentActiveStep.step.stepNo}: ${currentActiveStep.step.title}">
-                    <i class="fas fa-plus text-sm"></i>
-                    <span>บันทึกขั้น ${currentActiveStep.step.stepNo}</span>
+                    <i class="fas fa-plus text-xs"></i>
+                    <span>ขั้น ${currentActiveStep.step.stepNo}: ${currentActiveStep.step.title}</span>
                   </button>
                 ` : ''}
                 ${crop.status !== 'harvested' ? `
@@ -1411,8 +1358,8 @@ export const CropsComponent = {
 
       // Area in square wah for proportional calculation (1 ไร่ = 400 ตร.ว.)
       const totalSqWah = (parseFloat(p.sizeRai || 0) * 400) + (parseFloat(p.sizeNgan || 0) * 100) + parseFloat(p.sizeSqWah || 0);
-      const initialSeedlings = totalSqWah > 0 ? Math.max(100, Math.round((totalSqWah / 400) * 500)) : 500;
-      const initialCost = totalSqWah > 0 ? Math.max(500, Math.round((totalSqWah / 400) * 2500)) : 2500;
+      const initialSeedlings = 0;
+      const initialCost = 0;
 
       const coordsStr = (p.lat && p.lng) ? `${parseFloat(p.lat).toFixed(4)}, ${parseFloat(p.lng).toFixed(4)}` : '-';
       const searchData = `${p.id} ${p.name} ${ownerName} ${p.sizeRai || ''}`.toLowerCase();
@@ -1460,11 +1407,10 @@ export const CropsComponent = {
                   <div class="font-semibold text-gray-800 text-xs sm:text-sm truncate mt-0.5 leading-tight" title="${ownerName}">${ownerName}</div>
                 </div>
 
-                <!-- Col 4: Area & Coords -->
+                <!-- Col 4: Area -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่ & พิกัด</div>
+                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่</div>
                   <div class="font-bold text-emerald-900 text-xs sm:text-sm mt-0.5 leading-tight">${formatThaiArea(p.sizeRai, p.sizeNgan, p.sizeSqWah)}</div>
-                  <div class="text-[10px] text-gray-400 font-mono leading-none">${coordsStr}</div>
                 </div>
               </div>
             </label>
@@ -1474,14 +1420,14 @@ export const CropsComponent = {
               <div class="plot-inputs-wrapper flex items-center gap-2 bg-gray-50/90 px-2.5 py-1.5 rounded-lg border border-gray-200 shrink-0 cursor-default ${isChecked ? '' : 'opacity-50'}">
                 <div class="w-24 sm:w-28">
                   <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
-                    🌱 ต้นกล้าเฉพาะแปลง:
+                    🌱 ต้นกล้า:
                   </label>
                   <div class="relative">
                     <input type="number" 
                       data-plot-id="${p.id}" 
                       data-field="seedlingCount" 
                       data-base-sqwah="${totalSqWah}"
-                      min="1" 
+                      min="0" 
                       value="${initialSeedlings}" 
                       class="plot-seedling-input w-full px-2 py-1 pr-6 rounded-md border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white cursor-text">
                     <span class="absolute right-1.5 top-1 text-[10px] text-gray-400 font-medium pointer-events-none">ต้น</span>
@@ -1489,7 +1435,7 @@ export const CropsComponent = {
                 </div>
                 <div class="w-28 sm:w-32">
                   <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
-                    💵 ค่ากล้า/เตรียมดิน:
+                    💵 ค่าใช้จ่าย:
                   </label>
                   <div class="relative">
                     <input type="number" 
@@ -1526,42 +1472,37 @@ export const CropsComponent = {
 
           <!-- เลือกแปลงที่จะปลูก (Batch Processing with Checkboxes) -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <label class="block text-sm font-bold text-gray-700 uppercase">
-                  <i class="fas fa-check-double text-emerald-600 mr-1"></i> เลือกแปลงและระบุต้นกล้า/ต้นทุนของแต่ละแปลง *
+            <div class="flex items-center justify-between flex-wrap gap-2.5">
+              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <label class="text-xs sm:text-sm font-bold text-gray-700 uppercase whitespace-nowrap flex items-center gap-1.5">
+                  <i class="fas fa-check-double text-emerald-600"></i> เลือกแปลงและต้นกล้า *
                 </label>
-                <span class="text-xs text-gray-500">ขนาดแต่ละแปลงไม่เท่ากัน สามารถระบุต้นกล้าและต้นทุนในการ์ดของแต่ละแปลงได้โดยตรง</span>
+                <div class="flex items-center gap-1.5 text-xs font-bold bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200/70">
+                  <button type="button" id="select-all-plots-btn" class="text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer">
+                    เลือกทั้งหมด
+                  </button>
+                  <span class="text-gray-300">|</span>
+                  <button type="button" id="deselect-all-plots-btn" class="text-red-500 hover:text-red-700 hover:underline cursor-pointer">
+                    ยกเลิกทั้งหมด
+                  </button>
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <button type="button" id="calc-by-area-btn" class="text-xs font-bold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณสัดส่วนต้นกล้าและต้นทุนตามขนาดพื้นที่จริงของแปลง">
-                  <i class="fas fa-calculator"></i> คำนวณตามพื้นที่
-                </button>
-                <span class="text-gray-300">|</span>
-                <button type="button" id="select-all-plots-btn" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline py-1 px-1 cursor-pointer">
-                  เลือกทั้งหมด
-                </button>
-                <span class="text-gray-300">|</span>
-                <button type="button" id="deselect-all-plots-btn" class="text-xs font-bold text-red-500 hover:text-red-700 underline py-1 px-1 cursor-pointer">
-                  ยกเลิกทั้งหมด
-                </button>
-              </div>
-            </div>
 
-            <!-- Search & Filter Bar -->
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <i class="fas fa-search text-xs"></i>
-              </span>
-              <input type="text" id="step1-plot-search-input" placeholder="ค้นหาชื่อแปลง, รหัสแปลง, หรือชื่อเจ้าของแปลง..."
-                class="w-full pl-8 pr-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
+              <!-- Search & Filter Bar -->
+              <div class="relative flex-1 sm:max-w-xs min-w-[170px]">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
+                  <i class="fas fa-search text-xs"></i>
+                </span>
+                <input type="text" id="step1-plot-search-input" placeholder="ค้นหาชื่อแปลง, รหัสแปลง..."
+                  class="w-full pl-7 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
+              </div>
             </div>
 
             <!-- Summary Bar -->
             <div id="plots-selection-summary-bar" class="flex items-center justify-between px-3.5 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900">
               <span class="flex items-center gap-1.5"><i class="fas fa-layer-group text-emerald-600"></i> เลือก: <b id="summary-selected-count" class="text-emerald-800 text-sm">0</b> แปลง</span>
               <span class="flex items-center gap-1.5"><i class="fas fa-seedling text-emerald-600"></i> ต้นกล้ารวม: <b id="summary-total-seedlings" class="text-emerald-800 text-sm">0</b> ต้น</span>
-              <span class="flex items-center gap-1.5"><i class="fas fa-coins text-emerald-600"></i> ต้นทุนรวม: <b id="summary-total-cost" class="text-emerald-800 text-sm">0</b> บาท</span>
+              <span class="flex items-center gap-1.5"><i class="fas fa-coins text-emerald-600"></i> ค่าใช้จ่ายรวม: <b id="summary-total-cost" class="text-emerald-800 text-sm">0</b> บาท</span>
             </div>
 
             <!-- Plot rows list (Long horizontal rows) -->
@@ -1834,8 +1775,8 @@ export const CropsComponent = {
                 const seedlingInput = dialog.querySelector(`.plot-seedling-input[data-plot-id="${plotId}"]`);
                 const costInput = dialog.querySelector(`.plot-cost-input[data-plot-id="${plotId}"]`);
                 
-                const plotSeedlingCount = seedlingInput ? (parseInt(seedlingInput.value) || defaultSeedlingCount) : defaultSeedlingCount;
-                const plotCost = costInput ? (parseFloat(costInput.value) || defaultCost) : defaultCost;
+                const plotSeedlingCount = seedlingInput && !isNaN(parseInt(seedlingInput.value)) ? parseInt(seedlingInput.value) : 0;
+                const plotCost = costInput && !isNaN(parseFloat(costInput.value)) ? parseFloat(costInput.value) : 0;
 
                 // Create new crop season (strictly 1 round = 1 plot)
                 appState.addCrop({
@@ -1997,11 +1938,10 @@ export const CropsComponent = {
                   <div class="font-semibold text-gray-800 text-xs sm:text-sm truncate mt-0.5 leading-tight" title="${item.ownerName}">${item.ownerName}</div>
                 </div>
 
-                <!-- Col 4: Area & Coords -->
+                <!-- Col 4: Area -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่ & พิกัด</div>
+                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่</div>
                   <div class="font-bold ${isHarvestStep ? 'text-amber-900' : 'text-emerald-900'} text-xs sm:text-sm mt-0.5 leading-tight">${formatThaiArea(item.plot.sizeRai, item.plot.sizeNgan, item.plot.sizeSqWah)}</div>
-                  <div class="text-[10px] text-gray-400 font-mono leading-none">${coordsStr}</div>
                 </div>
               </div>
             </label>
@@ -2127,45 +2067,42 @@ export const CropsComponent = {
           </div>
 
           <div class="space-y-2">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <label class="block text-sm font-bold text-gray-700 uppercase">
-                  <i class="fas fa-check-double ${isHarvestStep ? 'text-amber-600' : 'text-emerald-600'} mr-1"></i> เลือกแปลงและระบุข้อมูลเฉพาะแปลง (${eligibleList.length} แปลงที่พร้อม) *
+            <div class="flex items-center justify-between flex-wrap gap-2.5">
+              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <label class="text-xs sm:text-sm font-bold text-gray-700 uppercase whitespace-nowrap flex items-center gap-1.5">
+                  <i class="fas fa-check-double ${isHarvestStep ? 'text-amber-600' : 'text-emerald-600'}"></i> เลือกแปลง (${eligibleList.length} แปลงที่พร้อม) *
                 </label>
-                <span class="text-xs text-gray-500">ขนาดแต่ละแปลงไม่เท่ากัน สามารถระบุข้อมูลเฉพาะแปลงในการ์ดด้านล่างได้โดยตรง</span>
-              </div>
-              <div class="flex items-center gap-1.5 flex-wrap">
+                <div class="flex items-center gap-1.5 text-xs font-bold bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200/70">
+                  <button type="button" id="batch-select-all-btn" class="text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer">
+                    เลือกทั้งหมด
+                  </button>
+                  <span class="text-gray-300">|</span>
+                  <button type="button" id="batch-deselect-all-btn" class="text-red-500 hover:text-red-700 hover:underline cursor-pointer">
+                    ยกเลิกทั้งหมด
+                  </button>
+                </div>
                 ${!isHarvestStep ? `
-                  <button type="button" id="batch-calc-by-area-btn" class="text-xs font-bold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณสัดส่วนปริมาณและค่าใช้จ่ายตามขนาดพื้นที่แปลง (1 ไร่ = ค่าเฉลี่ย)">
+                  <button type="button" id="batch-calc-by-area-btn" class="text-xs font-bold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณสัดส่วนปริมาณและค่าใช้จ่ายตามขนาดพื้นที่แปลง (1 ไร่ = ค่าเฉลี่ย)">
                     <i class="fas fa-calculator"></i> คำนวณตามพื้นที่
                   </button>
                   <button type="button" id="batch-apply-defaults-all-btn" class="text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="ใช้ค่าเริ่มต้นให้เท่ากันทุกแปลง">
                     <i class="fas fa-clone"></i> ใช้ค่าเฉลี่ยทุกแปลง
                   </button>
-                  <span class="text-gray-300">|</span>
                 ` : `
-                  <button type="button" id="batch-calc-harvest-by-area-btn" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณผลผลิตสดประมาณการตามขนาดพื้นที่แปลง (1 ไร่ = 120 กก.)">
+                  <button type="button" id="batch-calc-harvest-by-area-btn" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณผลผลิตสดประมาณการตามขนาดพื้นที่แปลง (1 ไร่ = 120 กก.)">
                     <i class="fas fa-calculator"></i> คำนวณผลผลิตตามพื้นที่
                   </button>
-                  <span class="text-gray-300">|</span>
                 `}
-                <button type="button" id="batch-select-all-btn" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline py-1 px-1 cursor-pointer">
-                  เลือกทั้งหมด
-                </button>
-                <span class="text-gray-300">|</span>
-                <button type="button" id="batch-deselect-all-btn" class="text-xs font-bold text-red-500 hover:text-red-700 underline py-1 px-1 cursor-pointer">
-                  ยกเลิกทั้งหมด
-                </button>
               </div>
-            </div>
 
-            <!-- Search & Filter Bar -->
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <i class="fas fa-search text-xs"></i>
-              </span>
-              <input type="text" id="batch-step-search-input" placeholder="ค้นหาชื่อแปลง, รหัสแปลง, หรือชื่อเจ้าของแปลง..."
-                class="w-full pl-8 pr-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 ${isHarvestStep ? 'focus:ring-amber-500' : 'focus:ring-emerald-500'} bg-white shadow-2xs">
+              <!-- Search & Filter Bar -->
+              <div class="relative flex-1 sm:max-w-xs min-w-[170px]">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
+                  <i class="fas fa-search text-xs"></i>
+                </span>
+                <input type="text" id="batch-step-search-input" placeholder="ค้นหาชื่อแปลง, รหัสแปลง..."
+                  class="w-full pl-7 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 ${isHarvestStep ? 'focus:ring-amber-500' : 'focus:ring-emerald-500'} bg-white shadow-2xs">
+              </div>
             </div>
 
             <!-- Summary Bar -->

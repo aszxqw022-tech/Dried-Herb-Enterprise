@@ -1,5 +1,5 @@
 // Main App Controller and Router for Single Page Application
-import { appState } from './state.js?v=51';
+import { appState } from './state.js';
 import { showToast } from './helpers.js';
 import { DashboardComponent } from './components/dashboard.js?v=21';
 import { MembersComponent } from './components/members.js?v=5';
@@ -295,11 +295,6 @@ class AppController {
               <span class="text-xs font-bold text-gray-800 block leading-tight">${user.name}</span>
               <span class="text-[10px] text-emerald-700 font-semibold block leading-tight">${displayRole}</span>
             </div>
-            <button id="quick-reset-sim-btn" title="จำลองเว็บใหม่ (รีเซ็ตข้อมูลจำลองทั้งหมด)"
-              class="ml-1 px-2.5 py-1.5 text-amber-800 hover:text-amber-950 bg-amber-100/80 hover:bg-amber-200/80 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold focus:outline-none border border-amber-300/70 shadow-xs">
-              <i class="fas fa-arrows-rotate text-xs"></i>
-              <span class="hidden md:inline">จำลองเว็บใหม่</span>
-            </button>
             <button id="logout-btn" title="ออกจากระบบ"
               class="ml-1 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold focus:outline-none">
               <i class="fas fa-sign-out-alt text-sm"></i>
@@ -307,16 +302,6 @@ class AppController {
             </button>
           </div>
         `;
-
-        const quickResetBtn = document.getElementById('quick-reset-sim-btn');
-        if (quickResetBtn) {
-          quickResetBtn.addEventListener('click', () => {
-            if (confirm('ต้องการรีเซ็ตและจำลองข้อมูลเว็บใหม่ทั้งหมดใช่หรือไม่? ข้อมูลสาธิตทุกส่วนจะถูกสร้างใหม่ตามการตั้งค่าล่าสุด')) {
-              appState.resetAllSimulationData();
-              window.location.reload();
-            }
-          });
-        }
 
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
@@ -347,8 +332,8 @@ class AppController {
       }
 
       // Sidebar Footer
-      if (avatarDisplay) avatarDisplay.textContent = 'น';
-      if (nameDisplay) nameDisplay.textContent = 'นายสมเกียรติ พึ่งตน';
+      if (avatarDisplay) avatarDisplay.textContent = 'ว';
+      if (nameDisplay) nameDisplay.textContent = 'นายวีรวัฒน์ ปินทรายมูล';
       if (roleDisplay) roleDisplay.textContent = 'ประธานกลุ่ม';
     }
   }

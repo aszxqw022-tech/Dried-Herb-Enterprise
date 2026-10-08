@@ -24,8 +24,9 @@ export const MembersComponent = {
                           m.phone.includes(this.searchQuery);
       
       const matchRole = this.roleFilter ? m.role === this.roleFilter : true;
+      const matchStatus = this.statusFilter ? m.status === this.statusFilter : true;
 
-      return matchSearch && matchRole;
+      return matchSearch && matchRole && matchStatus;
     });
 
     // Pagination calculations
@@ -45,7 +46,7 @@ export const MembersComponent = {
 
     // Table rows
     const rowsHtml = paginated.length === 0 
-      ? `<tr><td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลสมาชิกตามที่ระบุ</td></tr>`
+      ? `<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลสมาชิกตามที่ระบุ</td></tr>`
       : paginated.map(m => {
           const avatarHtml = m.photo 
             ? `<img src="${m.photo}" class="w-10 h-10 rounded-full object-cover border border-emerald-100 shadow-sm flex-shrink-0">`
@@ -62,11 +63,18 @@ export const MembersComponent = {
                 ${avatarHtml}
                 <div class="view-member-detail-btn cursor-pointer group" data-id="${m.id}">
                   <div class="text-base font-bold text-gray-900 group-hover:text-emerald-700 group-hover:underline transition-colors">${m.name}</div>
-                  <div class="text-sm text-gray-600 font-medium">บทบาท: ${m.role}</div>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-sm text-gray-600 font-medium">บทบาท: ${m.role}</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full ${
+                      m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                    }">
+                      <span class="w-1.5 h-1.5 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-red-500'}"></span>
+                      ${m.status === 'active' ? 'สมาชิก' : 'ไม่อยู่ในระบบ'}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-4 text-sm text-gray-700 font-medium">${m.phone}</td>
-              <td class="px-6 py-4 text-sm text-gray-700 font-medium">${m.villageNumber || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-600">${formatThaiDate(m.joinDate)}</td>
               <td class="px-6 py-4 text-sm font-medium text-right space-x-1">
                 ${isOfficer ? `
@@ -108,7 +116,7 @@ export const MembersComponent = {
         </div>
 
         <!-- Filters & Search Card -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
           <!-- Search input -->
           <div class="md:col-span-2 relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
@@ -125,6 +133,15 @@ export const MembersComponent = {
               ${roleOptions}
             </select>
           </div>
+
+          <!-- Status Filter -->
+          <div>
+            <select id="member-status-filter" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="" ${this.statusFilter === '' ? 'selected' : ''}>สถานะทั้งหมด</option>
+              <option value="active" ${this.statusFilter === 'active' ? 'selected' : ''}>สมาชิก (ในระบบ)</option>
+              <option value="inactive" ${this.statusFilter === 'inactive' ? 'selected' : ''}>ไม่อยู่ในระบบ</option>
+            </select>
+          </div>
         </div>
 
         <!-- Table Card -->
@@ -136,7 +153,6 @@ export const MembersComponent = {
                   <th class="px-6 py-4">รหัสสมาชิก</th>
                   <th class="px-6 py-4">ชื่อ - นามสกุล</th>
                   <th class="px-6 py-4">เบอร์โทรศัพท์</th>
-                  <th class="px-6 py-4">หมู่บ้าน</th>
                   <th class="px-6 py-4">วันที่ลงทะเบียน</th>
                   <th class="px-6 py-4 text-right">จัดการ</th>
                 </tr>
@@ -195,6 +211,15 @@ export const MembersComponent = {
     if (roleFilter) {
       roleFilter.addEventListener('change', (e) => {
         this.roleFilter = e.target.value;
+        this.currentPage = 1;
+        this.refreshView();
+      });
+    }
+
+    const statusFilter = document.getElementById('member-status-filter');
+    if (statusFilter) {
+      statusFilter.addEventListener('change', (e) => {
+        this.statusFilter = e.target.value;
         this.currentPage = 1;
         this.refreshView();
       });
@@ -278,10 +303,6 @@ export const MembersComponent = {
     const title = isEdit ? `แก้ไขข้อมูลสมาชิก (${id})` : 'เพิ่มสมาชิกใหม่';
     const icon = isEdit ? 'fas fa-user-edit' : 'fas fa-user-plus';
 
-    const enterprise = appState.getEnterprise ? (appState.getEnterprise() || {}) : {};
-    const entVillage = (enterprise.village || '').trim() || 'หมู่ที่ 12';
-    const defaultVillage = (member && member.villageNumber) ? member.villageNumber : entVillage;
-
     const photoPreviewHtml = this.currentPhotoBase64 
       ? `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`
       : `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
@@ -330,82 +351,71 @@ export const MembersComponent = {
           </div>
 
           <!-- Form Inputs Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            <!-- Left Column -->
-            <div class="space-y-4">
-              <!-- Name with Prefix Selector -->
-              <div>
-                <label class="block text-sm font-semibold text-gray-700 uppercase mb-1">คำนำหน้า และชื่อ-นามสกุลสมาชิก *</label>
-                <div class="flex gap-2">
-                  <select id="mem-prefix" name="prefix" class="w-28 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white flex-shrink-0">
-                    <option value="นาย" ${selectedPrefix === 'นาย' ? 'selected' : ''}>นาย</option>
-                    <option value="นาง" ${selectedPrefix === 'นาง' ? 'selected' : ''}>นาง</option>
-                    <option value="นางสาว" ${selectedPrefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-                  </select>
-                  <input type="text" id="mem-name" name="name" required value="${cleanName}" placeholder="ชื่อ และนามสกุล (เช่น เกษตร มั่นคง)"
-                    class="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-                </div>
-              </div>
-
-              <!-- Role -->
-              <div>
-                <label for="mem-role" class="block text-sm font-semibold text-gray-700 uppercase mb-1">บทบาทหน้าที่ *</label>
-                <select id="mem-role" name="role" required 
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-                  <option value="สมาชิกทั่วไป" ${member && member.role === 'สมาชิกทั่วไป' ? 'selected' : ''}>สมาชิกทั่วไป</option>
-                  <option value="กรรมการ" ${member && member.role === 'กรรมการ' ? 'selected' : ''}>กรรมการ</option>
-                  <option value="เลขานุการ" ${member && member.role === 'เลขานุการ' ? 'selected' : ''}>เลขานุการ</option>
-                  <option value="เหรัญญิก" ${member && member.role === 'เหรัญญิก' ? 'selected' : ''}>เหรัญญิก</option>
-                  <option value="รองประธาน" ${member && member.role === 'รองประธาน' ? 'selected' : ''}>รองประธาน</option>
-                  <option value="ประธานกลุ่ม" ${member && member.role === 'ประธานกลุ่ม' ? 'selected' : ''}>ประธานกลุ่ม</option>
+            <!-- Name with Prefix Selector (Full Row) -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-gray-700 uppercase mb-1">คำนำหน้า และชื่อ-นามสกุลสมาชิก *</label>
+              <div class="flex gap-2">
+                <select id="mem-prefix" name="prefix" class="w-24 px-2.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white flex-shrink-0">
+                  <option value="นาย" ${selectedPrefix === 'นาย' ? 'selected' : ''}>นาย</option>
+                  <option value="นาง" ${selectedPrefix === 'นาง' ? 'selected' : ''}>นาง</option>
+                  <option value="นางสาว" ${selectedPrefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
                 </select>
-              </div>
-
-              <!-- House Number -->
-              <div>
-                <label for="mem-houseNumber" class="block text-sm font-semibold text-gray-700 uppercase mb-1">เลขที่บ้าน *</label>
-                <input type="text" id="mem-houseNumber" name="houseNumber" required value="${member ? (member.houseNumber || '') : ''}" placeholder="เลขที่บ้าน (เช่น 12/4)"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-                <span class="block text-xs text-gray-400 mt-1">ใช้เลขที่บ้านในการเข้าสู่ระบบ (Username)</span>
+                <input type="text" id="mem-name" name="name" required value="${cleanName}" placeholder="ชื่อ และนามสกุล (เช่น เกษตร มั่นคง)"
+                  class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
               </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="space-y-4">
-              <!-- Village Number / Name with Auto-fill from Enterprise Settings -->
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label for="mem-village" class="block text-sm font-semibold text-gray-700 uppercase">
-                    หมู่บ้าน / หมู่ที่ *
-                  </label>
-                  <button type="button" id="btn-use-enterprise-village" class="text-xs px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg flex items-center gap-1 font-bold cursor-pointer transition-colors shadow-2xs" title="คลิกเพื่อดึงค่าจากที่ตั้งวิสาหกิจชุมชน">
-                    <i class="fas fa-building text-emerald-600"></i>
-                    <span>ดึงจากวิสาหกิจ</span>
-                  </button>
-                </div>
-                <div class="relative">
-                  <input type="text" id="mem-village" name="villageNumber" required value="${defaultVillage}" placeholder="เช่น ${entVillage}"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
-                </div>
-                <div class="mt-1 flex items-start gap-1 text-xs text-emerald-700 font-medium">
-                  <i class="fas fa-magic mt-0.5 text-emerald-600 shrink-0"></i>
-                  <span>ดึงค่าจาก "ตั้งค่าข้อมูลวิสาหกิจชุมชน" (${entVillage}) ให้อัตโนมัติ (สามารถพิมพ์แก้ไขได้)</span>
-                </div>
-              </div>
+            <!-- Role -->
+            <div>
+              <label for="mem-role" class="block text-xs font-bold text-gray-700 uppercase mb-1">บทบาทหน้าที่ *</label>
+              <select id="mem-role" name="role" required 
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white">
+                <option value="สมาชิกทั่วไป" ${member && member.role === 'สมาชิกทั่วไป' ? 'selected' : ''}>สมาชิกทั่วไป</option>
+                <option value="กรรมการ" ${member && member.role === 'กรรมการ' ? 'selected' : ''}>กรรมการ</option>
+                <option value="เลขานุการ" ${member && member.role === 'เลขานุการ' ? 'selected' : ''}>เลขานุการ</option>
+                <option value="เหรัญญิก" ${member && member.role === 'เหรัญญิก' ? 'selected' : ''}>เหรัญญิก</option>
+                <option value="รองประธาน" ${member && member.role === 'รองประธาน' ? 'selected' : ''}>รองประธาน</option>
+                <option value="ประธานกลุ่ม" ${member && member.role === 'ประธานกลุ่ม' ? 'selected' : ''}>ประธานกลุ่ม</option>
+              </select>
+            </div>
 
-              <!-- Phone -->
-              <div>
-                <label for="mem-phone" class="block text-sm font-semibold text-gray-700 uppercase mb-1">เบอร์โทรศัพท์ *</label>
-                <input type="text" id="mem-phone" name="phone" required value="${member ? member.phone : ''}" placeholder="08X-XXX-XXXX"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-              </div>
+            <!-- Status -->
+            <div>
+              <label for="mem-status" class="block text-xs font-bold text-gray-700 uppercase mb-1">สถานะสมาชิก *</label>
+              <select id="mem-status" name="status" required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white">
+                <option value="active" ${(!member || member.status === 'active') ? 'selected' : ''}>สมาชิก (อยู่ในระบบ)</option>
+                <option value="inactive" ${member && member.status === 'inactive' ? 'selected' : ''}>ไม่อยู่ในระบบ</option>
+              </select>
+            </div>
 
-              <!-- Join Date -->
-              <div>
-                <label for="mem-joindate" class="block text-sm font-semibold text-gray-700 uppercase mb-1">วันที่เข้าร่วมเป็นสมาชิก (วัน/เดือน/ปี) *</label>
-                <input type="date" id="mem-joindate" name="joinDate" required value="${member ? member.joinDate : new Date().toISOString().split('T')[0]}"
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+            <!-- Phone -->
+            <div>
+              <label for="mem-phone" class="block text-xs font-bold text-gray-700 uppercase mb-1">เบอร์โทรศัพท์ *</label>
+              <input type="text" id="mem-phone" name="phone" required value="${member ? member.phone : ''}" placeholder="08X-XXX-XXXX"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+            </div>
+
+            <!-- Join Date -->
+            <div>
+              <label for="mem-joindate" class="block text-xs font-bold text-gray-700 uppercase mb-1">วันที่เข้าร่วมเป็นสมาชิก *</label>
+              <input type="date" id="mem-joindate" name="joinDate" required value="${member ? member.joinDate : new Date().toISOString().split('T')[0]}"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white">
+            </div>
+
+            <!-- House Number -->
+            <div class="sm:col-span-2">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div class="w-full sm:w-1/2">
+                  <label for="mem-houseNumber" class="block text-xs font-bold text-gray-700 uppercase mb-1">เลขที่บ้าน *</label>
+                  <input type="text" id="mem-houseNumber" name="houseNumber" required value="${member ? (member.houseNumber || '') : ''}" placeholder="เช่น 12/4"
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                </div>
+                <div class="text-xs text-gray-400 sm:pt-5">
+                  <i class="fas fa-info-circle text-emerald-600 mr-1"></i> ใช้เป็นชื่อผู้ใช้งานเข้าสู่ระบบ (Username)
+                </div>
               </div>
             </div>
 
@@ -427,23 +437,13 @@ export const MembersComponent = {
     openGlobalModal({
       title,
       icon,
-      size: 'max-w-4xl',
+      size: 'max-w-xl',
       content: formHtml,
       onRender: (dialog) => {
         const photoInput = dialog.querySelector('#mem-photo');
         const photoPreview = dialog.querySelector('#mem-photo-preview');
         const removePhotoBtn = dialog.querySelector('#remove-mem-photo-btn');
         const form = dialog.querySelector('#global-member-modal-form');
-        const syncVillageBtn = dialog.querySelector('#btn-use-enterprise-village');
-        const villageInput = dialog.querySelector('#mem-village');
-
-        if (syncVillageBtn && villageInput) {
-          syncVillageBtn.addEventListener('click', () => {
-            villageInput.value = entVillage;
-            villageInput.focus();
-            showToast(`ดึง "${entVillage}" จากข้อมูลวิสาหกิจเรียบร้อย`, 'info');
-          });
-        }
 
         if (photoInput) {
           photoInput.addEventListener('change', (e) => {
@@ -506,8 +506,8 @@ export const MembersComponent = {
               houseNumber: houseVal,
               role: formData.get('role'),
               phone: formData.get('phone'),
-              villageNumber: formData.get('villageNumber'),
-              status: 'active',
+              villageNumber: (member && member.villageNumber) || '',
+              status: formData.get('status') || 'active',
               joinDate: formData.get('joinDate'),
               photo: this.currentPhotoBase64 || null
             };
@@ -587,20 +587,16 @@ export const MembersComponent = {
                   <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.phone}</span>
                 </div>
                 <div>
-                  <span class="block text-sm text-gray-400 font-bold uppercase tracking-wider">ที่อยู่ / หมู่บ้าน</span>
-                  <span class="font-bold text-gray-800 text-sm mt-0.5 block">${m.villageNumber || '-'}</span>
-                </div>
-                <div>
                   <span class="block text-sm text-gray-400 font-bold uppercase tracking-wider">วันที่ลงทะเบียนเข้าร่วม</span>
                   <span class="font-bold text-gray-800 text-sm mt-0.5 block">${formatThaiDate(m.joinDate)}</span>
                 </div>
                 <div>
                   <span class="block text-sm text-gray-400 font-bold uppercase tracking-wider mb-1">สถานะสมาชิก</span>
                   <span class="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-bold rounded-full ${
-                    m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'
+                    m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                   }">
-                    <span class="w-2 h-2 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-gray-405'}"></span>
-                    ${m.status === 'active' ? 'กำลังมีกิจกรรม' : 'พักการปลูก'}
+                    <span class="w-2 h-2 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-red-500'}"></span>
+                    ${m.status === 'active' ? 'สมาชิก' : 'ไม่อยู่ในระบบ'}
                   </span>
                 </div>
               </div>

@@ -31,50 +31,18 @@ export const PlantingRoadmapComponent = {
     return `
       <div class="space-y-6 pb-12">
         
-        <!-- Header & Top Navigation Bar -->
-        <div class="bg-gradient-to-r from-[#0b2414] via-[#0f341d] to-[#164e2b] rounded-3xl p-6 md:p-8 text-white shadow-xl border border-emerald-800/40 relative overflow-hidden">
-          <!-- Decorative Background Circles -->
-          <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none"></div>
-          <div class="absolute right-32 -top-12 w-36 h-36 rounded-full bg-emerald-400/10 pointer-events-none"></div>
-
-          <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-emerald-200 text-sm font-bold uppercase tracking-wider mb-3 border border-white/10">
-                <i class="fas fa-calendar-check text-emerald-300"></i>
-                <span>คู่มือมาตรฐานการปลูกวิสาหกิจชุมชน</span>
-              </div>
-              <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold tracking-normal text-white flex items-center gap-3">
-                <i class="fa-solid fa-route text-emerald-300"></i>
-                <span>แผนการปลูก</span>
-              </h1>
-              <p class="text-sm md:text-base text-emerald-100 mt-2 max-w-2xl leading-relaxed">
-                กำหนดการดูแล ใส่ปุ๋ย และเก็บเกี่ยวตามรอบวัน เพื่อให้สมาชิกเกษตรกรได้ผลผลิตคุณภาพสูง มาตรฐานเกษตรอินทรีย์ปลอดสารพิษ
-              </p>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap items-center gap-3">
-              <button id="header-add-herb-btn" class="px-5 py-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-sm md:text-base transition-all flex items-center gap-2 border border-white/25 backdrop-blur-md cursor-pointer shadow-md transform hover:-translate-y-0.5" title="เพิ่มชนิดพืชสมุนไพรใหม่">
-                <i class="fas fa-seedling text-emerald-300"></i>
-                <span>+ เพิ่มพืช</span>
-              </button>
-
-              <button id="add-step-btn" class="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-sm md:text-base shadow-md transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer">
-                <i class="fas fa-plus-circle text-lg"></i>
-                <span>+ เพิ่ม/แก้ไขขั้นตอน</span>
-              </button>
-
-              <button id="reset-roadmap-btn" class="px-3.5 py-3 rounded-xl bg-white/10 hover:bg-red-500/80 text-white/80 hover:text-white text-sm font-semibold transition-all border border-white/15 cursor-pointer" title="คืนค่าเริ่มต้นมาตรฐานของระบบ">
-                <i class="fas fa-rotate-left mr-1"></i>คืนค่าเริ่มต้น
-              </button>
-            </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2.5">
+              <i class="fa-solid fa-route text-emerald-700"></i>
+              <span>แผนการปลูก</span>
+            </h1>
           </div>
         </div>
 
-        <!-- Plant Selection Pill Tabs & View Toggle -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-emerald-100">
-          
-          <!-- Herb Selection Tabs -->
+        <!-- Plant Selection Pill Tabs -->
+        <div class="flex items-center justify-between gap-4 bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-emerald-100">
           <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
             <span class="text-sm font-bold text-gray-400 uppercase tracking-wider pl-2 pr-1 shrink-0">
               <i class="fas fa-leaf text-emerald-600 mr-1"></i>เลือกชนิดพืช:
@@ -100,103 +68,34 @@ export const PlantingRoadmapComponent = {
               <span>+ เพิ่มพืชใหม่</span>
             </button>
           </div>
-
-          <!-- View Mode Toggle (Table / Timeline) -->
-          <div class="flex items-center gap-1 bg-gray-100 p-1.5 rounded-xl self-end sm:self-auto shrink-0 border border-gray-200">
-            <button id="view-table-btn" class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              this.viewMode === 'table' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }">
-              <i class="fas fa-table-list"></i>
-              <span>ตารางแผนงาน</span>
-            </button>
-            <button id="view-timeline-btn" class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              this.viewMode === 'timeline' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }">
-              <i class="fas fa-timeline"></i>
-              <span>ไทม์ไลน์ภาพ</span>
-            </button>
-          </div>
         </div>
 
-        <!-- Herb Info Banner & Summary Highlights -->
-        <div class="bg-gradient-to-r from-emerald-50 via-white to-emerald-50/40 rounded-2xl p-5 md:p-6 border border-emerald-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-3xl">${currentRoadmap.icon || getHerbDefaultIcon(currentRoadmap.name)}</span>
-              <h2 class="text-xl md:text-2xl font-bold text-gray-900">${currentRoadmap.name}</h2>
-              <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-sm font-bold">
-                ${steps.length} ขั้นตอนหลัก
-              </span>
-              ${currentRoadmap.category ? `
-                <span class="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold">
-                  ${currentRoadmap.category}
-                </span>
-              ` : ''}
-            </div>
-            <p class="text-sm md:text-base text-gray-600 mt-1">
-              ${currentRoadmap.description || 'แนวทางการเพาะปลูกและการดูแลรักษา'}
-            </p>
+        <!-- Herb Summary Header -->
+        <div class="bg-white rounded-2xl px-5 py-3.5 border border-emerald-100 shadow-sm flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">${currentRoadmap.icon || getHerbDefaultIcon(currentRoadmap.name)}</span>
+            <h2 class="text-lg md:text-xl font-bold text-gray-900">${currentRoadmap.name}</h2>
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+              ${steps.length} ขั้นตอนหลัก
+            </span>
           </div>
 
-          <!-- Highlight Badges -->
-          <div class="flex flex-wrap items-center gap-3 text-sm">
-            <div class="px-4 py-2 bg-white rounded-xl border border-emerald-200 shadow-2xs flex items-center gap-2.5">
-              <i class="fas fa-clock text-emerald-700 text-base"></i>
-              <div>
-                <span class="text-sm text-gray-400 block font-semibold leading-tight">ระยะเวลาปลูกรวม</span>
-                <span class="text-sm md:text-base font-bold text-emerald-900">${currentRoadmap.durationDays || 90} วัน</span>
-              </div>
-            </div>
-
-            <div class="px-4 py-2 bg-white rounded-xl border border-emerald-200 shadow-2xs flex items-center gap-2.5">
-              <i class="fas fa-certificate text-amber-500 text-base"></i>
-              <div>
-                <span class="text-sm text-gray-400 block font-semibold leading-tight">มาตรฐานคุณภาพ</span>
-                <span class="text-sm md:text-base font-bold text-gray-800">อินทรีย์ 100%</span>
-              </div>
-            </div>
-
-            <div class="px-4 py-2 bg-white rounded-xl border border-emerald-200 shadow-2xs flex items-center gap-2.5">
-              <i class="fas fa-temperature-arrow-up text-rose-500 text-base"></i>
-              <div>
-                <span class="text-sm text-gray-400 block font-semibold leading-tight">ปลายทางผลผลิต</span>
-                <span class="text-sm md:text-base font-bold text-gray-800">ส่งโรงอบแห้ง</span>
-              </div>
-            </div>
-
+          <div class="flex items-center gap-2">
             ${herbsList.length > 1 && this.selectedHerb !== 'เก๊กฮวย' && this.selectedHerb !== 'คาโมมายล์' ? `
-              <button id="delete-current-herb-btn" class="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer" title="ลบชนิดพืชนี้ออกจากระบบ">
-                <i class="fas fa-trash-can"></i>
+              <button id="delete-current-herb-btn" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer" title="ลบชนิดพืชนี้ออกจากระบบ">
+                <i class="fas fa-trash-can text-xs"></i>
                 <span>ลบพืช ${this.selectedHerb}</span>
               </button>
             ` : ''}
+            <button id="add-step-btn" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer" title="เพิ่มขั้นตอนใหม่">
+              <i class="fas fa-plus text-xs"></i>
+              <span>+ เพิ่มขั้นตอน</span>
+            </button>
           </div>
         </div>
 
-        <!-- Main Content Area: Table View or Timeline View -->
-        ${this.viewMode === 'table' ? this.renderTableView(steps) : this.renderTimelineView(steps)}
-
-        <!-- Bottom Guidance Card for Elders & Farmers -->
-        <div class="bg-amber-50/80 rounded-2xl p-5 md:p-6 border border-amber-200 shadow-sm flex flex-col md:flex-row items-start gap-4 text-amber-950">
-          <div class="w-12 h-12 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center text-2xl shrink-0 shadow-xs">
-            <i class="fas fa-lightbulb"></i>
-          </div>
-          <div class="flex-1 space-y-1">
-            <h4 class="text-base md:text-lg font-bold text-amber-950 flex items-center gap-2">
-              <span>คำแนะนำสำคัญสำหรับสมาชิกเกษตรกร</span>
-              <span class="text-sm bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">เพื่อผลผลิตเกรด A</span>
-            </h4>
-            <p class="text-sm md:text-base text-amber-900 leading-relaxed">
-              • ควรสื่อสารกับประธานกลุ่มหรือเจ้าหน้าที่โรงอบล่วงหน้า <strong>3-5 วันก่อนเก็บเกี่ยว</strong> เพื่อจัดคิวเตาอบแห้งให้ทันท่วงที<br>
-              • หากสภาพอากาศเปลี่ยนแปลง เช่น ฝนตกชุก ให้ตรวจดูระบบระบายน้ำของแปลงเพื่อป้องกันน้ำท่วมขังและโรครากเน่า<br>
-              • ประธานกลุ่มหรือผู้ดูแลสามารถปรับเปลี่ยนจำนวนวันและสูตรปุ๋ยของแต่ละชนิดพืชได้ตลอดเวลาผ่านปุ่ม "+ เพิ่ม/แก้ไขขั้นตอน"
-            </p>
-          </div>
-          <a href="#crops" class="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shrink-0 shadow-sm transition-all flex items-center gap-2 self-start md:self-center">
-            <i class="fas fa-arrow-right"></i>
-            <span>ไปที่บันทึกรอบปลูก</span>
-          </a>
-        </div>
+        <!-- Main Content Area: Table View -->
+        ${this.renderTableView(steps)}
 
       </div>
     `;
@@ -221,13 +120,14 @@ export const PlantingRoadmapComponent = {
     return `
       <div class="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
         <!-- Table Header Notice -->
-        <div class="px-6 py-4 bg-emerald-900/5 border-b border-emerald-100 flex items-center justify-between">
+        <div class="px-6 py-4 bg-emerald-900/5 border-b border-emerald-100 flex items-center justify-between flex-wrap gap-2">
           <div class="flex items-center gap-2 text-emerald-950 font-bold text-base md:text-lg">
             <i class="fas fa-list-check text-emerald-700"></i>
             <span>ตารางขั้นตอนแผนการปลูก: ${this.selectedHerb}</span>
           </div>
-          <span class="text-sm text-gray-500 hidden sm:inline">
-            * คลิกปุ่มแก้ไขเพื่อปรับจำนวนวันหรือข้อความแนะนำ
+          <span class="text-xs sm:text-sm text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-100/70 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs">
+            <i class="fas fa-arrows-up-down text-emerald-600"></i>
+            <span>ลากขึ้น-ลง หรือกดลูกศรเพื่อสลับลำดับขั้นตอนได้</span>
           </span>
         </div>
 
@@ -236,26 +136,33 @@ export const PlantingRoadmapComponent = {
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-gray-50/80 border-b border-gray-200 text-gray-600 text-sm md:text-base font-bold">
-                <th class="py-4 px-4 md:px-6 w-24 text-center">ลำดับ</th>
+                <th class="py-4 px-4 md:px-6 w-32 text-center">ลำดับ</th>
                 <th class="py-4 px-4 md:px-6 min-w-[240px]">รายการกิจกรรม</th>
                 <th class="py-4 px-4 md:px-6 min-w-[180px]">ระยะเวลา / รอบวัน</th>
                 <th class="py-4 px-4 md:px-6 min-w-[260px]">คำแนะนำ / หมายเหตุ</th>
-                <th class="py-4 px-4 md:px-6 w-28 text-center">จัดการ</th>
+                <th class="py-4 px-4 md:px-6 w-36 text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody id="roadmap-steps-tbody" class="divide-y divide-gray-100">
               ${steps.map((step, index) => {
                 const stepColors = this.getStepTheme(step.color || 'emerald');
                 const prevStep = index > 0 ? steps[index - 1] : null;
                 const intervalDays = prevStep ? (step.dayNumber - prevStep.dayNumber) : 0;
 
                 return `
-                  <tr class="hover:bg-emerald-50/40 transition-colors group">
+                  <tr draggable="true" data-step-index="${index}" data-step-no="${step.stepNo}"
+                    class="step-draggable-row hover:bg-emerald-50/50 transition-all group border-b border-gray-100 select-none">
                     
-                    <!-- Column 1: Step Badge Number -->
+                    <!-- Column 1: Step Badge Number + Drag Handle -->
                     <td class="py-5 px-4 md:px-6 text-center align-top">
-                      <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl ${stepColors.badgeBg} text-white font-bold text-xl md:text-2xl flex items-center justify-center mx-auto shadow-sm ring-4 ${stepColors.ring}">
-                        ${step.stepNo}
+                      <div class="flex items-center justify-center gap-2">
+                        <!-- Drag Handle -->
+                        <span class="step-drag-handle p-1.5 rounded-lg text-gray-400 hover:text-emerald-700 hover:bg-emerald-100 transition-colors cursor-grab active:cursor-grabbing" title="คลิกค้างแล้วลากขึ้น-ลงเพื่อสลับลำดับ">
+                          <i class="fas fa-grip-vertical text-lg"></i>
+                        </span>
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl ${stepColors.badgeBg} text-white font-bold text-xl md:text-2xl flex items-center justify-center shadow-sm ring-4 ${stepColors.ring}">
+                          ${step.stepNo}
+                        </div>
                       </div>
                       ${index < steps.length - 1 ? `
                         <div class="w-0.5 h-6 bg-emerald-200 mx-auto mt-2 hidden sm:block"></div>
@@ -318,7 +225,19 @@ export const PlantingRoadmapComponent = {
 
                     <!-- Column 5: Actions -->
                     <td class="py-5 px-4 md:px-6 text-center align-middle">
-                      <div class="flex items-center justify-center gap-2">
+                      <div class="flex items-center justify-center gap-1.5">
+                        <!-- Up / Down Reorder Buttons -->
+                        <div class="flex flex-col gap-0.5 mr-1">
+                          <button data-from-index="${index}" data-to-index="${index - 1}" ${index === 0 ? 'disabled' : ''} 
+                            class="move-step-up-btn p-1 rounded-md ${index === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer'} transition-all" title="เลื่อนขึ้น">
+                            <i class="fas fa-chevron-up text-xs"></i>
+                          </button>
+                          <button data-from-index="${index}" data-to-index="${index + 1}" ${index === steps.length - 1 ? 'disabled' : ''} 
+                            class="move-step-down-btn p-1 rounded-md ${index === steps.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer'} transition-all" title="เลื่อนลง">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                          </button>
+                        </div>
+
                         <button data-step-no="${step.stepNo}" class="edit-step-btn p-2.5 rounded-xl bg-gray-100 hover:bg-emerald-600 text-gray-600 hover:text-white transition-all shadow-2xs cursor-pointer" title="แก้ไขขั้นตอนนี้">
                           <i class="fas fa-pencil text-sm"></i>
                         </button>
@@ -614,6 +533,94 @@ export const PlantingRoadmapComponent = {
         }
       });
     }
+
+    // 9. Drag & Drop Reordering of Steps (ลากขึ้นลากลงได้แต่ละขั้นตอน)
+    const stepRows = document.querySelectorAll('.step-draggable-row');
+    let draggedIndex = null;
+
+    stepRows.forEach(row => {
+      row.addEventListener('dragstart', (e) => {
+        draggedIndex = Number(row.getAttribute('data-step-index'));
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(draggedIndex));
+        setTimeout(() => {
+          row.classList.add('opacity-40', 'bg-emerald-50', 'ring-2', 'ring-emerald-400');
+        }, 0);
+      });
+
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const targetRow = e.currentTarget;
+        const targetIndex = Number(targetRow.getAttribute('data-step-index'));
+        if (targetIndex !== draggedIndex) {
+          targetRow.classList.add('bg-emerald-100/70');
+          if (draggedIndex < targetIndex) {
+            targetRow.classList.add('border-b-4', 'border-emerald-600');
+            targetRow.classList.remove('border-t-4');
+          } else {
+            targetRow.classList.add('border-t-4', 'border-emerald-600');
+            targetRow.classList.remove('border-b-4');
+          }
+        }
+      });
+
+      row.addEventListener('dragleave', (e) => {
+        const targetRow = e.currentTarget;
+        targetRow.classList.remove('bg-emerald-100/70', 'border-t-4', 'border-b-4', 'border-emerald-600');
+      });
+
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const targetRow = e.currentTarget;
+        targetRow.classList.remove('bg-emerald-100/70', 'border-t-4', 'border-b-4', 'border-emerald-600');
+        const targetIndex = Number(targetRow.getAttribute('data-step-index'));
+        const fromIndex = draggedIndex !== null ? draggedIndex : Number(e.dataTransfer.getData('text/plain'));
+
+        if (!isNaN(fromIndex) && !isNaN(targetIndex) && fromIndex !== targetIndex) {
+          appState.reorderHerbSteps(this.selectedHerb, fromIndex, targetIndex);
+          showToast(`สลับลำดับขั้นตอนเป็นลำดับที่ ${targetIndex + 1} เรียบร้อยแล้ว`, 'success');
+          this.refresh();
+        }
+      });
+
+      row.addEventListener('dragend', () => {
+        row.classList.remove('opacity-40', 'bg-emerald-50', 'ring-2', 'ring-emerald-400');
+        stepRows.forEach(r => r.classList.remove('bg-emerald-100/70', 'border-t-4', 'border-b-4', 'border-emerald-600'));
+        draggedIndex = null;
+      });
+    });
+
+    // 10. Quick Move Up / Down Buttons (ปุ่มเลื่อนขึ้น-เลื่อนลง)
+    const moveUpBtns = document.querySelectorAll('.move-step-up-btn');
+    moveUpBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fromIndex = Number(btn.getAttribute('data-from-index'));
+        const toIndex = Number(btn.getAttribute('data-to-index'));
+        if (!isNaN(fromIndex) && !isNaN(toIndex) && toIndex >= 0) {
+          appState.reorderHerbSteps(this.selectedHerb, fromIndex, toIndex);
+          showToast(`เลื่อนขั้นตอนขึ้นเรียบร้อยแล้ว`, 'success');
+          this.refresh();
+        }
+      });
+    });
+
+    const moveDownBtns = document.querySelectorAll('.move-step-down-btn');
+    moveDownBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fromIndex = Number(btn.getAttribute('data-from-index'));
+        const toIndex = Number(btn.getAttribute('data-to-index'));
+        const roadmaps = appState.getRoadmaps();
+        const currentSteps = (roadmaps[this.selectedHerb] || {}).steps || [];
+        if (!isNaN(fromIndex) && !isNaN(toIndex) && toIndex < currentSteps.length) {
+          appState.reorderHerbSteps(this.selectedHerb, fromIndex, toIndex);
+          showToast(`เลื่อนขั้นตอนลงเรียบร้อยแล้ว`, 'success');
+          this.refresh();
+        }
+      });
+    });
   },
 
   refresh() {

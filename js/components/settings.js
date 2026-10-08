@@ -272,10 +272,6 @@ export const SettingsComponent = {
                 <label for="ent-village" class="block text-sm font-medium text-gray-700 mb-2">หมู่บ้าน/หมู่ที่ *</label>
                 <input type="text" id="ent-village" name="village" value="${escapeHtml(profile.village || '')}" required
                   class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" placeholder="เช่น หมู่ 4 บ้านหนองเขียว">
-                <p class="text-xs text-emerald-700 font-medium mt-1.5 flex items-center gap-1">
-                  <i class="fas fa-magic text-emerald-600"></i>
-                  <span>เชื่อมโยงอัตโนมัติ: ข้อมูลนี้จะถูกใส่เป็นค่าเริ่มต้นในช่อง "หมู่บ้าน/หมู่ที่" เมื่อเพิ่มสมาชิกใหม่ (แก้ไขได้)</span>
-                </p>
               </div>
 
               <!-- Sub-district -->
@@ -308,11 +304,7 @@ export const SettingsComponent = {
             </div>
 
             <!-- Submit Button for Profile -->
-            <div class="flex justify-end pt-4 gap-3 border-t border-gray-100">
-              <button type="button" id="reset-settings-btn"
-                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors focus:outline-none">
-                รีเซ็ตเฉพาะข้อมูลกลุ่ม
-              </button>
+            <div class="flex justify-end pt-4 border-t border-gray-100">
               <button type="submit"
                 class="px-6 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors shadow-sm focus:outline-none flex items-center gap-2">
                 <i class="fas fa-save"></i> บันทึกข้อมูลวิสาหกิจ
@@ -334,11 +326,6 @@ export const SettingsComponent = {
                 ดึงข้อมูลอัตโนมัติจาก <span class="font-semibold text-emerald-700">"จัดการข้อมูลสมาชิกวิสาหกิจชุมชน"</span> ตามบทบาทหน้าที่ (ประธาน, รองประธาน, เหรัญญิก, เลขานุการ, กรรมการ)
               </p>
             </div>
-            <div class="flex items-center gap-2 self-start sm:self-auto">
-              <a href="#members" class="nav-link px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-all shadow-sm flex items-center gap-1.5" data-view="members">
-                <i class="fas fa-users-cog"></i> จัดการบทบาทสมาชิก
-              </a>
-            </div>
           </div>
 
           <!-- Visual Chart Card Box -->
@@ -350,7 +337,7 @@ export const SettingsComponent = {
 
         </div>
 
-        <!-- CARD 3: Supabase Database Connection & Simulation Reset -->
+        <!-- CARD 3: Supabase Database Connection -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
           
           <div class="border-b border-gray-100 pb-4">
@@ -385,22 +372,6 @@ export const SettingsComponent = {
               class="px-5 py-2.5 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition-colors shadow-sm flex items-center gap-2">
               <i class="fas fa-plug"></i> เชื่อมต่อ / บันทึกการตั้งค่า Cloud
             </button>
-          </div>
-
-          <!-- Demo Simulation Reset Section -->
-          <div class="border-t border-gray-100 pt-6">
-            <div class="p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h4 class="text-sm font-bold text-amber-950 flex items-center gap-2">
-                  <i class="fas fa-arrows-rotate text-amber-600"></i> จำลองระบบใหม่ทั้งหมด (Reset All Simulation Data)
-                </h4>
-                <p class="text-sm text-amber-800/80 mt-1">รีเซ็ตข้อมูลจำลองทั้งหมดให้กลับสู่ค่าเริ่มต้นล่าสุด (ผลผลิตสด, การอบแห้ง, การบรรจุกระป๋อง 50G, แคตตาล็อกสินค้า และประวัติการขาย)</p>
-              </div>
-              <button type="button" id="reset-all-sim-btn"
-                class="px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 shrink-0">
-                <i class="fas fa-arrows-rotate"></i> จำลองเว็บใหม่
-              </button>
-            </div>
           </div>
 
         </div>
@@ -478,43 +449,6 @@ export const SettingsComponent = {
           });
         } catch (err) {
           showToast('ข้อผิดพลาด Supabase: ' + err.message, 'error');
-        }
-      });
-    }
-
-    // Reset settings button (Enterprise profile only)
-    const resetBtn = document.getElementById('reset-settings-btn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        if (confirm('คุณต้องการรีเซ็ตค่าระบบตั้งต้นของข้อมูลวิสาหกิจใช่หรือไม่?')) {
-          localStorage.removeItem('herb_enterprise_profile');
-          appState.init();
-          showToast('รีเซ็ตข้อมูลวิสาหกิจแล้ว');
-          
-          const main = document.getElementById('app-view');
-          if (main) {
-            main.innerHTML = this.render();
-            this.init();
-          }
-          
-          const profile = appState.getEnterprise();
-          if (appState.onEnterpriseChange) {
-            appState.onEnterpriseChange(profile);
-          }
-        }
-      });
-    }
-
-    // Reset all simulation button
-    const resetAllSimBtn = document.getElementById('reset-all-sim-btn');
-    if (resetAllSimBtn) {
-      resetAllSimBtn.addEventListener('click', () => {
-        if (confirm('ต้องการรีเซ็ตและจำลองข้อมูลเว็บใหม่ทั้งหมดใช่หรือไม่? ข้อมูลสาธิตทุกส่วนจะถูกสร้างใหม่ตามการตั้งค่าล่าสุด')) {
-          appState.resetAllSimulationData();
-          showToast('จำลองข้อมูลระบบใหม่ทั้งหมดสำเร็จ', 'success');
-          setTimeout(() => {
-            window.location.reload();
-          }, 400);
         }
       });
     }
