@@ -573,8 +573,31 @@ export class AppState {
   }
 
   initSupabase() {
-    // Disabled for now as requested - run 100% locally on LocalStorage
-    supabaseClient = null;
+    const defaultUrl = 'https://fhoszzgibwlgzggopeux.supabase.co';
+    const defaultKey = 'sb_publishable_upI8AP-NK_GUbvtcZw7WLw_sh63HUPy';
+
+    let url = localStorage.getItem('supabase_url');
+    let key = localStorage.getItem('supabase_key');
+
+    // Ensure valid credentials for the active project
+    if (!url || !key || key.startsWith('eyJ') || !url.includes('fhoszzgibwlgzggopeux')) {
+      url = defaultUrl;
+      key = defaultKey;
+      localStorage.setItem('supabase_url', url);
+      localStorage.setItem('supabase_key', key);
+    }
+
+    if (url && key && typeof supabase !== 'undefined') {
+      try {
+        supabaseClient = supabase.createClient(url, key);
+        console.log("Supabase Client connected successfully to:", url);
+      } catch (e) {
+        console.error("Failed to initialize Supabase client:", e);
+        supabaseClient = null;
+      }
+    } else {
+      supabaseClient = null;
+    }
   }
 
   async syncFromSupabase() {
@@ -607,10 +630,26 @@ export class AppState {
         .order('id', { ascending: true });
       
       if (!memError && membersData && membersData.length > 0) {
-        this.membersCache = membersData;
+        this.membersCache = membersData.map(m => ({
+          ...m,
+          villageNumber: m.village_number || m.villageNumber || 'หมู่ 12',
+          joinDate: m.join_date || m.joinDate,
+          houseNumber: m.house_number || m.houseNumber || ''
+        }));
+        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(this.membersCache));
       } else if (membersData && membersData.length === 0) {
-        await supabaseClient.from('members').insert(MOCK_MEMBERS);
+        await supabaseClient.from('members').insert(MOCK_MEMBERS.map(m => ({
+          id: m.id,
+          name: m.name,
+          role: m.role,
+          phone: m.phone,
+          status: m.status,
+          village_number: m.villageNumber,
+          join_date: m.joinDate,
+          house_number: m.houseNumber
+        })));
         this.membersCache = JSON.parse(JSON.stringify(MOCK_MEMBERS));
+        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(this.membersCache));
       } else if (memError) {
         console.warn("Supabase members sync skipped:", memError.message);
         if (!this.membersCache || this.membersCache.length === 0) {
@@ -628,12 +667,13 @@ export class AppState {
       if (!plotsError && plotsData && plotsData.length > 0) {
         this.plotsCache = plotsData.map(p => ({
           ...p,
-          sizeRai: p.size_rai,
-          sizeNgan: p.size_ngan,
-          sizeSqWah: p.size_sq_wah,
-          plantType: p.plant_type,
-          memberIds: p.member_ids
+          sizeRai: p.size_rai !== undefined ? p.size_rai : p.sizeRai,
+          sizeNgan: p.size_ngan !== undefined ? p.size_ngan : p.sizeNgan,
+          sizeSqWah: p.size_sq_wah !== undefined ? p.size_sq_wah : p.sizeSqWah,
+          plantType: p.plant_type !== undefined ? p.plant_type : p.plantType,
+          memberIds: p.member_ids !== undefined ? p.member_ids : (p.memberIds || [])
         }));
+        localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(this.plotsCache));
       } else if (plotsData && plotsData.length === 0) {
         const plotsToInsert = MOCK_PLOTS.map(p => ({
           id: p.id,
@@ -649,6 +689,7 @@ export class AppState {
         }));
         await supabaseClient.from('plots').insert(plotsToInsert);
         this.plotsCache = JSON.parse(JSON.stringify(MOCK_PLOTS));
+        localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(this.plotsCache));
       } else if (plotsError) {
         console.warn("Supabase plots sync skipped:", plotsError.message);
         if (!this.plotsCache || this.plotsCache.length === 0) {
@@ -666,12 +707,15 @@ export class AppState {
       if (!cropsError && cropsData && cropsData.length > 0) {
         this.cropsCache = cropsData.map(c => ({
           ...c,
-          plotId: c.plot_id,
-          cropYear: c.crop_year,
-          harvestDateEst: c.harvest_date_est || '',
-          harvestDateActual: c.harvest_date_actual || null,
-          fertilizingLog: c.fertilizing_log || []
+          plotId: c.plot_id || c.plotId,
+          cropYear: c.crop_year || c.cropYear,
+          cropCycle: c.crop_cycle || c.cropCycle || 1,
+          plantDate: c.plant_date || c.plantDate,
+          harvestDateEst: c.harvest_date_est || c.harvestDateEst || '',
+          harvestDateActual: c.harvest_date_actual || c.harvestDateActual || null,
+          fertilizingLog: c.fertilizing_log || c.fertilizingLog || []
         }));
+        localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(this.cropsCache));
       } else if (cropsData && cropsData.length === 0) {
         const cropsToInsert = MOCK_CROPS.map(c => ({
           id: c.id,
@@ -687,6 +731,7 @@ export class AppState {
         }));
         await supabaseClient.from('crops').insert(cropsToInsert);
         this.cropsCache = JSON.parse(JSON.stringify(MOCK_CROPS));
+        localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(this.cropsCache));
       } else if (cropsError) {
         console.warn("Supabase crops sync skipped:", cropsError.message);
         if (!this.cropsCache || this.cropsCache.length === 0) {
@@ -704,12 +749,14 @@ export class AppState {
       if (!invError && invData && invData.length > 0) {
         this.inventoryCache = invData.map(i => ({
           ...i,
-          cropId: i.crop_id,
-          dryStockKg: i.dry_stock_kg,
-          dryDate: i.dry_date,
-          qualityGrade: i.quality_grade,
-          costPerKg: i.cost_per_kg
+          cropId: i.crop_id || i.cropId,
+          herbType: i.herb_type || i.herbType,
+          dryStockKg: i.dry_stock_kg !== undefined ? i.dry_stock_kg : i.dryStockKg,
+          dryDate: i.dry_date || i.dryDate,
+          qualityGrade: i.quality_grade || i.qualityGrade,
+          costPerKg: i.cost_per_kg !== undefined ? i.cost_per_kg : i.costPerKg
         }));
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(this.inventoryCache));
       } else if (invData && invData.length === 0) {
         const invToInsert = MOCK_INVENTORY.map(i => ({
           id: i.id,
@@ -722,6 +769,7 @@ export class AppState {
           history: i.history || []
         }));
         this.inventoryCache = JSON.parse(JSON.stringify(MOCK_INVENTORY));
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(this.inventoryCache));
       } else if (invError) {
         console.warn("Supabase inventory sync skipped:", invError.message);
         if (!this.inventoryCache || this.inventoryCache.length === 0) {
@@ -739,14 +787,20 @@ export class AppState {
       if (!salesError && salesData && salesData.length > 0) {
         this.salesCache = salesData.map(s => ({
           ...s,
-          inventoryId: s.inventory_id,
-          quantityKg: s.quantity_kg,
-          pricePerKg: s.price_per_kg,
-          saleDate: s.sale_date,
-          buyerPhone: s.buyer_phone,
-          invoiceNo: s.invoice_no,
-          totalPrice: s.quantity_kg * s.price_per_kg
+          inventoryId: s.inventory_id || s.inventoryId,
+          cropId: s.crop_id || s.cropId,
+          customer: s.customer_name || s.customer,
+          amountKg: s.quantity_kg !== undefined ? s.quantity_kg : (s.amountKg !== undefined ? s.amountKg : s.amount),
+          quantityKg: s.quantity_kg !== undefined ? s.quantity_kg : (s.amountKg !== undefined ? s.amountKg : s.amount),
+          pricePerKg: s.price_per_kg !== undefined ? s.price_per_kg : (s.pricePerKg !== undefined ? s.pricePerKg : s.price),
+          price: s.price_per_kg !== undefined ? s.price_per_kg : (s.pricePerKg !== undefined ? s.pricePerKg : s.price),
+          saleDate: s.sale_date || s.saleDate || s.date,
+          date: s.sale_date || s.saleDate || s.date,
+          buyerPhone: s.buyer_phone || s.buyerPhone,
+          invoiceNo: s.invoice_no || s.invoiceNo,
+          totalPrice: (s.quantity_kg || s.amountKg || s.amount || 0) * (s.price_per_kg || s.pricePerKg || s.price || 0)
         }));
+        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(this.salesCache));
       } else if (salesData && salesData.length === 0) {
         const salesToInsert = MOCK_SALES.map((s, idx) => {
           const invItem = this.inventoryCache.find(i => i.cropId === s.cropId);
@@ -775,6 +829,7 @@ export class AppState {
             totalPrice: s.amountKg * s.pricePerKg
           };
         });
+        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(this.salesCache));
       } else if (salesError) {
         console.warn("Supabase sales sync skipped:", salesError.message);
         if (!this.salesCache || this.salesCache.length === 0) {
@@ -795,6 +850,7 @@ export class AppState {
           lineId: c.line_id || c.lineId,
           contactChannel: c.contact_channel || c.contactChannel
         }));
+        localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(this.customersCache));
       } else if (custError) {
         console.warn("Supabase customers sync skipped:", custError.message);
         if (!this.customersCache || this.customersCache.length === 0) {
@@ -841,7 +897,63 @@ export class AppState {
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(prdMapped));
       }
 
+      // 10. Sync drying_batches
+      const { data: dryingData, error: dryingError } = await supabaseClient
+        .from('drying_batches')
+        .select('*')
+        .order('id', { ascending: true });
+      if (!dryingError && dryingData && dryingData.length > 0) {
+        const dryingMapped = dryingData.map(d => ({
+          id: d.id,
+          herbType: d.herb_type,
+          totalFreshAvailableKg: Number(d.total_fresh_available_kg || 0),
+          freshWeightKg: Number(d.fresh_weight_kg || 0),
+          dryWeightKg: Number(d.dry_weight_kg || 0),
+          ratioActual: d.ratio_actual,
+          processedDate: d.processed_date,
+          note: d.note || '',
+          cropIds: d.crop_ids || []
+        }));
+        localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(dryingMapped));
+      }
+
+      // 11. Sync packaging_batches
+      const { data: packData, error: packError } = await supabaseClient
+        .from('packaging_batches')
+        .select('*')
+        .order('id', { ascending: true });
+      if (!packError && packData && packData.length > 0) {
+        const packMapped = packData.map(p => ({
+          id: p.id,
+          herbType: p.herb_type,
+          dryUsedKg: Number(p.dry_used_kg || 0),
+          packageSize: p.package_size,
+          jarsProduced: Number(p.jars_produced || 0),
+          processedDate: p.processed_date,
+          productId: p.product_id,
+          productName: p.product_name,
+          operatorName: p.operator_name,
+          note: p.note || ''
+        }));
+        localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(packMapped));
+      }
+
       console.log("Supabase sync completed successfully!");
+      const syncSummary = {
+        members: this.membersCache?.length || 0,
+        plots: this.plotsCache?.length || 0,
+        crops: this.cropsCache?.length || 0
+      };
+      if (this.onDataSync) {
+        try {
+          this.onDataSync(syncSummary);
+        } catch (err) {
+          console.error("onDataSync error:", err);
+        }
+      }
+      window.dispatchEvent(new CustomEvent('supabase-data-synced', {
+        detail: syncSummary
+      }));
     } catch (e) {
       console.error("Sync error:", e);
       throw e;
@@ -980,44 +1092,8 @@ export class AppState {
     
     // 2. Members
     const storedMembers = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-    if (!storedMembers || JSON.parse(storedMembers).length < 3) {
+    if (storedMembers === null) {
       localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(MOCK_MEMBERS));
-    } else {
-      try {
-        const list = JSON.parse(storedMembers);
-        let hasNew = false;
-        MOCK_MEMBERS.forEach(mockM => {
-          const found = list.find(m => m.id === mockM.id);
-          if (!found) {
-            list.push(mockM);
-            hasNew = true;
-          }
-        });
-        const mem1 = list.find(m => m.id === 'MEM-001');
-        // Migrate to houseNumber structure if needed
-        if (mem1 && (!mem1.houseNumber || mem1.citizenId)) {
-          list.forEach(m => {
-            const mockVer = MOCK_MEMBERS.find(mock => mock.id === m.id);
-            if (mockVer) {
-              m.houseNumber = mockVer.houseNumber;
-              m.phone = mockVer.phone;
-            }
-            delete m.citizenId;
-          });
-          hasNew = true;
-          localStorage.removeItem(STORAGE_KEYS.AUTH); // Clear old session
-        }
-        if (hasNew) {
-          list.sort((a, b) => {
-            const numA = parseInt((a.id || '').replace(/\D/g, '')) || 0;
-            const numB = parseInt((b.id || '').replace(/\D/g, '')) || 0;
-            return numA - numB;
-          });
-          localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
-        }
-      } catch (e) {
-        console.error("Migration error:", e);
-      }
     }
 
     // 3. Plots
@@ -1044,12 +1120,7 @@ export class AppState {
           };
         });
 
-        // Ensure MOCK_CROPS are included if missing
-        MOCK_CROPS.forEach(mockC => {
-          if (!cropsList.some(c => c.id === mockC.id)) {
-            cropsList.push(mockC);
-          }
-        });
+
 
         const seen = new Set();
         const deduplicated = [];
@@ -1222,66 +1293,18 @@ export class AppState {
     }
     try {
       const data = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-      let list = data ? JSON.parse(data) : MOCK_MEMBERS;
-      if (!Array.isArray(list) || list.length < 3) {
-        list = JSON.parse(JSON.stringify(MOCK_MEMBERS));
-        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
+      if (data === null) {
+        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(MOCK_MEMBERS));
+        return JSON.parse(JSON.stringify(MOCK_MEMBERS));
       }
-      // Auto-migrate leader names and distribute members across หมู่ 1 (คาโมมายล์) and หมู่ 7 (เก๊กฮวย)
-      let needsSave = false;
-      if (Array.isArray(list)) {
-        list.forEach(m => {
-          if (m.id === 'MEM-001') {
-            if (m.name.includes('สมเกียรติ') || m.phone !== '061-139-1105') {
-              m.name = 'นายวีรวัฒน์ ปินทรายมูล';
-              m.phone = '061-139-1105';
-              m.role = 'ประธานกลุ่ม';
-              needsSave = true;
-            }
-            if (m.villageNumber !== 'หมู่ 12') {
-              m.villageNumber = 'หมู่ 12';
-              needsSave = true;
-            }
-          } else if (m.id === 'MEM-002') {
-            if (m.name.includes('ใจดี') || m.phone !== '089-765-4321') {
-              m.name = 'นางแหม่ม สุตินกาศ';
-              m.phone = '089-765-4321';
-              m.role = 'รองประธาน';
-              needsSave = true;
-            }
-            if (m.villageNumber !== 'หมู่ 12') {
-              m.villageNumber = 'หมู่ 12';
-              needsSave = true;
-            }
-          } else {
-            // Match with MOCK_MEMBERS for หมู่ 1 (คาโมมายล์) and หมู่ 7 (เก๊กฮวย)
-            const mock = MOCK_MEMBERS.find(mockM => mockM.id === m.id);
-            if (mock) {
-              if (m.villageNumber !== mock.villageNumber) {
-                m.villageNumber = mock.villageNumber;
-                needsSave = true;
-              }
-              if (m.status !== mock.status) {
-                m.status = mock.status;
-                needsSave = true;
-              }
-            }
-          }
-        });
-        if (needsSave) {
-          localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(list));
-        }
-      }
+      let list = JSON.parse(data) || [];
       const filtered = (list || []).filter(m => m && typeof m === 'object' && m.id);
       if (supabaseClient && (!this.membersCache || this.membersCache.length === 0)) {
         this.membersCache = filtered;
       }
       return filtered;
     } catch (e) {
-      if (supabaseClient && (!this.membersCache || this.membersCache.length === 0)) {
-        this.membersCache = MOCK_MEMBERS;
-      }
-      return MOCK_MEMBERS;
+      return [];
     }
   }
 
@@ -1292,29 +1315,41 @@ export class AppState {
   addMember(member) {
     const members = this.getMembers();
     const maxIdNum = members.reduce((max, m) => {
-      const num = parseInt(m.id.split('-')[1]);
-      return num > max ? num : max;
+      const num = parseInt((m.id || '').split('-')[1]);
+      return (!isNaN(num) && num > max) ? num : max;
     }, 0);
     const newId = `MEM-${String(maxIdNum + 1).padStart(3, '0')}`;
     
     const newMember = {
       ...member,
       id: newId,
+      villageNumber: member.villageNumber || 'หมู่ 12',
       joinDate: member.joinDate || new Date().toISOString().split('T')[0],
+      houseNumber: member.houseNumber || '',
       status: member.status || 'active'
     };
 
+    this.membersCache = this.membersCache || [];
+    this.membersCache.push(newMember);
+    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(this.membersCache));
+
     if (supabaseClient) {
-      this.membersCache.push(newMember);
-      supabaseClient.from('members').insert([newMember]).then(({ error }) => {
+      const dbMember = {
+        id: newMember.id,
+        name: newMember.name,
+        role: newMember.role,
+        phone: newMember.phone,
+        status: newMember.status,
+        village_number: newMember.villageNumber,
+        join_date: newMember.joinDate,
+        house_number: newMember.houseNumber
+      };
+      supabaseClient.from('members').insert([dbMember]).then(({ error }) => {
         if (error) {
           console.error("Supabase addMember error:", error);
           showToast("ล้มเหลวในการบันทึกออนไลน์: " + error.message, "error");
         }
       });
-    } else {
-      members.push(newMember);
-      localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
     }
     return newMember;
   }
@@ -1324,18 +1359,26 @@ export class AppState {
     const index = members.findIndex(m => m.id === id);
     if (index !== -1) {
       const updatedMember = { ...members[index], ...updatedData };
-      
+      this.membersCache = members;
+      this.membersCache[index] = updatedMember;
+      localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(this.membersCache));
+
       if (supabaseClient) {
-        this.membersCache[index] = updatedMember;
-        supabaseClient.from('members').update(updatedData).eq('id', id).then(({ error }) => {
+        const dbMemberUpdate = {};
+        if (updatedMember.name !== undefined) dbMemberUpdate.name = updatedMember.name;
+        if (updatedMember.role !== undefined) dbMemberUpdate.role = updatedMember.role;
+        if (updatedMember.phone !== undefined) dbMemberUpdate.phone = updatedMember.phone;
+        if (updatedMember.status !== undefined) dbMemberUpdate.status = updatedMember.status;
+        if (updatedMember.villageNumber !== undefined) dbMemberUpdate.village_number = updatedMember.villageNumber;
+        if (updatedMember.joinDate !== undefined) dbMemberUpdate.join_date = updatedMember.joinDate;
+        if (updatedMember.houseNumber !== undefined) dbMemberUpdate.house_number = updatedMember.houseNumber;
+
+        supabaseClient.from('members').update(dbMemberUpdate).eq('id', id).then(({ error }) => {
           if (error) {
             console.error("Supabase updateMember error:", error);
             showToast("ล้มเหลวในการอัปเดตออนไลน์: " + error.message, "error");
           }
         });
-      } else {
-        members[index] = updatedMember;
-        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
       }
       return updatedMember;
     }
@@ -1362,13 +1405,14 @@ export class AppState {
     }
 
     const filtered = members.filter(m => m.id !== id);
-    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(filtered));
     this.membersCache = filtered;
+    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(filtered));
 
     if (supabaseClient) {
       supabaseClient.from('members').delete().eq('id', id).then(({ error }) => {
         if (error) {
           console.error("Supabase deleteMember error:", error);
+          showToast("ล้มเหลวในการลบออนไลน์: " + error.message, "error");
         }
       });
     }
@@ -1432,8 +1476,11 @@ export class AppState {
       status: plot.status || 'active'
     };
     
+    this.plotsCache = this.plotsCache || [];
+    this.plotsCache.push(newPlot);
+    localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(this.plotsCache));
+    
     if (supabaseClient) {
-      this.plotsCache.push(newPlot);
       const dbPlot = {
         id: newPlot.id,
         name: newPlot.name,
@@ -1452,9 +1499,6 @@ export class AppState {
           showToast("ล้มเหลวในการบันทึกออนไลน์: " + error.message, "error");
         }
       });
-    } else {
-      plots.push(newPlot);
-      localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(plots));
     }
     return newPlot;
   }
@@ -1474,8 +1518,11 @@ export class AppState {
         lng: parseFloat(updatedData.lng) || plots[index].lng
       };
 
+      this.plotsCache = plots;
+      this.plotsCache[index] = updatedPlot;
+      localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(this.plotsCache));
+
       if (supabaseClient) {
-        this.plotsCache[index] = updatedPlot;
         const dbPlotUpdate = {
           name: updatedPlot.name,
           member_ids: updatedPlot.memberIds,
@@ -1493,9 +1540,6 @@ export class AppState {
             showToast("ล้มเหลวในการอัปเดตออนไลน์: " + error.message, "error");
           }
         });
-      } else {
-        plots[index] = updatedPlot;
-        localStorage.setItem(STORAGE_KEYS.PLOTS, JSON.stringify(plots));
       }
       return updatedPlot;
     }
@@ -1534,8 +1578,13 @@ export class AppState {
     if (supabaseClient && Array.isArray(this.cropsCache) && this.cropsCache.length > 0) {
       return this.cropsCache;
     }
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS)) || [];
-    const result = (Array.isArray(stored) && stored.length > 0) ? stored : MOCK_CROPS;
+    const raw = localStorage.getItem(STORAGE_KEYS.CROPS);
+    if (raw === null) {
+      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(MOCK_CROPS));
+      return JSON.parse(JSON.stringify(MOCK_CROPS));
+    }
+    const stored = JSON.parse(raw) || [];
+    const result = Array.isArray(stored) ? stored : [];
     if (supabaseClient && (!this.cropsCache || this.cropsCache.length === 0)) {
       this.cropsCache = result;
     }
@@ -1592,8 +1641,11 @@ export class AppState {
       isProcessed: false
     };
     
+    this.cropsCache = this.cropsCache || [];
+    this.cropsCache.push(newCrop);
+    localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(this.cropsCache));
+
     if (supabaseClient) {
-      this.cropsCache.push(newCrop);
       const dbCrop = {
         id: newCrop.id,
         plot_id: newCrop.plotId,
@@ -1613,9 +1665,6 @@ export class AppState {
           showToast("ล้มเหลวในการบันทึกออนไลน์: " + error.message, "error");
         }
       });
-    } else {
-      crops.push(newCrop);
-      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(crops));
     }
     return newCrop;
   }
@@ -1631,8 +1680,11 @@ export class AppState {
         yield: updatedData.yield !== undefined ? parseFloat(updatedData.yield) : crops[index].yield
       };
 
+      this.cropsCache = crops;
+      this.cropsCache[index] = updatedCrop;
+      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(this.cropsCache));
+
       if (supabaseClient) {
-        this.cropsCache[index] = updatedCrop;
         const dbCropUpdate = {
           plot_id: updatedCrop.plotId,
           plant_date: updatedCrop.plantDate,
@@ -1651,9 +1703,6 @@ export class AppState {
             showToast("ล้มเหลวในการอัปเดตออนไลน์: " + error.message, "error");
           }
         });
-      } else {
-        crops[index] = updatedCrop;
-        localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(crops));
       }
       return updatedCrop;
     }
@@ -1694,30 +1743,28 @@ export class AppState {
 
   deleteCrop(id) {
     const crops = this.getCrops();
+    const filtered = crops.filter(c => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(filtered));
+    this.cropsCache = filtered;
+
+    // Also delete inventory associated with it
+    let inventory = this.getInventory();
+    inventory = inventory.filter(inv => inv.cropId !== id);
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+    this.inventoryCache = inventory;
+
+    // Also delete sales associated with it
+    let sales = this.getSales();
+    sales = sales.filter(s => s.cropId !== id);
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+    this.salesCache = sales;
+
     if (supabaseClient) {
-      this.cropsCache = this.cropsCache.filter(c => c.id !== id);
-      this.inventoryCache = this.inventoryCache.filter(inv => inv.cropId !== id);
-      this.salesCache = this.salesCache.filter(s => s.cropId !== id);
-      
       supabaseClient.from('crops').delete().eq('id', id).then(({ error }) => {
         if (error) {
           console.error("Supabase deleteCrop error:", error);
-          showToast("ล้มเหลวในการลบออนไลน์: " + error.message, "error");
         }
       });
-    } else {
-      const filtered = crops.filter(c => c.id !== id);
-      localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(filtered));
-
-      // Also delete inventory associated with it
-      let inventory = this.getInventory();
-      inventory = inventory.filter(inv => inv.cropId !== id);
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-
-      // Also delete sales associated with it
-      let sales = this.getSales();
-      sales = sales.filter(s => s.cropId !== id);
-      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
     }
 
     return true;
@@ -2407,8 +2454,28 @@ export class AppState {
 
     if (!newCustomer.name) throw new Error('กรุณาระบุชื่อลูกค้าหรือชื่อร้านค้า');
 
-    customers.push(newCustomer);
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+    this.customersCache = this.customersCache || [];
+    this.customersCache.push(newCustomer);
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(this.customersCache));
+
+    if (supabaseClient) {
+      const dbCust = {
+        id: newCustomer.id,
+        name: newCustomer.name,
+        customer_type: newCustomer.customerType,
+        phone: newCustomer.phone,
+        address: newCustomer.address,
+        line_id: newCustomer.lineId,
+        facebook: newCustomer.facebook,
+        contact_channel: newCustomer.contactChannel
+      };
+      supabaseClient.from('customers').insert([dbCust]).then(({ error }) => {
+        if (error) {
+          console.error("Supabase addCustomer error:", error);
+        }
+      });
+    }
+
     return newCustomer;
   }
 
@@ -2416,7 +2483,7 @@ export class AppState {
     let customers = this.getCustomers();
     const index = customers.findIndex(c => c.id === id);
     if (index !== -1) {
-      customers[index] = {
+      const updatedCust = {
         ...customers[index],
         name: (data.name !== undefined ? data.name : customers[index].name).trim(),
         customerType: data.customerType || customers[index].customerType,
@@ -2426,8 +2493,28 @@ export class AppState {
         facebook: (data.facebook !== undefined ? data.facebook : (customers[index].facebook || '')).trim(),
         contactChannel: (data.contactChannel !== undefined ? data.contactChannel : (customers[index].contactChannel || '')).trim()
       };
-      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
-      return customers[index];
+      this.customersCache = customers;
+      this.customersCache[index] = updatedCust;
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(this.customersCache));
+
+      if (supabaseClient) {
+        const dbCustUpdate = {
+          name: updatedCust.name,
+          customer_type: updatedCust.customerType,
+          phone: updatedCust.phone,
+          address: updatedCust.address,
+          line_id: updatedCust.lineId,
+          facebook: updatedCust.facebook,
+          contact_channel: updatedCust.contactChannel
+        };
+        supabaseClient.from('customers').update(dbCustUpdate).eq('id', id).then(({ error }) => {
+          if (error) {
+            console.error("Supabase updateCustomer error:", error);
+          }
+        });
+      }
+
+      return updatedCust;
     }
     throw new Error('ไม่พบข้อมูลลูกค้ารายนี้');
   }
@@ -2441,7 +2528,17 @@ export class AppState {
     }
 
     const filtered = customers.filter(c => c.id !== id);
+    this.customersCache = filtered;
     localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(filtered));
+
+    if (supabaseClient) {
+      supabaseClient.from('customers').delete().eq('id', id).then(({ error }) => {
+        if (error) {
+          console.error("Supabase deleteCustomer error:", error);
+        }
+      });
+    }
+
     return true;
   }
 

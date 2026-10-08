@@ -1,5 +1,6 @@
 // Main App Controller and Router for Single Page Application
-import { appState } from './state.js?v=50';
+import { appState } from './state.js?v=51';
+import { showToast } from './helpers.js';
 import { DashboardComponent } from './components/dashboard.js?v=21';
 import { MembersComponent } from './components/members.js?v=5';
 import { PlotsComponent } from './components/plots.js?v=5';
@@ -88,6 +89,20 @@ class AppController {
       this.updateUserSessionUI(user);
     };
 
+    // 4.5 Listen for Supabase synchronization completion to auto-refresh current view
+    window.addEventListener('supabase-data-synced', (e) => {
+      console.log('Supabase sync finished, updating UI with fresh data:', e.detail);
+      const memberCount = e.detail?.members || 0;
+      const plotCount = e.detail?.plots || 0;
+      this.updateSupabaseBadge(memberCount);
+      if (this.currentView && this.views[this.currentView]) {
+        this.switchView(this.currentView);
+      }
+      if (memberCount > 0) {
+        showToast(`เชื่อมต่อ Supabase สำเร็จ (พบสมาชิก ${memberCount} ท่าน, แปลง ${plotCount} แปลง)`, 'success');
+      }
+    });
+
     // 5. Listen for hash changes to route dynamically
     window.addEventListener('hashchange', () => {
       this.handleRouting();
@@ -100,6 +115,17 @@ class AppController {
 
     // 7. Run router on initial load
     this.handleRouting();
+  }
+
+  updateSupabaseBadge(memberCount) {
+    const badge = document.getElementById('supabase-status-badge');
+    if (badge) {
+      badge.innerHTML = `
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs font-bold text-emerald-800">Supabase Cloud (${memberCount} สมาชิก)</span>
+      `;
+      badge.className = "hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 shadow-xs";
+    }
   }
 
   handleRouting() {
@@ -255,7 +281,12 @@ class AppController {
       const displayRole = user.roleDisplay || user.role;
       // Logged in UI in Header
       if (container) {
+        const memCount = (appState.membersCache && appState.membersCache.length) ? appState.membersCache.length : appState.getMembers().length;
         container.innerHTML = `
+          <div id="supabase-status-badge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-bold text-emerald-800">Supabase Cloud (${memCount} สมาชิก)</span>
+          </div>
           <div class="flex items-center gap-3 bg-emerald-50/80 px-3 py-1.5 rounded-2xl border border-emerald-100 shadow-sm">
             <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
               ${user.avatarText || 'U'}
