@@ -1,6 +1,6 @@
 // Members Management Component
 import { appState } from '../state.js';
-import { formatThaiDate, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
+import { formatThaiDate, showToast, openGlobalModal, closeGlobalModal, formatThaiNameWithoutPrefix, formatCropSeasonId } from '../helpers.js';
 
 export const MembersComponent = {
   currentPage: 1,
@@ -48,9 +48,10 @@ export const MembersComponent = {
     const rowsHtml = paginated.length === 0 
       ? `<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบข้อมูลสมาชิกตามที่ระบุ</td></tr>`
       : paginated.map(m => {
+          const avatarInitial = (formatThaiNameWithoutPrefix(m.name) || m.name || 'M').charAt(0);
           const avatarHtml = m.photo 
             ? `<img src="${m.photo}" class="w-10 h-10 rounded-full object-cover border border-emerald-100 shadow-sm flex-shrink-0">`
-            : `<div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-800 font-bold text-sm flex items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">${m.name.charAt(0) || 'M'}</div>`;
+            : `<div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-800 font-bold text-sm flex items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">${avatarInitial}</div>`;
 
           return `
             <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
@@ -281,7 +282,8 @@ export const MembersComponent = {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const member = appState.getMemberById(id);
-        if (confirm(`คุณต้องการลบข้อมูลของ "${member ? member.name : id}" ใช่หรือไม่?`)) {
+        const memName = member ? member.name : id;
+        if (confirm(`คุณต้องการลบข้อมูลของ "${memName}" ใช่หรือไม่?`)) {
           try {
             appState.deleteMember(id);
             showToast(`ลบข้อมูลสมาชิก ${id} สำเร็จ`);
@@ -307,26 +309,15 @@ export const MembersComponent = {
       ? `<img src="${this.currentPhotoBase64}" class="w-full h-full object-cover">`
       : `<i class="fas fa-user-circle text-emerald-500 text-4xl"></i>`;
 
-    // แยกคำนำหน้าชื่อ และชื่อจริง
-    let selectedPrefix = 'นาย';
+    let currentPrefix = 'นาย';
     let cleanName = '';
     if (member && member.name) {
-      const raw = member.name.trim();
-      if (raw.startsWith('นางสาว')) {
-        selectedPrefix = 'นางสาว';
-        cleanName = raw.slice(6).trim();
-      } else if (raw.startsWith('น.ส.')) {
-        selectedPrefix = 'นางสาว';
-        cleanName = raw.slice(4).trim();
-      } else if (raw.startsWith('นาย')) {
-        selectedPrefix = 'นาย';
-        cleanName = raw.slice(3).trim();
-      } else if (raw.startsWith('นาง')) {
-        selectedPrefix = 'นาง';
-        cleanName = raw.slice(3).trim();
+      const match = member.name.match(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)/);
+      if (match) {
+        currentPrefix = match[1] === 'น.ส.' ? 'นางสาว' : match[1];
+        cleanName = member.name.substring(match[0].length).trim();
       } else {
-        selectedPrefix = 'นาย';
-        cleanName = raw;
+        cleanName = member.name;
       }
     }
 
@@ -353,17 +344,17 @@ export const MembersComponent = {
           <!-- Form Inputs Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            <!-- Name with Prefix Selector (Full Row) -->
+            <!-- Name (Full Row) -->
             <div class="sm:col-span-2">
-              <label class="block text-xs font-bold text-gray-700 uppercase mb-1">คำนำหน้า และชื่อ-นามสกุลสมาชิก *</label>
+              <label for="mem-name" class="block text-xs font-bold text-gray-700 uppercase mb-1">คำนำหน้า และชื่อ-นามสกุลสมาชิก *</label>
               <div class="flex gap-2">
-                <select id="mem-prefix" name="prefix" class="w-24 px-2.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white flex-shrink-0">
-                  <option value="นาย" ${selectedPrefix === 'นาย' ? 'selected' : ''}>นาย</option>
-                  <option value="นาง" ${selectedPrefix === 'นาง' ? 'selected' : ''}>นาง</option>
-                  <option value="นางสาว" ${selectedPrefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+                <select id="mem-prefix" name="prefix" class="w-28 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white">
+                  <option value="นาย" ${currentPrefix === 'นาย' ? 'selected' : ''}>นาย</option>
+                  <option value="นาง" ${currentPrefix === 'นาง' ? 'selected' : ''}>นาง</option>
+                  <option value="นางสาว" ${currentPrefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
                 </select>
-                <input type="text" id="mem-name" name="name" required value="${cleanName}" placeholder="ชื่อ และนามสกุล (เช่น เกษตร มั่นคง)"
-                  class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                <input type="text" id="mem-name" name="name" required value="${cleanName}" placeholder="ชื่อ และนามสกุล (เช่น วีรวัฒน์ ปินทรายมูล)"
+                  class="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
               </div>
             </div>
 
@@ -491,15 +482,12 @@ export const MembersComponent = {
               return;
             }
 
-            const prefixVal = (formData.get('prefix') || '').trim();
+            const prefixVal = formData.get('prefix') || '';
             let nameVal = (formData.get('name') || '').trim();
-            // ป้องกันกรณีผู้ใช้พิมพ์คำนำหน้าซ้ำในช่องชื่อ
-            ['นางสาว', 'น.ส.', 'นาย', 'นาง'].forEach(p => {
-              if (nameVal.startsWith(p)) {
-                nameVal = nameVal.slice(p.length).trim();
-              }
-            });
-            const fullName = prefixVal ? `${prefixVal}${nameVal}` : nameVal;
+            let fullName = nameVal;
+            if (!/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)/.test(nameVal)) {
+              fullName = `${prefixVal}${nameVal}`;
+            }
 
             const data = {
               name: fullName,
@@ -552,12 +540,16 @@ export const MembersComponent = {
     const totalRevenue = mSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
     const netProfit = totalRevenue - totalCost;
     const totalDryStock = mInventory.reduce((sum, i) => sum + (i.dryStockKg || 0), 0);
+    const totalFreshYield = mCrops.reduce((sum, c) => sum + (parseFloat(c.yield) || 0), 0);
+
+    const harvestedCrops = mCrops.filter(c => c.status === 'harvested');
 
     const houseNumber = m.houseNumber || '-';
 
+    const cleanDetailName = formatThaiNameWithoutPrefix(m.name);
     const avatarHtml = m.photo
       ? `<img src="${m.photo}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md mx-auto">`
-      : `<div class="w-24 h-24 rounded-full bg-emerald-100 text-emerald-800 font-bold text-2xl flex items-center justify-center border-4 border-white shadow-md mx-auto">${m.name.charAt(0) || 'M'}</div>`;
+      : `<div class="w-24 h-24 rounded-full bg-emerald-100 text-emerald-800 font-bold text-2xl flex items-center justify-center border-4 border-white shadow-md mx-auto">${cleanDetailName.charAt(0) || 'M'}</div>`;
 
     const detailContent = `
       <div class="flex flex-col flex-1 overflow-hidden">
@@ -605,53 +597,137 @@ export const MembersComponent = {
             <!-- Right Column: Stats & Plots lists (8 cols) -->
             <div class="lg:col-span-8 space-y-6 flex flex-col justify-between">
               
-              <!-- Statistics Cards Grid (4 cols on desktop) -->
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-sm text-gray-400 font-bold block uppercase mb-1">แปลงปลูกทั้งหมด</span>
-                  <span class="text-2xl font-bold text-emerald-800">${mPlots.length} <span class="text-sm text-gray-550 font-semibold">แปลง</span></span>
+              <!-- Statistics Cards Grid (6 cards: Agricultural + Financial) -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">แปลงปลูกทั้งหมด</span>
+                  <span class="text-xl font-bold text-emerald-800">${mPlots.length} <span class="text-xs text-gray-550 font-semibold">แปลง</span></span>
                 </div>
-                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-sm text-gray-400 font-bold block uppercase mb-1">รอบการเพาะปลูก</span>
-                  <span class="text-2xl font-bold text-emerald-800">${mCrops.length} <span class="text-sm text-gray-550 font-semibold">รอบ</span></span>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">รอบการเพาะปลูก</span>
+                  <span class="text-xl font-bold text-emerald-800">${mCrops.length} <span class="text-xs text-gray-550 font-semibold">รอบ</span></span>
                 </div>
-                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-sm text-gray-400 font-bold block uppercase mb-1">อบแห้งในคลัง</span>
-                  <span class="text-2xl font-bold text-emerald-800">${totalDryStock.toFixed(2)} <span class="text-sm text-gray-550 font-semibold">กก.</span></span>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">ดอกสดที่เก็บเกี่ยวได้</span>
+                  <span class="text-xl font-bold text-emerald-800">${totalFreshYield.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span class="text-xs text-gray-550 font-semibold">กก.</span></span>
                 </div>
-                <div class="p-4 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-sm text-gray-400 font-bold block uppercase mb-1">กำไรสุทธิสะสม</span>
-                  <span class="text-2xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-sm text-gray-550 font-semibold">บาท</span></span>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">ต้นทุนสะสม</span>
+                  <span class="text-xl font-bold text-amber-700">${totalCost.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+                </div>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">รายได้สะสม</span>
+                  <span class="text-xl font-bold text-emerald-700">${totalRevenue.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+                </div>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">กำไรสุทธิสะสม</span>
+                  <span class="text-xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
                 </div>
               </div>
 
               <!-- Plot Details List -->
               <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
                 <h5 class="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <i class="fas fa-map-marked-alt text-emerald-700"></i> รายชื่อแปลงปลูกสมุนไพรในสังกัด (${mPlots.length})
+                  <i class="fas fa-map-marked-alt text-emerald-700"></i> ชื่อแปลงที่ปลูก (${mPlots.length})
                 </h5>
                 
                 ${mPlots.length === 0 
                   ? `<p class="text-sm text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
                   : `
                     <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
-                      ${mPlots.map(p => `
+                      ${mPlots.map(p => {
+                        const activeCrop = mCrops.find(c => c.plotId === p.id);
+                        const herbBadge = p.plantType || (activeCrop ? (activeCrop.seedlingSource || activeCrop.produceName || 'เก๊กฮวย') : 'พร้อมปลูก');
+                        return `
                         <div class="py-2.5 flex justify-between items-center text-sm">
                           <div>
                             <span class="font-bold text-gray-800">${p.name}</span>
                             <span class="text-gray-400 text-sm block mt-0.5">รหัสแปลง: ${p.id}</span>
                           </div>
                           <div class="text-right">
-                            <span class="px-2 py-0.5 text-sm font-bold rounded-full ${
-                              p.plantType === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 text-blue-800 border border-blue-200'
-                            }">${p.plantType}</span>
+                            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                              herbBadge === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 
+                              herbBadge === 'คาโมมายล์' ? 'bg-blue-50 text-blue-800 border border-blue-200' : 
+                              herbBadge === 'พร้อมปลูก' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                              'bg-gray-100 text-gray-700 border border-gray-200'
+                            }">${herbBadge}</span>
                             <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
                           </div>
                         </div>
-                      `).join('')}
+                      `;}).join('')}
                     </div>
                   `
                 }
+              </div>
+
+              <!-- Planting History Section (ประวัติการปลูกที่เคยเก็บเกี่ยวแล้ว) -->
+              <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
+                <div class="flex items-center justify-between">
+                  <h5 class="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fas fa-history text-emerald-700"></i> ประวัติการปลูกที่เคยเก็บเกี่ยวแล้ว (${harvestedCrops.length})
+                  </h5>
+                  ${harvestedCrops.length > 0 ? `
+                    <span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                      รวม ${totalFreshYield.toLocaleString()} กก.
+                    </span>
+                  ` : ''}
+                </div>
+
+                ${harvestedCrops.length === 0 ? `
+                  <div class="py-5 text-center text-gray-400 space-y-1">
+                    <i class="fas fa-seedling text-2xl text-gray-300 block mb-1"></i>
+                    <p class="text-sm font-medium">ยังไม่มีประวัติรอบการปลูกที่เคยเก็บเกี่ยวแล้ว</p>
+                    ${mCrops.length > 0 ? `<p class="text-xs text-emerald-700 font-medium">ปัจจุบันมีรอบที่อยู่ระหว่างการปลูก ${mCrops.length} แปลง</p>` : ''}
+                  </div>
+                ` : `
+                  <div class="divide-y divide-gray-100 max-h-56 overflow-y-auto pr-1 space-y-1">
+                    ${harvestedCrops.map(crop => {
+                      const plot = mPlots.find(p => p.id === crop.plotId) || appState.getPlotById(crop.plotId);
+                      const plotName = plot ? plot.name : crop.plotId;
+                      const cleanCropId = formatCropSeasonId(crop.id, crop.cropYear, crop.cropCycle);
+                      const cropTotalCost = (crop.cost || 0) + ((crop.fertilizingLog || []).reduce((fSum, f) => fSum + (f.cost || 0), 0));
+                      const cropSales = mSales.filter(s => s.cropId === crop.id);
+                      const cropRevenue = cropSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+                      const yieldKg = parseFloat(crop.yield) || 0;
+
+                      return `
+                        <div class="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm hover:bg-gray-50/70 p-2 rounded-xl transition-colors">
+                          <div class="space-y-0.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="font-bold text-emerald-950 font-mono">${cleanCropId}</span>
+                              <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-sky-100 text-sky-900 border border-sky-200">
+                                เก็บเกี่ยวแล้ว
+                              </span>
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                                🌿 ${crop.seedlingSource || crop.produceName || 'เก๊กฮวย'}
+                              </span>
+                            </div>
+                            <div class="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
+                              <span>แปลง: <b class="text-gray-800">${plotName}</b></span>
+                              <span class="text-gray-300">•</span>
+                              <span>ลงกล้า: <b class="text-gray-800">${formatThaiDate(crop.plantDate)}</b></span>
+                              ${(crop.harvestDateActual || crop.harvestDateEst) ? `
+                                <span class="text-gray-300">•</span>
+                                <span>เก็บเกี่ยว: <b class="text-gray-800">${formatThaiDate(crop.harvestDateActual || crop.harvestDateEst)}</b></span>
+                              ` : ''}
+                            </div>
+                          </div>
+
+                          <div class="text-left sm:text-right shrink-0">
+                            <div class="text-xs font-bold text-amber-900">
+                              ⚖️ ดอกสด: <b class="text-sm font-extrabold text-amber-800">${yieldKg.toLocaleString()}</b> กก.
+                            </div>
+                            <div class="text-[11px] text-gray-500 mt-0.5 flex sm:justify-end items-center gap-1.5 flex-wrap">
+                              <span>ต้นทุน: <b>${cropTotalCost.toLocaleString()}</b> บ.</span>
+                              <span class="text-gray-300">•</span>
+                              <span>รายได้: <b class="text-emerald-700">${cropRevenue.toLocaleString()}</b> บ.</span>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `}
               </div>
             </div>
             
@@ -693,11 +769,13 @@ export const MembersComponent = {
     const quickBtn = document.getElementById('quick-mock-member-btn');
     if (quickBtn) {
       quickBtn.addEventListener('click', () => {
+        const mockPrefixes = ['นาย', 'นาง', 'นางสาว'];
         const mockFirstNames = ['ทองดี', 'สมคิด', 'ประสิทธิ์', 'กิตติ', 'อรทัย', 'ดวงใจ', 'สุวรรณ', 'ชลธิชา', 'ธีรพล', 'จิราภรณ์'];
         const mockLastNames = ['รักดี', 'เกษตรไพร', 'ศรีสมุนไพร', 'ทองมี', 'พึ่งตน', 'มั่นคง', 'ยอดเกษตร', 'สมบูรณ์', 'ดินดี', 'สุขใจ'];
         const mockRoles = ['สมาชิกทั่วไป', 'สมาชิกทั่วไป', 'สมาชิกทั่วไป', 'กรรมการ'];
         
-        const randomName = `${mockFirstNames[Math.floor(Math.random() * mockFirstNames.length)]} ${mockLastNames[Math.floor(Math.random() * mockLastNames.length)]}`;
+        const randomPrefix = mockPrefixes[Math.floor(Math.random() * mockPrefixes.length)];
+        const randomName = `${randomPrefix}${mockFirstNames[Math.floor(Math.random() * mockFirstNames.length)]} ${mockLastNames[Math.floor(Math.random() * mockLastNames.length)]}`;
         const randomRole = mockRoles[Math.floor(Math.random() * mockRoles.length)];
         const randomPhone = `08${Math.floor(Math.random() * 9) + 1}-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`;
         const ent = appState.getEnterprise ? (appState.getEnterprise() || {}) : {};

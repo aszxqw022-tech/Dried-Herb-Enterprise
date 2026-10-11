@@ -1,6 +1,6 @@
 // Crops Component - Planting Workflow Matrix Table & Mobile Responsive Cards
 import { appState } from '../state.js';
-import { formatThaiDate, formatBaht, formatThaiArea, showToast, openGlobalModal, closeGlobalModal, formatCropSeasonId } from '../helpers.js';
+import { formatThaiDate, formatBaht, formatThaiArea, showToast, openGlobalModal, closeGlobalModal, formatCropSeasonId, formatThaiNameWithoutPrefix } from '../helpers.js';
 
 export const CropsComponent = {
   selectedYear: new Date().getFullYear() + 543, // Default to current BE year (e.g. 2569)
@@ -30,14 +30,13 @@ export const CropsComponent = {
     if (!herbList.includes('เก๊กฮวย')) herbList.unshift('เก๊กฮวย');
     if (!herbList.includes('คาโมมายล์')) herbList.splice(1, 0, 'คาโมมายล์');
 
-    if (!herbList.includes(this.selectedHerb) && herbList.length > 0) {
+    if (this.selectedHerb !== 'ทั้งหมด' && !herbList.includes(this.selectedHerb) && herbList.length > 0) {
       this.selectedHerb = herbList[0];
     }
-    const currentRoadmap = appState.getRoadmapByHerb(this.selectedHerb) || {
-      name: this.selectedHerb,
-      durationDays: 90,
-      steps: []
-    };
+    const isAllHerbs = this.selectedHerb === 'ทั้งหมด';
+    const currentRoadmap = isAllHerbs
+      ? (appState.getRoadmapByHerb('เก๊กฮวย') || { name: 'ทั้งหมด', durationDays: 90, steps: [] })
+      : (appState.getRoadmapByHerb(this.selectedHerb) || { name: this.selectedHerb, durationDays: 90, steps: [] });
     const roadmapSteps = currentRoadmap.steps || [];
 
     // 2. Fetch plots and members
@@ -68,28 +67,36 @@ export const CropsComponent = {
       return matchYear && matchCycle;
     });
 
-    // Match crops for the selected Year, Cycle, and Herb
+    // Match crops for the selected Year, Cycle, and Herb (or all herbs if 'ทั้งหมด')
     const activeMatrixCrops = allCropsThisPeriod.filter(c => {
+      if (isAllHerbs) return true;
       return (c.seedlingSource || 'เก๊กฮวย') === this.selectedHerb;
     });
 
-    // Summary statistics (1 plot = at most 1 planting per cycle)
-    const totalPlotsCount = plots.length;
+    // กรองแปลงที่ปลูกพืชอื่นอยู่ในรอบนี้ออก ไม่ต้องแสดง ("ถ้าปลูกพืชอื่นอยู่ไม่ต้องโชว์" ยกเว้นกรณีเลือก "ทั้งหมด")
+    const displayPlots = filteredPlots.filter(p => {
+      if (isAllHerbs) return true;
+      const otherCrop = allCropsThisPeriod.find(c => c.plotId === p.id);
+      if (otherCrop && (otherCrop.seedlingSource || 'เก๊กฮวย') !== this.selectedHerb) {
+        return false;
+      }
+      return true;
+    });
+
+    // Summary statistics (1 plot = at most 1 planting per cycle) เฉพาะแปลงในมุมมองพืชนี้
+    const totalPlotsCount = displayPlots.length;
     let plantedPlotsCount = 0;
     let harvestingPlotsCount = 0;
     let notStartedPlotsCount = 0;
 
-    plots.forEach(p => {
+    displayPlots.forEach(p => {
       const crop = activeMatrixCrops.find(c => c.plotId === p.id);
-      const otherCrop = allCropsThisPeriod.find(c => c.plotId === p.id);
       if (crop) {
         if (crop.status === 'harvested') {
           harvestingPlotsCount++;
         } else {
           plantedPlotsCount++;
         }
-      } else if (otherCrop) {
-        plantedPlotsCount++;
       } else {
         notStartedPlotsCount++;
       }
@@ -151,6 +158,7 @@ export const CropsComponent = {
                 <i class="fas fa-leaf text-emerald-600 mr-1"></i> 3. ชนิดพืชสมุนไพร *
               </label>
               <select id="filter-crop-herb" class="w-full sm:w-44 px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-900 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer">
+                <option value="ทั้งหมด" ${this.selectedHerb === 'ทั้งหมด' ? 'selected' : ''}>ทั้งหมด</option>
                 ${herbList.map(h => `
                   <option value="${h}" ${this.selectedHerb === h ? 'selected' : ''}>${h}</option>
                 `).join('')}
@@ -218,7 +226,7 @@ export const CropsComponent = {
 
           <!-- List of Mobile Plot Cards -->
           <div class="space-y-4">
-            ${this.renderMobileCards(filteredPlots, activeMatrixCrops, members, roadmapSteps, allCropsThisPeriod)}
+            ${this.renderMobileCards(displayPlots, activeMatrixCrops, members, roadmapSteps, allCropsThisPeriod)}
           </div>
         </div>
 
@@ -231,7 +239,7 @@ export const CropsComponent = {
               <div>
                 <h3 class="text-base font-bold text-emerald-950 flex items-center gap-2">
                   <i class="fas fa-table-list text-emerald-700"></i>
-                  <span>ตารางภาพรวมการปลูก: ${this.selectedHerb} (พ.ศ. ${this.selectedYear} รอบที่ ${this.selectedCycle})</span>
+                  <span>ตารางภาพรวมการปลูก: ${this.selectedHerb === 'ทั้งหมด' ? 'ทั้งหมด (ทุกชนิดสมุนไพร)' : this.selectedHerb} (พ.ศ. ${this.selectedYear} รอบที่ ${this.selectedCycle})</span>
                 </h3>
                 <p class="text-sm text-gray-500 mt-0.5">
                   แสดงรายการแปลงปลูก แถบความคืบหน้า และปุ่มบันทึกขั้นตอนถัดไปในคลิกเดียว
@@ -258,19 +266,18 @@ export const CropsComponent = {
 
             <!-- Clean Table Body -->
             <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse min-w-[980px]">
+              <table class="w-full text-left border-collapse min-w-[860px]">
                 <thead>
                   <tr class="bg-gray-50/90 border-b border-gray-200 text-gray-700 text-sm font-bold">
                     <th class="py-3.5 px-4 min-w-[340px]">รหัสการปลูก / แปลง</th>
                     <th class="py-3.5 px-4 min-w-[140px]">พืชที่ปลูก</th>
                     <th class="py-3.5 px-4 min-w-[200px]">ความคืบหน้า (${roadmapSteps.length} ขั้นตอน)</th>
                     <th class="py-3.5 px-4 min-w-[200px]">ขั้นตอนถัดไป / ผลผลิตที่เก็บเกี่ยว</th>
-                    <th class="py-3.5 px-4 min-w-[190px]">วันที่ทำจริง / ปรับปรุงแก้ไข</th>
                     <th class="py-3.5 px-4 min-w-[170px] text-center">จัดการ / บันทึกขั้นตอน</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  ${this.renderCleanTableRows(filteredPlots, activeMatrixCrops, members, roadmapSteps, allCropsThisPeriod)}
+                  ${this.renderCleanTableRows(displayPlots, activeMatrixCrops, members, roadmapSteps, allCropsThisPeriod)}
                 </tbody>
               </table>
             </div>
@@ -356,7 +363,7 @@ export const CropsComponent = {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  ${this.renderMatrixRows(filteredPlots, activeMatrixCrops, members, roadmapSteps, allCropsThisPeriod)}
+                  ${this.renderMatrixRows(displayPlots, activeMatrixCrops, members, roadmapSteps, allCropsThisPeriod)}
                 </tbody>
               </table>
             </div>
@@ -371,7 +378,15 @@ export const CropsComponent = {
   // Render Mobile Cards View (สำหรับหน้าจอโทรศัพท์)
   // -------------------------------------------------------------
   renderMobileCards(plots, activeCrops, members, roadmapSteps, allCropsThisPeriod = []) {
-    if (plots.length === 0) {
+    // กรองแปลงที่ปลูกพืชอื่นออก ไม่ต้องโชว์ (ยกเว้นกรณีเลือก "ทั้งหมด")
+    const isAllHerbs = this.selectedHerb === 'ทั้งหมด';
+    const visiblePlots = plots.filter(plot => {
+      if (isAllHerbs) return true;
+      const otherCrop = allCropsThisPeriod.find(c => c.plotId === plot.id);
+      return !(otherCrop && (otherCrop.seedlingSource || 'เก๊กฮวย') !== this.selectedHerb);
+    });
+
+    if (visiblePlots.length === 0) {
       return `
         <div class="p-8 text-center bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-500">
           <i class="fas fa-search text-3xl text-gray-300 mb-2 block"></i>
@@ -380,9 +395,9 @@ export const CropsComponent = {
       `;
     }
 
-    return plots.map(plot => {
+    return visiblePlots.map(plot => {
       const owner = members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id);
-      const ownerName = owner ? owner.name : 'ไม่พบชื่อเจ้าของ';
+      const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : 'ไม่พบชื่อเจ้าของ';
       const areaFormatted = formatThaiArea(plot.sizeRai, plot.sizeNgan, plot.sizeSqWah);
       const crop = activeCrops.find(c => c.plotId === plot.id);
       const otherHerbCrop = !crop ? allCropsThisPeriod.find(c => c.plotId === plot.id) : null;
@@ -577,10 +592,18 @@ export const CropsComponent = {
   // Render Rows for Clean Standard Table (ตารางสรุปดูง่าย มาตรฐาน)
   // -------------------------------------------------------------
   renderCleanTableRows(plots, activeCrops, members, roadmapSteps, allCropsThisPeriod = []) {
-    if (plots.length === 0) {
+    // กรองแปลงที่ปลูกพืชอื่นออก ไม่ต้องโชว์ (ยกเว้นกรณีเลือก "ทั้งหมด")
+    const isAllHerbs = this.selectedHerb === 'ทั้งหมด';
+    const visiblePlots = plots.filter(plot => {
+      if (isAllHerbs) return true;
+      const otherCrop = allCropsThisPeriod.find(c => c.plotId === plot.id);
+      return !(otherCrop && (otherCrop.seedlingSource || 'เก๊กฮวย') !== this.selectedHerb);
+    });
+
+    if (visiblePlots.length === 0) {
       return `
         <tr>
-          <td colspan="6" class="py-12 px-6 text-center text-gray-500 font-medium bg-gray-50/50">
+          <td colspan="5" class="py-12 px-6 text-center text-gray-500 font-medium bg-gray-50/50">
             <i class="fas fa-search text-3xl text-gray-300 mb-2 block"></i>
             ไม่พบข้อมูลแปลงปลูกตามเงื่อนไขที่ระบุ
           </td>
@@ -588,9 +611,9 @@ export const CropsComponent = {
       `;
     }
 
-    return plots.map(plot => {
+    return visiblePlots.map(plot => {
       const owner = members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id);
-      const ownerName = owner ? owner.name : 'ไม่พบชื่อเจ้าของ';
+      const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : 'ไม่พบชื่อเจ้าของ';
       const areaFormatted = formatThaiArea(plot.sizeRai, plot.sizeNgan, plot.sizeSqWah);
 
       const crop = activeCrops.find(c => c.plotId === plot.id);
@@ -688,7 +711,7 @@ export const CropsComponent = {
             ` : `
               <div class="space-y-0.5">
                 <span class="text-sm text-gray-400 font-medium block">รอเริ่มรอบปลูก</span>
-                <span class="text-sm text-emerald-700 font-semibold">${this.selectedHerb}</span>
+                <span class="text-sm text-emerald-700 font-semibold">${this.selectedHerb === 'ทั้งหมด' ? (plot.plantType || 'พร้อมปลูก') : this.selectedHerb}</span>
               </div>
             `)}
           </td>
@@ -782,34 +805,7 @@ export const CropsComponent = {
             `)}
           </td>
 
-          <!-- Column 5: วันที่ทำจริงล่าสุด / สิ่งที่ปรับปรุงแก้ไข -->
-          <td class="py-3.5 px-4 align-middle min-w-[190px]">
-            ${crop ? `
-              <div class="space-y-0.5">
-                <div class="text-sm text-gray-800 font-bold flex items-center gap-1">
-                  <i class="far fa-calendar-check text-emerald-600 text-sm"></i>
-                  <span>${lastActionDate ? formatThaiDate(lastActionDate) : '-'}</span>
-                </div>
-                ${crop.rescheduleHistory && crop.rescheduleHistory.length > 0 ? `
-                  <div class="inline-flex items-center gap-1 text-sm font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-0.5 truncate max-w-[190px]" title="เลื่อนกำหนดการล่าสุด: ${crop.rescheduleHistory[crop.rescheduleHistory.length - 1].reason}">
-                    <i class="fas fa-calendar-alt text-amber-600 text-sm"></i>
-                    <span>เลื่อนวัน: ${crop.rescheduleHistory[crop.rescheduleHistory.length - 1].reason}</span>
-                  </div>
-                ` : ''}
-                ${lastCorrection ? `
-                  <div class="text-sm text-gray-600 truncate max-w-[180px] bg-gray-50 px-2 py-0.5 rounded border border-gray-100" title="${lastCorrection}">
-                    ${lastCorrection}
-                  </div>
-                ` : `
-                  <span class="text-sm text-gray-400">ไม่มีบันทึกแก้ไข</span>
-                `}
-              </div>
-            ` : `
-              <span class="text-sm text-gray-300">-</span>
-            `}
-          </td>
-
-          <!-- Column 6: จัดการ / บันทึก (Action) -->
+          <!-- Column 5: จัดการ / บันทึก (Action) -->
           <td class="py-3.5 px-4 align-middle text-center min-w-[170px]">
             ${crop ? `
               <div class="flex items-center justify-center gap-1.5">
@@ -858,7 +854,15 @@ export const CropsComponent = {
   // Render Rows for Matrix Table (Desktop / Tablet)
   // -------------------------------------------------------------
   renderMatrixRows(plots, activeCrops, members, roadmapSteps, allCropsThisPeriod = []) {
-    if (plots.length === 0) {
+    // กรองแปลงที่ปลูกพืชอื่นออก ไม่ต้องโชว์ (ยกเว้นกรณีเลือก "ทั้งหมด")
+    const isAllHerbs = this.selectedHerb === 'ทั้งหมด';
+    const visiblePlots = plots.filter(plot => {
+      if (isAllHerbs) return true;
+      const otherCrop = allCropsThisPeriod.find(c => c.plotId === plot.id);
+      return !(otherCrop && (otherCrop.seedlingSource || 'เก๊กฮวย') !== this.selectedHerb);
+    });
+
+    if (visiblePlots.length === 0) {
       const colSpan = (roadmapSteps.length || 4) + 2;
       return `
         <tr>
@@ -870,10 +874,10 @@ export const CropsComponent = {
       `;
     }
 
-    return plots.map(plot => {
+    return visiblePlots.map(plot => {
       // Find owner of this plot
       const owner = members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id);
-      const ownerName = owner ? owner.name : 'ไม่พบชื่อเจ้าของ';
+      const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : 'ไม่พบชื่อเจ้าของ';
       const areaFormatted = formatThaiArea(plot.sizeRai, plot.sizeNgan, plot.sizeSqWah);
 
       // Match crop for this plot
@@ -1276,8 +1280,11 @@ export const CropsComponent = {
     const todayStr = today.toISOString().split('T')[0];
 
     // Current herb roadmap steps
-    const currentRoadmap = appState.getRoadmapByHerb(this.selectedHerb) || {
-      name: this.selectedHerb,
+    const effectiveHerb = this.selectedHerb === 'ทั้งหมด' 
+      ? (preSelectedPlotId ? (appState.getPlotById(preSelectedPlotId)?.plantType || 'เก๊กฮวย') : 'เก๊กฮวย')
+      : this.selectedHerb;
+    const currentRoadmap = appState.getRoadmapByHerb(effectiveHerb) || {
+      name: effectiveHerb,
       durationDays: 90,
       steps: []
     };
@@ -1350,7 +1357,7 @@ export const CropsComponent = {
     // Plots Selection Checkbox List with Horizontal Table-like Rows and Coordinates
     const plotsCheckboxesHtml = plots.map(p => {
       const owner = members.find(m => (p.memberIds && p.memberIds.includes(m.id)) || p.memberId === m.id);
-      const ownerName = owner ? owner.name : 'ไม่พบเจ้าของ';
+      const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : 'ไม่พบเจ้าของ';
       const existingCrop = existingCropsThisPeriod.find(c => c.plotId === p.id);
       const isAlreadyPlanted = !!existingCrop;
       const isPreSelected = preSelectedPlotId && preSelectedPlotId === p.id;
@@ -1380,7 +1387,7 @@ export const CropsComponent = {
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-2 sm:gap-x-4 gap-y-1 flex-1 items-center">
                 <!-- Col 1: Code & Status -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">รหัสแปลง</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">รหัสแปลง</div>
                   <div class="flex items-center gap-1.5 mt-0.5">
                     <span class="font-extrabold text-emerald-950 font-mono text-sm sm:text-base leading-none">${p.id}</span>
                     ${isAlreadyPlanted ? `
@@ -1397,19 +1404,19 @@ export const CropsComponent = {
 
                 <!-- Col 2: Name -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ชื่อแปลง</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ชื่อแปลง</div>
                   <div class="font-bold text-gray-900 text-xs sm:text-sm truncate mt-0.5 leading-tight" title="${p.name}">${p.name}</div>
                 </div>
 
                 <!-- Col 3: Owner -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">เจ้าของแปลง</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">เจ้าของแปลง</div>
                   <div class="font-semibold text-gray-800 text-xs sm:text-sm truncate mt-0.5 leading-tight" title="${ownerName}">${ownerName}</div>
                 </div>
 
                 <!-- Col 4: Area -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่</div>
                   <div class="font-bold text-emerald-900 text-xs sm:text-sm mt-0.5 leading-tight">${formatThaiArea(p.sizeRai, p.sizeNgan, p.sizeSqWah)}</div>
                 </div>
               </div>
@@ -1419,7 +1426,7 @@ export const CropsComponent = {
             ${!isAlreadyPlanted ? `
               <div class="plot-inputs-wrapper flex items-center gap-2 bg-gray-50/90 px-2.5 py-1.5 rounded-lg border border-gray-200 shrink-0 cursor-default ${isChecked ? '' : 'opacity-50'}">
                 <div class="w-24 sm:w-28">
-                  <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
+                  <label class="sm:hidden block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
                     🌱 ต้นกล้า:
                   </label>
                   <div class="relative">
@@ -1434,7 +1441,7 @@ export const CropsComponent = {
                   </div>
                 </div>
                 <div class="w-28 sm:w-32">
-                  <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
+                  <label class="sm:hidden block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap" title="คำนวณจาก จำนวนต้นกล้า x ราคาต่อต้นกล้า">
                     💵 ค่าใช้จ่าย:
                   </label>
                   <div class="relative">
@@ -1444,7 +1451,10 @@ export const CropsComponent = {
                       data-base-sqwah="${totalSqWah}"
                       min="0" 
                       value="${initialCost}" 
-                      class="plot-cost-input w-full px-2 py-1 pr-7 rounded-md border border-gray-300 text-xs font-bold text-emerald-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white cursor-text">
+                      readonly
+                      tabindex="-1"
+                      title="ค่าใช้จ่ายคำนวณอัตโนมัติจาก (จำนวนต้นกล้า x ราคาต้นกล้า) หากต้องการปรับเปลี่ยนให้แก้ไขที่ช่องราคาต้นกล้าด้านบน"
+                      class="plot-cost-input w-full px-2 py-1 pr-7 rounded-md border border-gray-200 text-xs font-bold text-emerald-800 bg-gray-100 cursor-not-allowed select-none focus:outline-none focus:ring-0">
                     <span class="absolute right-1.5 top-1 text-[10px] text-gray-400 font-medium pointer-events-none">บาท</span>
                   </div>
                 </div>
@@ -1460,36 +1470,49 @@ export const CropsComponent = {
       <form id="step1-planting-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-4 sm:p-5 md:p-6 overflow-y-auto flex-1 space-y-3.5 sm:space-y-4">
           
-          <!-- Date Input -->
-          <div class="max-w-xs">
-            <label for="step1-plant-date" class="block text-sm font-bold text-gray-700 uppercase mb-1">
-              วันที่ลงต้นกล้า (ขั้นตอนที่ 1) *
-            </label>
-            <input type="date" id="step1-plant-date" name="plantDate" required value="${todayStr}"
-              class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            <span class="text-xs text-gray-400 mt-0.5 block">* สามารถเลือกวันที่ย้อนหลังได้</span>
+          <!-- Date Input & Seedling Price (Adjusted to fit content) -->
+          <div class="flex items-start gap-5 sm:gap-7 flex-wrap">
+            <!-- Date Input -->
+            <div class="w-48 sm:w-52">
+              <label for="step1-plant-date" class="block text-sm font-bold text-gray-700 uppercase mb-1 whitespace-nowrap">
+                วันที่ลงต้นกล้า (ขั้นตอนที่ 1) *
+              </label>
+              <input type="date" id="step1-plant-date" name="plantDate" required value="${todayStr}"
+                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <span class="text-xs text-gray-400 mt-0.5 block">* สามารถเลือกวันที่ย้อนหลังได้</span>
+            </div>
+
+            <!-- Seedling Price Input (ราคาต่อต้นกล้า) -->
+            <div class="w-44 sm:w-48">
+              <label for="step1-seedling-price" class="block text-sm font-bold text-gray-700 uppercase mb-1 whitespace-nowrap flex items-center gap-1.5">
+                <i class="fas fa-tag text-emerald-600"></i> ราคาต่อต้นกล้า *
+              </label>
+              <div class="relative">
+                <input type="number" id="step1-seedling-price" name="seedlingPrice" min="0" step="any" value="0" placeholder="0"
+                  class="w-full px-3.5 py-1.5 sm:py-2 pr-14 rounded-xl border border-gray-200 text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
+                <span class="absolute right-3 top-1.5 sm:top-2 text-xs font-bold text-gray-400 pointer-events-none">บาท/ต้น</span>
+              </div>
+            </div>
           </div>
 
           <!-- เลือกแปลงที่จะปลูก (Batch Processing with Checkboxes) -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between flex-wrap gap-2.5">
-              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <label class="text-xs sm:text-sm font-bold text-gray-700 uppercase whitespace-nowrap flex items-center gap-1.5">
-                  <i class="fas fa-check-double text-emerald-600"></i> เลือกแปลงและต้นกล้า *
-                </label>
-                <div class="flex items-center gap-1.5 text-xs font-bold bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200/70">
-                  <button type="button" id="select-all-plots-btn" class="text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer">
-                    เลือกทั้งหมด
-                  </button>
-                  <span class="text-gray-300">|</span>
-                  <button type="button" id="deselect-all-plots-btn" class="text-red-500 hover:text-red-700 hover:underline cursor-pointer">
-                    ยกเลิกทั้งหมด
-                  </button>
-                </div>
+            <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+              <label class="text-xs sm:text-sm font-bold text-gray-700 uppercase whitespace-nowrap flex items-center gap-1.5">
+                <i class="fas fa-check-double text-emerald-600"></i> เลือกแปลงและต้นกล้า *
+              </label>
+              <div class="flex items-center gap-1.5 text-xs font-bold bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200/70">
+                <button type="button" id="select-all-plots-btn" class="text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer">
+                  เลือกทั้งหมด
+                </button>
+                <span class="text-gray-300">|</span>
+                <button type="button" id="deselect-all-plots-btn" class="text-red-500 hover:text-red-700 hover:underline cursor-pointer">
+                  ยกเลิกทั้งหมด
+                </button>
               </div>
 
-              <!-- Search & Filter Bar -->
-              <div class="relative flex-1 sm:max-w-xs min-w-[170px]">
+              <!-- Search & Filter Bar (Placed closely next to Select All / Deselect All) -->
+              <div class="relative w-56 sm:w-64 min-w-[170px]">
                 <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
                   <i class="fas fa-search text-xs"></i>
                 </span>
@@ -1498,16 +1521,37 @@ export const CropsComponent = {
               </div>
             </div>
 
-            <!-- Summary Bar -->
-            <div id="plots-selection-summary-bar" class="flex items-center justify-between px-3.5 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900">
-              <span class="flex items-center gap-1.5"><i class="fas fa-layer-group text-emerald-600"></i> เลือก: <b id="summary-selected-count" class="text-emerald-800 text-sm">0</b> แปลง</span>
-              <span class="flex items-center gap-1.5"><i class="fas fa-seedling text-emerald-600"></i> ต้นกล้ารวม: <b id="summary-total-seedlings" class="text-emerald-800 text-sm">0</b> ต้น</span>
-              <span class="flex items-center gap-1.5"><i class="fas fa-coins text-emerald-600"></i> ค่าใช้จ่ายรวม: <b id="summary-total-cost" class="text-emerald-800 text-sm">0</b> บาท</span>
+            <!-- Table Header Bar (หัวตาราง) -->
+            <div class="hidden sm:block px-3.5 sm:px-4 py-2 bg-gray-100/90 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 shadow-2xs">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-3">
+                <div class="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
+                  <div class="w-5 sm:w-6 shrink-0 text-center text-gray-400">
+                    <i class="fas fa-check"></i>
+                  </div>
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-2 sm:gap-x-4 flex-1 items-center">
+                    <div>รหัสแปลง</div>
+                    <div>ชื่อแปลง</div>
+                    <div>เจ้าของแปลง</div>
+                    <div>ขนาดพื้นที่</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 px-2.5">
+                  <div class="w-24 sm:w-28 text-center text-emerald-800">🌱 ต้นกล้า</div>
+                  <div class="w-28 sm:w-32 text-center text-emerald-800">💵 ค่าใช้จ่าย</div>
+                </div>
+              </div>
             </div>
 
             <!-- Plot rows list (Long horizontal rows) -->
             <div id="step1-plots-list-container" class="flex flex-col gap-1.5 max-h-[380px] sm:max-h-[460px] overflow-y-auto p-1.5 border border-gray-200 rounded-xl bg-gray-50/50">
               ${plotsCheckboxesHtml}
+            </div>
+
+            <!-- Summary Bar (ย้ายมาไว้ข้างล่างตาราง) -->
+            <div id="plots-selection-summary-bar" class="flex items-center justify-between px-3.5 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900 shadow-2xs">
+              <span class="flex items-center gap-1.5"><i class="fas fa-layer-group text-emerald-600"></i> เลือก: <b id="summary-selected-count" class="text-emerald-800 text-sm">0</b> แปลง</span>
+              <span class="flex items-center gap-1.5"><i class="fas fa-seedling text-emerald-600"></i> ต้นกล้ารวม: <b id="summary-total-seedlings" class="text-emerald-800 text-sm">0</b> ต้น</span>
+              <span class="flex items-center gap-1.5"><i class="fas fa-coins text-emerald-600"></i> ค่าใช้จ่ายรวม: <b id="summary-total-cost" class="text-emerald-800 text-sm">0</b> บาท</span>
             </div>
           </div>
 
@@ -1641,9 +1685,53 @@ export const CropsComponent = {
           }
         });
 
-        // Listen for individual plot inputs change
-        dialog.querySelectorAll('.plot-seedling-input, .plot-cost-input').forEach(inp => {
-          inp.addEventListener('input', updateSummary);
+        // Auto-calculate cost based on Seedling Price (ราคาต้นกล้า)
+        const seedlingPriceInput = dialog.querySelector('#step1-seedling-price');
+        
+        // Function to recalculate cost for all plot cards based on unit price and seedling count
+        const recalcAllPlotCosts = () => {
+          const unitPrice = parseFloat(seedlingPriceInput ? seedlingPriceInput.value : 0) || 0;
+          dialog.querySelectorAll('.plot-item-card').forEach(card => {
+            const sInput = card.querySelector('.plot-seedling-input');
+            const cInput = card.querySelector('.plot-cost-input');
+            if (sInput && cInput) {
+              const count = parseInt(sInput.value) || 0;
+              const calcCost = Math.round((count * unitPrice) * 100) / 100;
+              cInput.value = calcCost;
+            }
+          });
+          updateSummary();
+        };
+
+        if (seedlingPriceInput) {
+          seedlingPriceInput.addEventListener('input', recalcAllPlotCosts);
+        }
+
+        // Auto-calculate cost when individual plot seedling count changes
+        dialog.querySelectorAll('.plot-seedling-input').forEach(sInput => {
+          sInput.addEventListener('input', () => {
+            const card = sInput.closest('.plot-item-card');
+            const cInput = card ? card.querySelector('.plot-cost-input') : null;
+            if (cInput) {
+              const unitPrice = parseFloat(seedlingPriceInput ? seedlingPriceInput.value : 0) || 0;
+              const count = parseInt(sInput.value) || 0;
+              const calcCost = Math.round((count * unitPrice) * 100) / 100;
+              cInput.value = calcCost;
+            }
+            updateSummary();
+          });
+        });
+
+        // Click on readonly cost input notifies user to change seedling price
+        dialog.querySelectorAll('.plot-cost-input').forEach(cInput => {
+          cInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (seedlingPriceInput) {
+              seedlingPriceInput.focus();
+              seedlingPriceInput.select();
+            }
+            showToast('ค่าใช้จ่ายคำนวณอัตโนมัติ (จำนวนต้นกล้า x ราคาต่อต้นกล้า) หากต้องการแก้ไขให้ปรับที่ช่อง "ราคาต่อต้นกล้า"', 'info');
+          });
         });
 
         // Calculate proportional by area button
@@ -1778,16 +1866,21 @@ export const CropsComponent = {
                 const plotSeedlingCount = seedlingInput && !isNaN(parseInt(seedlingInput.value)) ? parseInt(seedlingInput.value) : 0;
                 const plotCost = costInput && !isNaN(parseFloat(costInput.value)) ? parseFloat(costInput.value) : 0;
 
+                const plotObj = plots.find(p => p.id === plotId);
+                const plotHerb = (plotObj && plotObj.plantType) || 'เก๊กฮวย';
+                const cropHerb = this.selectedHerb === 'ทั้งหมด' ? plotHerb : this.selectedHerb;
+
                 // Create new crop season (strictly 1 round = 1 plot)
                 appState.addCrop({
                   plotId: plotId,
                   cropYear: this.selectedYear,
                   cropCycle: this.selectedCycle,
-                  seedlingSource: this.selectedHerb,
+                  seedlingSource: cropHerb,
                   plantDate: plantDateStr,
                   harvestDateEst: harvestDateEstStr,
                   fertDateEst: step2DateStr,
                   seedlingCount: plotSeedlingCount,
+                  seedlingPrice: parseFloat(formData.get('seedlingPrice')) || 0,
                   cost: plotCost,
                   status: 'growing',
                   note: note,
@@ -1851,7 +1944,7 @@ export const CropsComponent = {
             eligibleList.push({
               plot: p,
               crop: crop,
-              ownerName: owner ? owner.name : '-',
+              ownerName: owner ? formatThaiNameWithoutPrefix(owner.name) : '-',
               targetDate: stepInfo.targetDate || todayStr
             });
           }
@@ -1895,9 +1988,9 @@ export const CropsComponent = {
 
     const eligibleCheckboxesHtml = eligibleList.map(item => {
       const totalSqWah = (parseFloat(item.plot.sizeRai || 0) * 400) + (parseFloat(item.plot.sizeNgan || 0) * 100) + parseFloat(item.plot.sizeSqWah || 0);
-      const initAmountNum = totalSqWah > 0 ? Math.max(5, Math.round((totalSqWah / 400) * 25)) : 25;
-      const initCost = totalSqWah > 0 ? Math.max(100, Math.round((totalSqWah / 400) * 300)) : 300;
-      const initYield = totalSqWah > 0 ? (Math.round((totalSqWah / 400) * 120 * 10) / 10).toFixed(1) : '100.0';
+      const initAmountNum = 0;
+      const initCost = 0;
+      const initYield = 0;
       const produceNameDefault = item.crop.produceName || (item.crop.seedlingSource ? (item.crop.seedlingSource.includes('ชา') ? `ใบ${item.crop.seedlingSource}สด` : `ดอก${item.crop.seedlingSource}สด`) : (this.selectedHerb.includes('ชา') ? `ใบ${this.selectedHerb}สด` : `ดอก${this.selectedHerb}สด`));
 
       const coordsStr = (item.plot.lat && item.plot.lng) ? `${parseFloat(item.plot.lat).toFixed(4)}, ${parseFloat(item.plot.lng).toFixed(4)}` : '-';
@@ -1914,13 +2007,13 @@ export const CropsComponent = {
               <input type="checkbox" id="batch-cb-${safeCropId}" name="eligible_plots" value="${item.crop.id}" checked
                 class="batch-step-checkbox w-5 h-5 sm:w-6 sm:h-6 rounded-md border-2 border-gray-300 ${isHarvestStep ? 'text-amber-600 focus:ring-amber-500' : 'text-emerald-600 focus:ring-emerald-500'} cursor-pointer shrink-0 transition-transform active:scale-90">
               
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-2 sm:gap-x-4 gap-y-1 flex-1 items-center">
+              <div class="grid grid-cols-2 sm:grid-cols-[1.3fr_1fr_1fr_1fr] gap-x-2 sm:gap-x-4 gap-y-1 flex-1 items-center">
                 <!-- Col 1: Code & Target Date -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">รหัสแปลง</div>
-                  <div class="flex items-center gap-1.5 mt-0.5">
-                    <span class="font-extrabold ${isHarvestStep ? 'text-amber-950' : 'text-emerald-950'} font-mono text-sm sm:text-base leading-none">${item.plot.id}</span>
-                    <span class="inline-flex items-center text-[9px] font-bold ${isHarvestStep ? 'text-amber-800 bg-amber-100 border border-amber-200' : 'text-emerald-800 bg-emerald-100/80 border border-emerald-200'} px-1.5 py-0.5 rounded leading-none">
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">รหัสแปลง</div>
+                  <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span class="font-extrabold ${isHarvestStep ? 'text-amber-950' : 'text-emerald-950'} font-mono text-sm sm:text-base leading-none whitespace-nowrap shrink-0">${item.plot.id}</span>
+                    <span class="inline-flex items-center text-[9px] font-bold ${isHarvestStep ? 'text-amber-800 bg-amber-100 border border-amber-200' : 'text-emerald-800 bg-emerald-100/80 border border-emerald-200'} px-1.5 py-0.5 rounded leading-none whitespace-nowrap shrink-0">
                       กำหนด: ${formatThaiDate(item.targetDate)}
                     </span>
                   </div>
@@ -1928,19 +2021,19 @@ export const CropsComponent = {
 
                 <!-- Col 2: Name -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ชื่อแปลง</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ชื่อแปลง</div>
                   <div class="font-bold text-gray-900 text-xs sm:text-sm truncate mt-0.5 leading-tight" title="${item.plot.name}">${item.plot.name}</div>
                 </div>
 
                 <!-- Col 3: Owner -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">เจ้าของแปลง</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">เจ้าของแปลง</div>
                   <div class="font-semibold text-gray-800 text-xs sm:text-sm truncate mt-0.5 leading-tight" title="${item.ownerName}">${item.ownerName}</div>
                 </div>
 
                 <!-- Col 4: Area -->
                 <div>
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่</div>
+                  <div class="sm:hidden text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">ขนาดพื้นที่</div>
                   <div class="font-bold ${isHarvestStep ? 'text-amber-900' : 'text-emerald-900'} text-xs sm:text-sm mt-0.5 leading-tight">${formatThaiArea(item.plot.sizeRai, item.plot.sizeNgan, item.plot.sizeSqWah)}</div>
                 </div>
               </div>
@@ -1950,7 +2043,7 @@ export const CropsComponent = {
             <div class="batch-plot-inputs-wrapper flex items-center gap-2 bg-gray-50/90 px-2.5 py-1.5 rounded-lg border border-gray-200 shrink-0 cursor-default">
               ${isHarvestStep ? `
                 <div class="w-32 sm:w-36">
-                  <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
+                  <label class="sm:hidden block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
                     <i class="fas fa-tag text-amber-600"></i> ชื่อผลผลิต:
                   </label>
                   <input type="text" 
@@ -1961,41 +2054,46 @@ export const CropsComponent = {
                     class="batch-plot-producename-input w-full px-2 py-1 rounded-md border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white cursor-text">
                 </div>
                 <div class="w-28 sm:w-32">
-                  <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
+                  <label class="sm:hidden block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
                     <i class="fas fa-weight-hanging text-amber-600"></i> น้ำหนักสด (กก.) *:
                   </label>
                   <div class="relative">
                     <input type="number" 
                       step="any" 
-                      min="0.1" 
+                      min="0" 
                       data-plot-id="${item.crop.id}" 
                       data-field="yield"
                       data-base-sqwah="${totalSqWah}"
                       name="yield_${item.crop.id}" 
                       value="${initYield}" 
                       required 
-                      placeholder="เช่น 120.0"
+                      placeholder="0"
                       class="batch-plot-yield-input w-full px-2 py-1 pr-7 rounded-md border border-gray-300 text-xs font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white cursor-text">
                     <span class="absolute right-1.5 top-1 text-[10px] text-gray-400 font-medium pointer-events-none">กก.</span>
                   </div>
                 </div>
               ` : `
-                <div class="w-24 sm:w-28">
-                  <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
-                    🌿 ปริมาณเฉพาะแปลง:
-                  </label>
-                  <input type="text" 
-                    data-plot-id="${item.crop.id}" 
-                    data-field="amount" 
-                    data-base-sqwah="${totalSqWah}"
-                    name="amount_${item.crop.id}" 
-                    value="${initAmountNum} กก." 
-                    class="batch-plot-amount-input w-full px-2 py-1 rounded-md border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white cursor-text"
-                    placeholder="เช่น 25 กก.">
-                </div>
                 <div class="w-28 sm:w-32">
-                  <label class="block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
-                    💵 ค่าใช้จ่ายเฉพาะแปลง:
+                  <label class="sm:hidden block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
+                    🌿 ปุ๋ยกี่กิโลกรัม:
+                  </label>
+                  <div class="relative">
+                    <input type="number" 
+                      step="any"
+                      min="0"
+                      data-plot-id="${item.crop.id}" 
+                      data-field="amount" 
+                      data-base-sqwah="${totalSqWah}"
+                      name="amount_${item.crop.id}" 
+                      value="${initAmountNum}" 
+                      class="batch-plot-amount-input w-full px-2 py-1 pr-7 rounded-md border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white cursor-text"
+                      placeholder="0">
+                    <span class="absolute right-1.5 top-1 text-[10px] text-gray-400 font-medium pointer-events-none">กก.</span>
+                  </div>
+                </div>
+                <div class="w-24 sm:w-28">
+                  <label class="sm:hidden block text-[10px] font-bold text-gray-600 mb-0.5 whitespace-nowrap">
+                    💵 ค่าใช้จ่าย:
                   </label>
                   <div class="relative">
                     <input type="number" 
@@ -2006,7 +2104,7 @@ export const CropsComponent = {
                     min="0" 
                     value="${initCost}" 
                     class="batch-plot-cost-input w-full px-2 py-1 pr-7 rounded-md border border-gray-300 text-xs font-bold text-emerald-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white cursor-text"
-                    placeholder="เช่น 300">
+                    placeholder="0">
                     <span class="absolute right-1.5 top-1 text-[10px] text-gray-400 font-medium pointer-events-none">บาท</span>
                   </div>
                 </div>
@@ -2022,81 +2120,50 @@ export const CropsComponent = {
       <form id="batch-subsequent-step-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-4 sm:p-5 md:p-6 overflow-y-auto flex-1 space-y-3.5 sm:space-y-4">
           
-          <div class="p-3.5 sm:p-4 ${isHarvestStep ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'} rounded-2xl border space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold ${isHarvestStep ? 'text-amber-900' : 'text-emerald-900'} uppercase">
-                <i class="fas fa-check-double mr-1"></i> บันทึกความคืบหน้าแบบกลุ่ม
-              </span>
-              <span class="px-2.5 py-0.5 rounded-full ${isHarvestStep ? 'bg-amber-200 text-amber-950' : 'bg-emerald-200 text-emerald-950'} font-bold text-xs">
-                พร้อมบันทึก ${eligibleList.length} แปลง
-              </span>
-            </div>
-            <h4 class="text-base font-bold text-gray-900 mt-1">
-              ขั้นตอนที่ ${targetStep.stepNo}: ${targetStep.title}
-            </h4>
-            <p class="text-xs sm:text-sm text-gray-600">
-              ทุกแปลงด้านล่างผ่านขั้นตอนก่อนหน้าเรียบร้อยแล้วและพร้อมบันทึกความคืบหน้า
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            <div>
-              <label for="batch-step-date" class="block text-xs font-bold text-gray-700 uppercase mb-1">วันที่ดำเนินการจริง *</label>
+          <div class="flex items-start gap-3 sm:gap-4 flex-wrap">
+            <div class="w-44 sm:w-48">
+              <label for="batch-step-date" class="block text-xs font-bold text-gray-700 uppercase mb-1 whitespace-nowrap">วันที่ดำเนินการจริง *</label>
               <input type="date" id="batch-step-date" name="actionDate" required value="${todayStr}"
-                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
             </div>
 
-            <div>
-              <label for="batch-step-activity" class="block text-xs font-bold text-gray-700 uppercase mb-1">กิจกรรม / สูตรปุ๋ย *</label>
+            <div class="w-52 sm:w-60">
+              <label for="batch-step-activity" class="block text-xs font-bold text-gray-700 uppercase mb-1 whitespace-nowrap">กิจกรรม / สูตรปุ๋ย *</label>
               <input type="text" id="batch-step-activity" name="activityName" required value="${targetStep.advice || targetStep.title}"
-                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
             </div>
 
-            <div>
-              <label for="batch-step-correction" class="block text-xs font-bold text-gray-700 uppercase mb-1">ปัญหาที่พบ / บันทึกแก้ไข (ถ้ามี)</label>
+            <div class="flex-1 min-w-[200px]">
+              <label for="batch-step-correction" class="block text-xs font-bold text-gray-700 uppercase mb-1 whitespace-nowrap">ปัญหาที่พบ / บันทึกแก้ไข (ถ้ามี)</label>
               <input type="text" id="batch-step-correction" name="correction" placeholder="เช่น สภาพอากาศแห้งแล้ง..."
-                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                class="w-full px-3 py-1.5 sm:py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
             </div>
 
             ${!isHarvestStep ? `
               <div class="hidden">
-                <input type="hidden" id="batch-step-amount" name="amount" value="25 กิโลกรัม">
-                <input type="hidden" id="batch-step-cost" name="cost" value="300">
+                <input type="hidden" id="batch-step-amount" name="amount" value="0 กิโลกรัม">
+                <input type="hidden" id="batch-step-cost" name="cost" value="0">
               </div>
             ` : ''}
           </div>
 
           <div class="space-y-2">
-            <div class="flex items-center justify-between flex-wrap gap-2.5">
-              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <label class="text-xs sm:text-sm font-bold text-gray-700 uppercase whitespace-nowrap flex items-center gap-1.5">
-                  <i class="fas fa-check-double ${isHarvestStep ? 'text-amber-600' : 'text-emerald-600'}"></i> เลือกแปลง (${eligibleList.length} แปลงที่พร้อม) *
-                </label>
-                <div class="flex items-center gap-1.5 text-xs font-bold bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200/70">
-                  <button type="button" id="batch-select-all-btn" class="text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer">
-                    เลือกทั้งหมด
-                  </button>
-                  <span class="text-gray-300">|</span>
-                  <button type="button" id="batch-deselect-all-btn" class="text-red-500 hover:text-red-700 hover:underline cursor-pointer">
-                    ยกเลิกทั้งหมด
-                  </button>
-                </div>
-                ${!isHarvestStep ? `
-                  <button type="button" id="batch-calc-by-area-btn" class="text-xs font-bold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณสัดส่วนปริมาณและค่าใช้จ่ายตามขนาดพื้นที่แปลง (1 ไร่ = ค่าเฉลี่ย)">
-                    <i class="fas fa-calculator"></i> คำนวณตามพื้นที่
-                  </button>
-                  <button type="button" id="batch-apply-defaults-all-btn" class="text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="ใช้ค่าเริ่มต้นให้เท่ากันทุกแปลง">
-                    <i class="fas fa-clone"></i> ใช้ค่าเฉลี่ยทุกแปลง
-                  </button>
-                ` : `
-                  <button type="button" id="batch-calc-harvest-by-area-btn" class="text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer" title="คำนวณผลผลิตสดประมาณการตามขนาดพื้นที่แปลง (1 ไร่ = 120 กก.)">
-                    <i class="fas fa-calculator"></i> คำนวณผลผลิตตามพื้นที่
-                  </button>
-                `}
+            <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+              <label class="text-xs sm:text-sm font-bold text-gray-700 uppercase whitespace-nowrap flex items-center gap-1.5">
+                <i class="fas fa-check-double ${isHarvestStep ? 'text-amber-600' : 'text-emerald-600'}"></i> เลือกแปลง (${eligibleList.length} แปลงที่พร้อม) *
+              </label>
+              <div class="flex items-center gap-1.5 text-xs font-bold bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200/70">
+                <button type="button" id="batch-select-all-btn" class="text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer">
+                  เลือกทั้งหมด
+                </button>
+                <span class="text-gray-300">|</span>
+                <button type="button" id="batch-deselect-all-btn" class="text-red-500 hover:text-red-700 hover:underline cursor-pointer">
+                  ยกเลิกทั้งหมด
+                </button>
               </div>
 
-              <!-- Search & Filter Bar -->
-              <div class="relative flex-1 sm:max-w-xs min-w-[170px]">
+              <!-- Search & Filter Bar (Adjusted width to fit text) -->
+              <div class="relative w-56 sm:w-64 min-w-[170px]">
                 <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
                   <i class="fas fa-search text-xs"></i>
                 </span>
@@ -2105,19 +2172,45 @@ export const CropsComponent = {
               </div>
             </div>
 
-            <!-- Summary Bar -->
-            <div id="batch-plots-summary-bar" class="flex items-center justify-between px-3.5 py-1.5 sm:py-2 bg-gradient-to-r ${isHarvestStep ? 'from-amber-50 to-orange-50 border-amber-200 text-amber-900' : 'from-emerald-50 to-teal-50 border-emerald-200 text-emerald-900'} rounded-xl border text-xs font-bold">
+            <!-- Table Header Bar (หัวตาราง) -->
+            <div class="hidden sm:block px-3.5 sm:px-4 py-2 ${isHarvestStep ? 'bg-amber-100/80 border-amber-200 text-amber-900' : 'bg-gray-100/90 border-gray-200 text-gray-600'} rounded-xl border text-xs font-bold shadow-2xs">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-3">
+                <div class="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
+                  <div class="w-5 sm:w-6 shrink-0 text-center text-gray-400">
+                    <i class="fas fa-check"></i>
+                  </div>
+                  <div class="grid grid-cols-2 sm:grid-cols-[1.3fr_1fr_1fr_1fr] gap-x-2 sm:gap-x-4 flex-1 items-center">
+                    <div>รหัสแปลง</div>
+                    <div>ชื่อแปลง</div>
+                    <div>เจ้าของแปลง</div>
+                    <div>ขนาดพื้นที่</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 px-2.5">
+                  ${isHarvestStep ? `
+                    <div class="w-32 sm:w-36 text-center text-amber-900">🏷️ ชื่อผลผลิต</div>
+                    <div class="w-28 sm:w-32 text-center text-amber-900">⚖️ น้ำหนักสด (กก.)</div>
+                  ` : `
+                    <div class="w-28 sm:w-32 text-center text-emerald-800">🌿 ปุ๋ยกี่กิโลกรัม</div>
+                    <div class="w-24 sm:w-28 text-center text-emerald-800">💵 ค่าใช้จ่าย</div>
+                  `}
+                </div>
+              </div>
+            </div>
+
+            <!-- Plots list (Long horizontal rows) -->
+            <div id="batch-step-plots-list-container" class="flex flex-col gap-1.5 max-h-[380px] sm:max-h-[460px] overflow-y-auto p-1.5 border border-gray-200 rounded-xl bg-gray-50/50">
+              ${eligibleCheckboxesHtml}
+            </div>
+
+            <!-- Summary Bar (ย้ายมาไว้ข้างล่างตาราง) -->
+            <div id="batch-plots-summary-bar" class="flex items-center justify-between px-3.5 py-1.5 sm:py-2 bg-gradient-to-r ${isHarvestStep ? 'from-amber-50 to-orange-50 border-amber-200 text-amber-900' : 'from-emerald-50 to-teal-50 border-emerald-200 text-emerald-900'} rounded-xl border text-xs font-bold shadow-2xs">
               <span class="flex items-center gap-1.5"><i class="fas fa-layer-group ${isHarvestStep ? 'text-amber-600' : 'text-emerald-600'}"></i> เลือก: <b id="batch-summary-count" class="${isHarvestStep ? 'text-amber-800' : 'text-emerald-800'} text-sm">0</b> แปลง</span>
               ${isHarvestStep ? `
                 <span class="flex items-center gap-1.5"><i class="fas fa-weight-hanging text-amber-600"></i> ผลผลิตสดรวม: <b id="batch-summary-harvest-yield" class="text-amber-800 text-sm">0</b> กก.</span>
               ` : `
                 <span class="flex items-center gap-1.5"><i class="fas fa-coins text-emerald-600"></i> ค่าใช้จ่ายบำรุงรวม: <b id="batch-summary-total-cost" class="text-emerald-800 text-sm">0</b> บาท</span>
               `}
-            </div>
-
-            <!-- Plots list (Long horizontal rows) -->
-            <div id="batch-step-plots-list-container" class="flex flex-col gap-1.5 max-h-[380px] sm:max-h-[460px] overflow-y-auto p-1.5 border border-gray-200 rounded-xl bg-gray-50/50">
-              ${eligibleCheckboxesHtml}
             </div>
           </div>
 
@@ -2367,7 +2460,7 @@ export const CropsComponent = {
                   // Read plot specific amount and cost
                   const amountInput = dialog.querySelector(`.batch-plot-amount-input[data-plot-id="${cropId}"]`);
                   const costInput = dialog.querySelector(`.batch-plot-cost-input[data-plot-id="${cropId}"]`);
-                  const plotAmount = amountInput ? amountInput.value : amountVal;
+                  const plotAmount = amountInput ? (amountInput.value !== '' ? (amountInput.value.includes('กก.') ? amountInput.value : `${amountInput.value} กก.`) : '0 กก.') : amountVal;
                   const plotCost = costInput ? (parseFloat(costInput.value) || 0) : costVal;
 
                   // Add to fertilizingLog
@@ -2629,7 +2722,7 @@ export const CropsComponent = {
     const plot = plotId ? appState.getPlotById(plotId) : appState.getPlotById(crop.plotId);
     const members = appState.getMembers();
     const owner = plot ? members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : null;
-    const ownerName = owner ? owner.name : '-';
+    const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : '-';
     const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
     const currentRoadmap = appState.getRoadmapByHerb(herbType);
     const steps = currentRoadmap ? currentRoadmap.steps || [] : [];
@@ -2968,7 +3061,7 @@ export const CropsComponent = {
     const plot = appState.getPlotById(crop.plotId);
     const members = appState.getMembers();
     const owner = plot ? members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : null;
-    const ownerName = owner ? owner.name : '-';
+    const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : '-';
     const herbType = crop.seedlingSource || (plot ? plot.plantType : 'เก๊กฮวย') || 'เก๊กฮวย';
 
     const currentRoadmap = appState.getRoadmapByHerb(herbType);

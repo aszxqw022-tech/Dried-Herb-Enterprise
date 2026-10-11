@@ -71,7 +71,7 @@ export const FreshBuyingComponent = {
 
     // 1. KPI Cards HTML
     const kpiCardsHtml = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <!-- KPI 1: ยอดเงินจ่ายซื้อสดสะสม -->
         <div class="p-5 bg-white border border-amber-200 shadow-sm rounded-2xl flex items-center justify-between transition-all hover:shadow-md">
           <div class="space-y-1">
@@ -98,36 +98,6 @@ export const FreshBuyingComponent = {
           </div>
           <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl shrink-0 shadow-2xs">
             <i class="fas fa-weight-hanging"></i>
-          </div>
-        </div>
-
-        <!-- KPI 3: แปลงปลูกที่ส่งมอบผลผลิต -->
-        <div class="p-5 bg-white border border-teal-200 shadow-sm rounded-2xl flex items-center justify-between transition-all hover:shadow-md">
-          <div class="space-y-1">
-            <span class="text-xs font-bold text-teal-800 uppercase tracking-wide block">แปลงที่ส่งมอบดอกสด</span>
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-3xl font-extrabold text-teal-950 font-mono">${contributingPlotsSet.size}</span>
-              <span class="text-sm font-bold text-teal-700">แปลง</span>
-            </div>
-            <span class="text-xs text-teal-700 block font-medium">จากทั้งหมด ${allPlots.length} แปลงในกลุ่ม</span>
-          </div>
-          <div class="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-            <i class="fa-solid fa-map-location-dot"></i>
-          </div>
-        </div>
-
-        <!-- KPI 4: จำนวนพืชสมุนไพรที่รับซื้อ -->
-        <div class="p-5 bg-white border border-blue-200 shadow-sm rounded-2xl flex items-center justify-between transition-all hover:shadow-md">
-          <div class="space-y-1">
-            <span class="text-xs font-bold text-blue-800 uppercase tracking-wide block">ชนิดพืชสมุนไพรรับซื้อ</span>
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-3xl font-extrabold text-blue-950 font-mono">${herbList.length}</span>
-              <span class="text-sm font-bold text-blue-700">ชนิด</span>
-            </div>
-            <span class="text-xs text-blue-700 block font-medium">ตามแผนการปลูกวิสาหกิจ</span>
-          </div>
-          <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-            <i class="fas fa-seedling"></i>
           </div>
         </div>
       </div>
@@ -170,9 +140,6 @@ export const FreshBuyingComponent = {
                 <span class="text-4xl sm:text-5xl font-black text-amber-950 font-mono tracking-tight">${data.price.toLocaleString()}</span>
                 <span class="text-base font-bold text-amber-800">บาท / กก.</span>
               </div>
-              <p class="text-xs text-amber-800 font-medium leading-relaxed pt-1 border-t border-amber-200/60">
-                * ระบบนำราคานี้ไปคำนวณเงินสดจ่ายให้สมาชิกทันทีเมื่อส่งผลผลิตเข้าสู่โรงอบแห้ง
-              </p>
             </div>
 
             <!-- Cumulative Intake & Payout Stats -->
@@ -305,21 +272,6 @@ export const FreshBuyingComponent = {
               กำหนดเกณฑ์ราคารับซื้อผลผลิตดอกสดจากแปลงปลูกของสมาชิก · คำนวณยอดเงินจ่ายให้สมาชิกและต้นทุนวัตถุดิบเข้าโรงอบแห้งโดยอัตโนมัติ
             </p>
           </div>
-
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <a href="#fresh-produce" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm flex items-center gap-2 transition-all shadow-sm">
-              <i class="fa-solid fa-fire-burner"></i>
-              <span>ไปที่โรงอบแห้ง &rarr;</span>
-            </a>
-            <a href="#inventory" class="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
-              <i class="fa-solid fa-boxes-stacked text-emerald-600"></i>
-              <span>คลังสินค้า &rarr;</span>
-            </a>
-            <a href="#finance" class="px-3.5 py-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
-              <i class="fa-solid fa-wallet text-teal-600"></i>
-              <span>การเงินสมาชิก &rarr;</span>
-            </a>
-          </div>
         </div>
 
         <!-- 1. KPI Summary Cards -->
@@ -340,11 +292,6 @@ export const FreshBuyingComponent = {
                   กดปุ่ม "กำหนดราคารับซื้อสด" เพื่อปรับราคาตามชนิดสมุนไพร โดยระบบจะซิงค์ไปยังโรงอบแห้งและการเงินสมาชิกทันที
                 </p>
               </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-white/15 border border-white/20 text-white">
-                <i class="fas fa-link text-amber-300"></i> อัปเดตอัตโนมัติ Real-Time
-              </span>
             </div>
           </div>
 

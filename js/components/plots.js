@@ -1,6 +1,6 @@
 // Plots Management Component with Leaflet Map Pinning & Modal Form
 import { appState } from '../state.js';
-import { formatThaiArea, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
+import { formatThaiArea, showToast, openGlobalModal, closeGlobalModal, formatThaiNameWithoutPrefix } from '../helpers.js';
 
 let mapInstance = null;
 let modalMapInstance = null;
@@ -24,7 +24,7 @@ export const PlotsComponent = {
       .filter(m => m.status === 'active')
       .map(m => {
         const isSelf = isMember && m.id === currentUser.memberId;
-        return `<option value="${m.id}" ${isSelf ? 'selected' : ''}>${m.name} (${m.id}) - บ้านเลขที่ ${m.houseNumber || '-'}</option>`;
+        return `<option value="${m.id}" ${isSelf ? 'selected' : ''}>${formatThaiNameWithoutPrefix(m.name)} (${m.id}) - บ้านเลขที่ ${m.houseNumber || '-'}</option>`;
       })
       .join('');
 
@@ -33,10 +33,10 @@ export const PlotsComponent = {
       ? `<tr><td colspan="7" class="px-6 py-6 text-center text-sm text-gray-500">ยังไม่มีการบันทึกแปลงปลูกในระบบ</td></tr>`
       : plots.map(p => {
           const owner = members.find(m => (p.memberIds && p.memberIds.includes(m.id)) || p.memberId === m.id);
-          const ownerName = owner ? owner.name : 'ไม่พบชื่อเจ้าของ';
+          const ownerName = owner ? formatThaiNameWithoutPrefix(owner.name) : 'ไม่พบชื่อเจ้าของ';
           const areaFormatted = formatThaiArea(p.sizeRai, p.sizeNgan, p.sizeSqWah);
           return `
-            <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+            <tr class="plot-table-row hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors" data-search="${p.id} ${p.name} ${ownerName} ${owner ? owner.name : ''}">
               <td class="px-6 py-3.5 text-sm font-bold text-emerald-800">${p.id}</td>
               <td class="px-6 py-3.5 text-base font-bold text-gray-900">${p.name}</td>
               <td class="px-6 py-3.5 text-sm font-semibold text-gray-800 whitespace-nowrap">${ownerName}</td>
@@ -95,9 +95,19 @@ export const PlotsComponent = {
           </div>
 
           <!-- Plots Table Card -->
-          <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-100">
-              <h3 class="font-bold text-gray-900 text-base">รายการแปลงปลูกลงทะเบียน</h3>
+          <div id="plots-table-card" class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 text-base">รายการแปลงปลูกลงทะเบียน</h3>
+                <span id="plots-table-count-badge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full">${plots.length} แปลง</span>
+              </div>
+              <div class="relative w-full sm:w-72">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                  <i class="fas fa-search text-xs"></i>
+                </span>
+                <input type="text" id="plots-table-search" placeholder="ค้นหาชื่อแปลง, รหัส, ชื่อเจ้าของ..."
+                  class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
+              </div>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
@@ -113,6 +123,12 @@ export const PlotsComponent = {
                 </thead>
                 <tbody>
                   ${rowsHtml}
+                  <tr id="plots-table-no-match" class="hidden">
+                    <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-400">
+                      <i class="fas fa-search text-2xl mb-1 block opacity-40"></i>
+                      ไม่พบข้อมูลแปลงปลูกที่ตรงกับคำค้นหา
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -170,7 +186,7 @@ export const PlotsComponent = {
 
     plots.forEach(p => {
       const owners = members.filter(m => p.memberIds && p.memberIds.includes(m.id));
-      const ownersNames = owners.map(o => o.name).join(', ') || '-';
+      const ownersNames = owners.map(o => formatThaiNameWithoutPrefix(o.name)).join(', ') || '-';
       
       const latVal = parseFloat(p.lat);
       const lngVal = parseFloat(p.lng);
@@ -276,6 +292,33 @@ export const PlotsComponent = {
         }
       });
     });
+
+    // Search Plots Table Listener
+    const tableSearch = document.getElementById('plots-table-search');
+    if (tableSearch) {
+      tableSearch.addEventListener('input', (e) => {
+        const q = (e.target.value || '').trim().toLowerCase();
+        const rows = document.querySelectorAll('.plot-table-row');
+        let visibleCount = 0;
+        rows.forEach(row => {
+          const content = (row.getAttribute('data-search') || '').toLowerCase();
+          if (!q || content.includes(q)) {
+            row.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            row.classList.add('hidden');
+          }
+        });
+        const countBadge = document.getElementById('plots-table-count-badge');
+        if (countBadge) {
+          countBadge.textContent = `${visibleCount} แปลง`;
+        }
+        const noMatchRow = document.getElementById('plots-table-no-match');
+        if (noMatchRow) {
+          noMatchRow.classList.toggle('hidden', visibleCount > 0 || rows.length === 0);
+        }
+      });
+    }
   },
 
   openPlotModal(id = null) {
@@ -284,11 +327,11 @@ export const PlotsComponent = {
     this.editingPlotId = id;
 
     const members = appState.getMembers();
-    const memberOptions = members
-      .filter(m => m.status === 'active')
+    const activeMembers = members.filter(m => m.status === 'active');
+    const memberOptions = activeMembers
       .map(m => {
         const isCurrent = isMember && m.id === currentUser.memberId;
-        return `<option value="${m.id}" ${isCurrent ? 'selected' : ''}>${m.name} (${m.villageNumber || 'หมู่ 4'})</option>`;
+        return `<option value="${m.id}" ${isCurrent ? 'selected' : ''}>${formatThaiNameWithoutPrefix(m.name)} (${m.villageNumber || 'หมู่ 4'})</option>`;
       })
       .join('');
 
@@ -324,9 +367,27 @@ export const PlotsComponent = {
             <div class="space-y-4">
               <!-- Owner Member Selection -->
               <div>
-                <label for="modal-plot-ownerId" class="block text-sm font-semibold text-gray-500 uppercase mb-1">เจ้าของแปลง *</label>
+                <div class="flex items-center justify-between mb-1">
+                  <label for="modal-plot-ownerId" class="block text-sm font-semibold text-gray-500 uppercase">เจ้าของแปลง *</label>
+                  <span id="modal-plot-owner-count" class="text-xs text-emerald-700 font-semibold"></span>
+                </div>
+                ${!isMember ? `
+                  <!-- Search Owner Box -->
+                  <div class="relative mb-2">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                      <i class="fas fa-search text-xs"></i>
+                    </span>
+                    <input type="text" id="modal-plot-owner-search" placeholder="พิมพ์ค้นหาชื่อ, รหัส หรือหมู่เจ้าของแปลง..." autocomplete="off"
+                      class="w-full pl-8 pr-8 py-2 rounded-xl border border-gray-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
+                    <button type="button" id="modal-plot-owner-search-clear" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600 hidden cursor-pointer" title="ล้างคำค้นหา">
+                      <i class="fas fa-times-circle text-xs"></i>
+                    </button>
+                  </div>
+                  <!-- Quick Suggestions Chips (Visible when typing) -->
+                  <div id="modal-plot-owner-chips" class="hidden flex flex-wrap gap-1.5 mb-2 max-h-24 overflow-y-auto"></div>
+                ` : ''}
                 <select id="modal-plot-ownerId" name="ownerId" required ${isMember ? 'disabled' : ''}
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                   <option value="">-- เลือกเจ้าของแปลง --</option>
                   ${memberOptions}
                 </select>
@@ -418,9 +479,112 @@ export const PlotsComponent = {
       size: 'max-w-5xl',
       content: formHtml,
       onRender: (dialog) => {
+        const ownerSearch = dialog.querySelector('#modal-plot-owner-search');
+        const ownerClearBtn = dialog.querySelector('#modal-plot-owner-search-clear');
         const ownerSelect = dialog.querySelector('#modal-plot-ownerId');
+        const countBadge = dialog.querySelector('#modal-plot-owner-count');
+        const chipsContainer = dialog.querySelector('#modal-plot-owner-chips');
+
         if (ownerSelect && currentOwnerId) {
           ownerSelect.value = currentOwnerId;
+        }
+
+        if (ownerSearch && ownerSelect) {
+          const filterOwners = (query = '') => {
+            const q = query.trim().toLowerCase();
+            const curVal = ownerSelect.value;
+            const filtered = activeMembers.filter(m => {
+              if (!q) return true;
+              const nameMatch = m.name && m.name.toLowerCase().includes(q);
+              const idMatch = m.id && m.id.toLowerCase().includes(q);
+              const villageMatch = (m.villageNumber || '').toString().toLowerCase().includes(q);
+              return nameMatch || idMatch || villageMatch;
+            });
+
+            if (countBadge) {
+              countBadge.textContent = q ? `พบ ${filtered.length} รายชื่อ` : '';
+            }
+
+            let optsHtml = '<option value="">-- เลือกเจ้าของแปลง --</option>';
+            filtered.forEach(m => {
+              const sel = m.id === curVal ? 'selected' : '';
+              optsHtml += `<option value="${m.id}" ${sel}>${formatThaiNameWithoutPrefix(m.name)} (${m.villageNumber || 'หมู่ 4'})</option>`;
+            });
+            if (filtered.length === 0) {
+              optsHtml = '<option value="">-- ไม่พบรายชื่อที่ตรงกับคำค้นหา --</option>';
+            }
+            ownerSelect.innerHTML = optsHtml;
+
+            // Auto-select if exactly 1 match and nothing selected yet
+            if (filtered.length === 1 && !curVal) {
+              ownerSelect.value = filtered[0].id;
+            } else if (curVal && filtered.some(m => m.id === curVal)) {
+              ownerSelect.value = curVal;
+            }
+
+            // Quick Chips display
+            if (chipsContainer) {
+              if (q && filtered.length > 0 && filtered.length <= 8) {
+                chipsContainer.classList.remove('hidden');
+                chipsContainer.innerHTML = filtered.map(m => {
+                  const isChosen = ownerSelect.value === m.id;
+                  const cleanName = formatThaiNameWithoutPrefix(m.name);
+                  return `
+                    <button type="button" data-member-id="${m.id}" class="owner-chip text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${isChosen ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'}">
+                      <i class="fas ${isChosen ? 'fa-check' : 'fa-user'} text-[10px]"></i>
+                      <span>${cleanName}</span>
+                    </button>
+                  `;
+                }).join('');
+
+                chipsContainer.querySelectorAll('.owner-chip').forEach(chip => {
+                  chip.addEventListener('click', () => {
+                    const chosenId = chip.getAttribute('data-member-id');
+                    ownerSelect.value = chosenId;
+                    filterOwners(ownerSearch.value);
+                  });
+                });
+              } else {
+                chipsContainer.classList.add('hidden');
+                chipsContainer.innerHTML = '';
+              }
+            }
+          };
+
+          ownerSearch.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (ownerClearBtn) {
+              ownerClearBtn.classList.toggle('hidden', !val);
+            }
+            filterOwners(val);
+          });
+
+          ownerSearch.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const firstOpt = ownerSelect.querySelector('option[value]:not([value=""])');
+              if (firstOpt) {
+                ownerSelect.value = firstOpt.value;
+                filterOwners(ownerSearch.value);
+                showToast(`เลือกเจ้าของแปลง: ${firstOpt.textContent}`, 'info');
+              }
+            }
+          });
+
+          if (ownerClearBtn) {
+            ownerClearBtn.addEventListener('click', () => {
+              ownerSearch.value = '';
+              ownerClearBtn.classList.add('hidden');
+              filterOwners('');
+              ownerSearch.focus();
+            });
+          }
+
+          ownerSelect.addEventListener('change', () => {
+            if (chipsContainer && !chipsContainer.classList.contains('hidden')) {
+              filterOwners(ownerSearch.value);
+            }
+          });
         }
 
         const form = dialog.querySelector('#global-plot-modal-form');

@@ -65,7 +65,7 @@ const MOCK_USERS = [
   {
     username: '12/4',
     password: '0611391105',
-    name: 'นายวีรวัฒน์ ปินทรายมูล',
+    name: 'วีรวัฒน์ ปินทรายมูล',
     role: 'Admin',
     roleDisplay: 'ประธานกลุ่ม',
     memberId: 'MEM-001',
@@ -75,7 +75,7 @@ const MOCK_USERS = [
   {
     username: '12/5',
     password: '0897654321',
-    name: 'นางแหม่ม สุตินกาศ',
+    name: 'แหม่ม สุตินกาศ',
     role: 'Officer',
     roleDisplay: 'รองประธานกลุ่ม',
     memberId: 'MEM-002',
@@ -85,7 +85,7 @@ const MOCK_USERS = [
   {
     username: '45/1',
     password: '0812345699',
-    name: 'นายมานะ รักเกษตร',
+    name: 'มานะ รักเกษตร',
     role: 'Officer',
     roleDisplay: 'เหรัญญิก',
     memberId: 'MEM-003',
@@ -104,17 +104,17 @@ const DEFAULT_ENTERPRISE = {
   zipcode: '57150',
   phone: '061-139-1105',
   email: 'sridonmun.driedherbs@gmail.com',
-  chairman: 'นายวีรวัฒน์ ปินทรายมูล',
+  chairman: 'วีรวัฒน์ ปินทรายมูล',
   description: 'กลุ่มเกษตรกรผลิตและแปรรูปสมุนไพรอบแห้งปลอดสารพิษเพื่อความยั่งยืน เก๊กฮวย คาโมมายล์ และสมุนไพรพื้นบ้าน',
   committee: {
-    president: { name: 'นายวีรวัฒน์ ปินทรายมูล', phone: '061-139-1105' },
-    vicePresident: { name: 'นางแหม่ม สุตินกาศ', phone: '089-765-4321' },
-    treasurer: { name: 'นายมานะ รักเกษตร', phone: '081-234-5699' },
-    secretary: { name: 'นางสมศรี มีวิถี', phone: '081-234-5604' },
+    president: { name: 'วีรวัฒน์ ปินทรายมูล', phone: '061-139-1105' },
+    vicePresident: { name: 'แหม่ม สุตินกาศ', phone: '089-765-4321' },
+    treasurer: { name: 'มานะ รักเกษตร', phone: '081-234-5699' },
+    secretary: { name: 'สมศรี มีวิถี', phone: '081-234-5604' },
     board: [
-      { role: 'ฝ่ายแปรรูปและเตาอบ', name: 'นายวิชัย ปัญญาดี', phone: '081-234-5605' },
-      { role: 'ฝ่ายคลังสินค้าและบรรจุภัณฑ์', name: 'นางนภา สุขสบาย', phone: '081-234-5606' },
-      { role: 'ฝ่ายการตลาดและจัดจำหน่าย', name: 'นายดำรง รักชาติ', phone: '081-234-5607' }
+      { role: 'ฝ่ายแปรรูปและเตาอบ', name: 'วิชัย ปัญญาดี', phone: '081-234-5605' },
+      { role: 'ฝ่ายคลังสินค้าและบรรจุภัณฑ์', name: 'นภา สุขสบาย', phone: '081-234-5606' },
+      { role: 'ฝ่ายการตลาดและจัดจำหน่าย', name: 'ดำรง รักชาติ', phone: '081-234-5607' }
     ]
   }
 };
@@ -254,6 +254,7 @@ export class AppState {
       if (!memError && membersData && membersData.length > 0) {
         this.membersCache = membersData.map(m => ({
           ...m,
+          name: m.name ? m.name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*/, '').trim() : m.name,
           villageNumber: m.village_number || m.villageNumber || 'หมู่ 12',
           joinDate: m.join_date || m.joinDate,
           houseNumber: m.house_number || m.houseNumber || ''
@@ -548,10 +549,13 @@ export class AppState {
     if (!data) return null;
     try {
       const user = JSON.parse(data);
-      if (user && (user.name.includes('สมเกียรติ') || user.username === 'admin' || user.memberId === 'MEM-001' && user.name !== 'นายวีรวัฒน์ ปินทรายมูล')) {
+      if (user && (user.name?.includes('สมเกียรติ') || user.username === 'admin' || user.memberId === 'MEM-001' && user.name !== 'วีรวัฒน์ ปินทรายมูล')) {
         const president = MOCK_USERS[0];
         localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(president));
         return president;
+      }
+      if (user && user.name) {
+        user.name = user.name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*/, '').trim();
       }
       return user;
     } catch (e) {
@@ -683,6 +687,32 @@ export class AppState {
     const storedMembers = localStorage.getItem(STORAGE_KEYS.MEMBERS);
     if (storedMembers === null) {
       localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(MOCK_MEMBERS));
+    } else {
+      try {
+        let memList = JSON.parse(storedMembers);
+        if (Array.isArray(memList)) {
+          let modified = false;
+          memList = memList.map(m => {
+            if (m.id === 'MEM-001' && !m.name.startsWith('นาย')) {
+              m.name = 'นาย' + m.name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*/, '').trim();
+              modified = true;
+            } else if (m.id === 'MEM-002' && !m.name.startsWith('นาง')) {
+              m.name = 'นาง' + m.name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*/, '').trim();
+              modified = true;
+            } else if (m.id === 'MEM-003' && !m.name.startsWith('นาย')) {
+              m.name = 'นาย' + m.name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*/, '').trim();
+              modified = true;
+            }
+            return m;
+          });
+          if (modified) {
+            localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(memList));
+            this.membersCache = memList;
+          }
+        }
+      } catch (e) {
+        console.error("Member name restore error:", e);
+      }
     }
 
     // 3. Plots
@@ -908,7 +938,7 @@ export class AppState {
       return (!isNaN(num) && num > max) ? num : max;
     }, 0);
     const newId = `MEM-${String(maxIdNum + 1).padStart(3, '0')}`;
-    
+
     const newMember = {
       ...member,
       id: newId,

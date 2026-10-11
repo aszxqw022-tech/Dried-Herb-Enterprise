@@ -2,12 +2,12 @@
 import { appState } from './state.js';
 import { showToast } from './helpers.js';
 import { DashboardComponent } from './components/dashboard.js?v=21';
-import { MembersComponent } from './components/members.js?v=5';
+import { MembersComponent } from './components/members.js?v=10';
 import { PlotsComponent } from './components/plots.js?v=5';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=19';
-import { CropsComponent } from './components/crops.js?v=31';
+import { CropsComponent } from './components/crops.js?v=43';
 import { CropHistoryComponent } from './components/cropHistory.js?v=10';
-import { FreshBuyingComponent } from './components/freshBuying.js?v=1';
+import { FreshBuyingComponent } from './components/freshBuying.js?v=2';
 import { FreshProduceComponent } from './components/freshProduce.js?v=36';
 import { SettingsComponent } from './components/settings.js?v=8';
 import { CustomersComponent } from './components/customers.js?v=5';
@@ -333,7 +333,7 @@ class AppController {
 
       // Sidebar Footer
       if (avatarDisplay) avatarDisplay.textContent = 'ว';
-      if (nameDisplay) nameDisplay.textContent = 'นายวีรวัฒน์ ปินทรายมูล';
+      if (nameDisplay) nameDisplay.textContent = 'วีรวัฒน์ ปินทรายมูล';
       if (roleDisplay) roleDisplay.textContent = 'ประธานกลุ่ม';
     }
   }

@@ -59,6 +59,16 @@ export function thaiAreaToSqMeters(rai = 0, ngan = 0, sqWah = 0) {
 }
 
 /**
+ * Strip Thai title prefix (e.g., "นาย", "นาง", "นางสาว", "น.ส.", "ด.ช.", "ด.ญ.") from name
+ * @param {string} name 
+ * @returns {string}
+ */
+export function formatThaiNameWithoutPrefix(name) {
+  if (!name || typeof name !== 'string') return name || '';
+  return name.replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*/, '').trim();
+}
+
+/**
  * Format area in Thai layout (e.g., "2 ไร่ 1 งาน 50 ตร.ว.")
  */
 export function formatThaiArea(rai = 0, ngan = 0, sqWah = 0) {
