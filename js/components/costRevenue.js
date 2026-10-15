@@ -5,7 +5,7 @@ import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModa
 export const CostRevenueComponent = {
   activeTab: 'financial-crop', // 'financial-crop' | 'inventory-yield' | 'members-calc'
   selectedSalesYear: String(new Date().getFullYear()),
-  selectedSalesMonth: 'all',
+  selectedSalesMonth: String(new Date().getMonth() + 1).padStart(2, '0'),
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -326,7 +326,7 @@ export const CostRevenueComponent = {
       this.selectedSalesYear = String(new Date().getFullYear());
     }
     if (!this.selectedSalesMonth) {
-      this.selectedSalesMonth = 'all';
+      this.selectedSalesMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     }
 
     const currentYear = new Date().getFullYear();
@@ -544,7 +544,7 @@ export const CostRevenueComponent = {
               <span class="w-10 h-10 rounded-2xl bg-emerald-800 text-white flex items-center justify-center text-lg shadow-sm">
                 <i class="fas fa-chart-pie"></i>
               </span>
-              <span>7. รายงานสรุป (สรุปต้นทุน–รายได้)</span>
+              <span>12. รายงานสรุป (สรุปต้นทุน–รายได้)</span>
             </h1>
             <p class="text-sm text-gray-500 mt-1">
               วิเคราะห์ภาพรวมการเงินวิสาหกิจ · อัตราการอบแห้ง (${uniqueHerbs.join(' / ')}) · มูลค่าคลังสินค้า · ผลผลิตรายสมาชิก

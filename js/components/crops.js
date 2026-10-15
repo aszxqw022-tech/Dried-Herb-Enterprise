@@ -4,7 +4,7 @@ import { formatThaiDate, formatBaht, formatThaiArea, showToast, openGlobalModal,
 
 export const CropsComponent = {
   selectedYear: new Date().getFullYear() + 543, // Default to current BE year (e.g. 2569)
-  selectedCycle: 1, // 1 | 2
+  selectedCycle: (new Date().getMonth() + 1 >= 7 ? 2 : 1), // 1 | 2 — ค่าเริ่มต้นตามรอบปัจจุบัน (ก.ค.-ธ.ค. = รอบ 2)
   selectedHerb: 'เก๊กฮวย',
   searchQuery: '',
   viewMode: (function() {

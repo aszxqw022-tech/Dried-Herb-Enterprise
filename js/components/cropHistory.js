@@ -4,8 +4,9 @@ import { formatThaiDate, formatBaht, formatThaiArea, openGlobalModal, closeGloba
 
 export const CropHistoryComponent = {
   searchQuery: '',
-  yearFilter: '',
-  cycleFilter: 'all', // 'all', '1', '2', '3', 'other'
+  yearFilter: String(new Date().getFullYear() + 543),
+  monthFilter: String(new Date().getMonth() + 1).padStart(2, '0'),
+  cycleFilter: '2', // 'all', '1', '2', '3', 'other' — ค่าเริ่มต้น = ปัจจุบัน
   activeTab: 'planting', // 'planting' | 'sales'
   selectedCropId: null,
   expandedPlotIds: new Set(),
@@ -36,13 +37,18 @@ export const CropHistoryComponent = {
     const enterprise = appState.getEnterprise();
 
     // Extract available crop years for filter dropdown
-    const availableYears = [...new Set(allCrops.map(c => c.cropYear).filter(Boolean))].sort((a, b) => b - a);
+    const availableYears = [...new Set([Number(String(new Date().getFullYear() + 543)), ...allCrops.map(c => c.cropYear).filter(Boolean)])].sort((a, b) => b - a);
 
     // Filter crops based on Cycle Filter and Year Filter
     const filterCropMatch = (crop) => {
       // 1. Year Filter
       if (this.yearFilter && String(crop.cropYear) !== String(this.yearFilter)) {
         return false;
+      }
+      // 1.5 Month Filter (เดือนที่เก็บเกี่ยว; ถ้ายังไม่เก็บเกี่ยวใช้เดือนที่ปลูก)
+      if (this.monthFilter !== 'all') {
+        const dstr = String(crop.harvestDateActual || crop.plantDate || '');
+        if (dstr.slice(5, 7) !== this.monthFilter) return false;
       }
       // 2. Cycle Filter
       if (this.cycleFilter !== 'all') {
@@ -57,7 +63,7 @@ export const CropHistoryComponent = {
 
     // Filter plots based on Search Query and whether plot has matching crops (or matches plot info)
     const query = (this.searchQuery || '').toLowerCase().trim();
-    const isFilterActive = Boolean(query || this.yearFilter || this.cycleFilter !== 'all');
+    const isFilterActive = Boolean(query || this.yearFilter || this.monthFilter !== 'all' || this.cycleFilter !== 'all');
 
     const filteredPlots = plots.filter(plot => {
       const owners = members.filter(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id);
@@ -80,7 +86,7 @@ export const CropHistoryComponent = {
       if (!matchesSearch) return false;
 
       // If specific cycle or year filter is selected, plot must have matching crops
-      if (this.cycleFilter !== 'all' || this.yearFilter) {
+      if (this.cycleFilter !== 'all' || this.yearFilter || this.monthFilter !== 'all') {
         return matchingCrops.length > 0;
       }
 
@@ -476,7 +482,7 @@ export const CropHistoryComponent = {
               <span class="w-10 h-10 rounded-2xl bg-emerald-800 text-white flex items-center justify-center shadow-sm">
                 <i class="fa-solid fa-clock-rotate-left text-lg"></i>
               </span>
-              <span>8. ประวัติการขาย / ประวัติการปลูก</span>
+              <span>10. ประวัติการขาย / ประวัติการปลูก</span>
             </h1>
             <p class="text-sm text-gray-500 mt-1">
               ระบบบันทึกประวัติการขายสินค้า (การตัดสต็อกอัตโนมัติ) และประวัติรอบการปลูกแยกตามรายแปลง
@@ -699,6 +705,17 @@ export const CropHistoryComponent = {
                     </select>
                   </div>
 
+                  <!-- Month Filter (เดือน) -->
+                  <div class="flex items-center gap-1.5">
+                    <label for="history-month-filter" class="text-sm font-bold text-gray-600 whitespace-nowrap">
+                      <i class="fa-regular fa-calendar text-emerald-700 mr-0.5"></i> เดือน:
+                    </label>
+                    <select id="history-month-filter" class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs">
+                      <option value="all" ${this.monthFilter === 'all' ? 'selected' : ''}>ทุกเดือน</option>
+                      ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'].map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${this.monthFilter === v ? 'selected' : ''}>${m}</option>`; }).join('')}
+                    </select>
+                  </div>
+
                   ${isFilterActive ? `
                     <button id="history-clear-filters-btn" class="px-3 py-2 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition flex items-center gap-1 shadow-2xs" title="ล้างตัวกรอง">
                       <i class="fas fa-times text-gray-400"></i> ล้างตัวกรอง
@@ -783,6 +800,15 @@ export const CropHistoryComponent = {
       });
     }
 
+    // 2.5 Month filter event
+    const monthSelect = document.getElementById('history-month-filter');
+    if (monthSelect) {
+      monthSelect.addEventListener('change', (e) => {
+        this.monthFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+
     // 3. Year filter event
     const yearSelect = document.getElementById('history-year-filter');
     if (yearSelect) {
@@ -798,6 +824,7 @@ export const CropHistoryComponent = {
       clearBtn.addEventListener('click', () => {
         this.searchQuery = '';
         this.yearFilter = '';
+        this.monthFilter = 'all';
         this.cycleFilter = 'all';
         this.refreshView();
       });
@@ -809,6 +836,7 @@ export const CropHistoryComponent = {
       resetBtn.addEventListener('click', () => {
         this.searchQuery = '';
         this.yearFilter = '';
+        this.monthFilter = 'all';
         this.cycleFilter = 'all';
         this.refreshView();
       });

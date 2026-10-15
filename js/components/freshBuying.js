@@ -5,8 +5,9 @@ import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModa
 export const FreshBuyingComponent = {
   searchQuery: '',
   herbFilter: 'all',
-  yearFilter: 'all',
-  cycleFilter: 'all',
+  yearFilter: String(new Date().getFullYear() + 543),
+  monthFilter: String(new Date().getMonth() + 1).padStart(2, '0'),
+  cycleFilter: '2',
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -144,7 +145,7 @@ export const FreshBuyingComponent = {
     // ปี (พ.ศ.) และรอบของรอบเพาะปลูก — ใช้ฟิลด์ cropYear/cropCycle หรืออ่านจากรหัสรอบ เช่น 2569/P003-R1
     const getCropYear = (c) => String(c.cropYear || (String(c.id || '').split('/')[0].match(/^\d{4}$/) || [''])[0] || '');
     const getCropCycle = (c) => String(c.cropCycle || ((String(c.id || '').match(/-R(\d+)/) || [])[1]) || '');
-    const yearOptions = [...new Set(allCrops.map(getCropYear).filter(Boolean))].sort((a, b) => b - a);
+    const yearOptions = [...new Set([String(new Date().getFullYear() + 543), ...allCrops.map(getCropYear).filter(Boolean)])].sort((a, b) => b - a);
     const cycleOptions = [...new Set(['1', '2', ...allCrops.map(getCropCycle).filter(Boolean)])].sort((a, b) => a - b); // มีรอบ 1 และ 2 เสมอ
 
     // รายการรับซื้อ = ข้อมูลรับซื้อที่บันทึกไว้ เชื่อมกับรอบเพาะปลูก (แปลง/สมาชิก/รหัสรอบ)
@@ -158,6 +159,7 @@ export const FreshBuyingComponent = {
       const h = getCropHerb(c);
       if (this.herbFilter !== 'all' && h !== this.herbFilter) return false;
       if (this.yearFilter !== 'all' && getCropYear(c) !== this.yearFilter) return false;
+      if (this.monthFilter !== 'all' && String(c.harvestDate || '').slice(5, 7) !== this.monthFilter) return false;
       if (this.cycleFilter !== 'all' && getCropCycle(c) !== this.cycleFilter) return false;
 
       if (this.searchQuery) {
@@ -180,7 +182,9 @@ export const FreshBuyingComponent = {
            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-400 flex items-center justify-center mx-auto text-2xl mb-2">
              <i class="fa-solid fa-hand-holding-dollar"></i>
            </div>
-           ยังไม่มีประวัติการรับซื้อดอกสด หรือไม่พบข้อมูลตามเงื่อนไขที่ค้นหา
+           ${purchasedRecords.length > 0
+             ? `ไม่มีรายการตามตัวกรองที่เลือก (มีรายการรับซื้อทั้งหมด ${purchasedRecords.length} รายการ)<div class="mt-3"><button type="button" id="fresh-buying-show-all-btn" class="px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-sm border border-amber-300">ดูทุกรายการ</button></div>`
+             : 'ยังไม่มีประวัติการรับซื้อดอกสด หรือไม่พบข้อมูลตามเงื่อนไขที่ค้นหา'}
          </td></tr>`
       : filteredHarvests.map((c, idx) => {
           const herb = getCropHerb(c);
@@ -293,6 +297,12 @@ export const FreshBuyingComponent = {
                 ${yearOptions.map(y => `<option value="${y}" ${this.yearFilter === y ? 'selected' : ''}>ปี ${y}</option>`).join('')}
               </select>
 
+              <!-- Month Filter -->
+              <select id="fresh-buying-month-filter" class="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+                <option value="all" ${this.monthFilter === 'all' ? 'selected' : ''}>ทุกเดือน</option>
+                ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'].map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${this.monthFilter === v ? 'selected' : ''}>${m}</option>`; }).join('')}
+              </select>
+
               <!-- Cycle Filter -->
               <select id="fresh-buying-cycle-filter" class="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
                 <option value="all" ${this.cycleFilter === 'all' ? 'selected' : ''}>ทุกรอบ</option>
@@ -346,6 +356,24 @@ export const FreshBuyingComponent = {
     if (yearSelect) {
       yearSelect.addEventListener('change', (e) => {
         this.yearFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+    const showAllBtn = document.getElementById('fresh-buying-show-all-btn');
+    if (showAllBtn) {
+      showAllBtn.addEventListener('click', () => {
+        this.yearFilter = 'all';
+        this.monthFilter = 'all';
+        this.cycleFilter = 'all';
+        this.herbFilter = 'all';
+        this.searchQuery = '';
+        this.refreshView();
+      });
+    }
+    const monthSelect = document.getElementById('fresh-buying-month-filter');
+    if (monthSelect) {
+      monthSelect.addEventListener('change', (e) => {
+        this.monthFilter = e.target.value;
         this.refreshView();
       });
     }

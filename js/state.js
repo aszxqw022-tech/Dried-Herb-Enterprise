@@ -337,8 +337,26 @@ export class AppState {
             : JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS) || '[]');
         } catch (e) { prevLocalCrops = []; }
         const prevLocalById = new Map((prevLocalCrops || []).map(pc => [pc.id, pc]));
-        this.cropsCache = cropsData.map(c => ({
-          ...(prevLocalById.get(c.id) || {}),
+        const cloudCropIds = new Set(cropsData.map(c => c.id));
+        const mergedCrops = cropsData.map(c => {
+          const prev = prevLocalById.get(c.id) || {};
+          // ถ้าในเครื่องบันทึกเก็บเกี่ยว/อบแห้งไว้แล้ว แต่ออนไลน์ยังเป็นค่าเก่า (อัปเดตออนไลน์ไม่สำเร็จ) ให้คงค่าในเครื่องไว้ ไม่ให้ข้อมูลหาย
+          const keepLocalHarvest = prev.status === 'harvested' && c.status !== 'harvested';
+          return {
+            ...prev,
+            ...c,
+            ...(keepLocalHarvest ? {
+              status: prev.status,
+              yield: prev.yield,
+              harvestDateActual: prev.harvestDateActual || null,
+              harvest_date_actual: prev.harvestDateActual || null
+            } : {}),
+            isProcessed: !!(prev.isProcessed || c.is_processed || c.isProcessed)
+          };
+        });
+        // รอบปลูกที่สร้างในเครื่องแต่ยังไม่ขึ้นออนไลน์ ต้องไม่หายไปตอนซิงค์
+        (prevLocalCrops || []).forEach(pc => { if (pc && !cloudCropIds.has(pc.id)) mergedCrops.push(pc); });
+        this.cropsCache = mergedCrops.map(c => ({
           ...c,
           seedlingSource: c.seedling_source || c.seedlingSource || (prevLocalById.get(c.id) || {}).seedlingSource,
           plotId: c.plot_id || c.plotId,
@@ -351,8 +369,10 @@ export class AppState {
         }));
         localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(this.cropsCache));
       } else if (cropsData && cropsData.length === 0) {
-        this.cropsCache = [];
-        localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify([]));
+        // ออนไลน์ยังว่าง: ห้ามล้างข้อมูลรอบปลูกที่มีอยู่ในเครื่อง
+        if (!this.cropsCache) {
+          try { this.cropsCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS) || '[]'); } catch (e) { this.cropsCache = []; }
+        }
       } else if (cropsError) {
         console.warn("Supabase crops sync skipped:", cropsError.message);
         if (!this.cropsCache) {
@@ -1668,14 +1688,36 @@ export class AppState {
    * Process pooled fresh flowers of a specific herb type into dry herb stock
    * Gathers fresh harvest from all plots of this herb without plot/member division
    */
+  // ดอกสดรออบ = ดอกสดที่รับซื้อจากสมาชิกแล้ว (ดึงจากหน้า 4. จัดการรับซื้อดอกสดจากสมาชิก) น้ำหนักตามที่รับซื้อ; ลบรายการรับซื้อ = หายจากดอกสดรออบ
+  getHarvestedOrPurchasedCrops() {
+    let purchased = new Map();
+    try {
+      const raw = JSON.parse(localStorage.getItem('herb_enterprise_fresh_purchases') || '[]');
+      (Array.isArray(raw) ? raw : []).forEach(pu => {
+        if (pu && pu.cropId) purchased.set(pu.cropId, (purchased.get(pu.cropId) || 0) + (parseFloat(pu.kg) || 0));
+      });
+    } catch (e) { purchased = new Map(); }
+    // สถานะ "อบแล้ว" ยึดตามประวัติการอบแห้งที่มีอยู่จริง (ถ้าไม่มีล็อตอบอ้างถึงรอบนี้ ถือว่ายังรออบ)
+    const batches = this.getDryingBatches ? this.getDryingBatches() : [];
+    const processedIds = new Set();
+    let legacy = false;
+    batches.forEach(b => { if (Array.isArray(b.cropIds)) b.cropIds.forEach(id => processedIds.add(id)); else legacy = true; });
+    return this.getCrops()
+      .filter(c => purchased.has(c.id))
+      .map(c => {
+        const processed = processedIds.has(c.id) || (legacy && !!c.isProcessed);
+        return { ...c, yield: purchased.get(c.id), isProcessed: processed };
+      });
+  }
+
   processPooledHerbDrying(herbType, freshWeightKg, customDryWeightKg = null, batchNote = '', processedDate = null) {
     const allCrops = this.getCrops();
     const isChrys = herbType === 'เก๊กฮวย' || herbType.includes('เก๊กฮวย');
     const targetHerb = isChrys ? 'เก๊กฮวย' : (herbType.includes('คาโมมายล์') ? 'คาโมมายล์' : herbType);
     
     // Find all harvested unprocessed crops of this herb type
-    const pendingCrops = allCrops.filter(c => {
-      if (c.status !== 'harvested' || c.isProcessed) return false;
+    const pendingCrops = this.getHarvestedOrPurchasedCrops().filter(c => {
+      if (c.isProcessed) return false;
       const plot = this.getPlotById(c.plotId);
       const cHerb = c.seedlingSource || (plot ? plot.plantType : '') || 'เก๊กฮวย';
       return cHerb.includes(targetHerb);
@@ -1697,6 +1739,9 @@ export class AppState {
     let finalDryWeight = 0;
     if (customDryWeightKg !== null && !isNaN(parseFloat(customDryWeightKg)) && parseFloat(customDryWeightKg) > 0) {
       finalDryWeight = parseFloat(parseFloat(customDryWeightKg).toFixed(2));
+      if (finalDryWeight > weightToProcess + 0.0001) {
+        throw new Error(`ดอกแห้งที่ได้ (${finalDryWeight.toFixed(2)} กิโลกรัม) ต้องไม่เกินผลผลิตสดที่นำเข้าอบ (${weightToProcess.toFixed(2)} กิโลกรัม)`);
+      }
     } else {
       finalDryWeight = parseFloat((weightToProcess / ratio).toFixed(2));
     }
@@ -1855,7 +1900,7 @@ export class AppState {
     const canned = products.find(p => p.id === batch.productId)
       || products.find(p => p.unit === 'กระป๋อง' && herb && (p.name.includes(herb) || (p.category || '').includes(herb)));
     if (canned && jars > 0 && (parseFloat(canned.stock) || 0) < jars) {
-      throw new Error(`ลบไม่ได้: สต็อกกระป๋องเหลือ ${parseFloat(canned.stock) || 0} กระป๋อง น้อยกว่าล็อตนี้ (${jars} กระป๋อง) เพราะขายออกไปแล้ว`);
+      throw new Error(`ลบไม่ได้: สต็อก${canned.unit || 'กระป๋อง'}เหลือ ${parseFloat(canned.stock) || 0} ${canned.unit || 'กระป๋อง'} น้อยกว่าล็อตนี้ (${jars} ${canned.unit || 'กระป๋อง'}) เพราะขายออกไปแล้ว`);
     }
 
     // 2. หักจำนวนกระป๋องออกจากสต็อก
@@ -1879,6 +1924,108 @@ export class AppState {
     // 4. ลบล็อตออกจากประวัติ
     const remaining = batches.filter(b => b.id !== batchId);
     localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(remaining));
+    return batch;
+  }
+
+  /**
+   * น้ำหนักต่อ 1 หน่วยของสินค้าแปรรูป (กรัม): ใช้ค่าที่ระบุไว้ ถ้าไม่มีให้อ่านจากชื่อสินค้า (เช่น "50 กรัม")
+   */
+  getProductPackGrams(product) {
+    if (!product) return 0;
+    const g = parseFloat(product.packGrams);
+    if (g > 0) return g;
+    const m = String(product.name || '').match(/(\d+(?:\.\d+)?)\s*(?:กรัม|g\b|G\b)/);
+    if (m) return parseFloat(m[1]);
+    return product.unit === 'กระป๋อง' ? 50 : 0;
+  }
+
+  /**
+   * ชนิดสมุนไพรของสินค้า (ใช้หาดอกแห้งในคลังที่จะนำมาแปรรูป)
+   */
+  // หน่วยนับต่อชิ้น: สินค้าหน่วย "กรัม" ใช้คำหน้าชื่อสินค้า เช่น "ซองดอก..." → ซอง, "กล่องดอก..." → กล่อง
+  getProductPieceUnit(product) {
+    if (!product) return '';
+    if (product.unit !== 'กรัม') return product.unit;
+    const m = String(product.name || '').trim().match(/^(.+?)ดอก/);
+    return (m && m[1].trim()) ? m[1].trim() : 'ชิ้น';
+  }
+
+  getProductHerb(product) {
+    const text = `${product.category || ''} ${product.name || ''}`;
+    const roadmaps = this.getRoadmaps ? this.getRoadmaps() : {};
+    const herbs = Array.from(new Set(['เก๊กฮวย', 'คาโมมายล์', ...Object.keys(roadmaps || {})]));
+    return herbs.find(h => text.includes(h)) || '';
+  }
+
+  /**
+   * แปรรูปสินค้า: เลือกสินค้าที่เพิ่มไว้ในคลัง (เช่น ซอง 30 กรัม / กระป๋อง 50 กรัม)
+   * หักดอกแห้งตามกรัมต่อหน่วย × จำนวน แล้วเพิ่มสต็อกสินค้านั้น
+   */
+  processProductPackaging(productId, quantity, operatorName = '', note = '', processedDate = null) {
+    const product = this.getProductById(productId);
+    if (!product) throw new Error('ไม่พบสินค้าที่เลือก');
+    if (product.unit === 'กก.' || product.unit === 'kg') throw new Error('สินค้านี้เป็นดอกแห้งแบบกิโลกรัม ไม่ใช่สินค้าแปรรูป');
+    const grams = this.getProductPackGrams(product);
+    if (!(grams > 0)) throw new Error('สินค้านี้ยังไม่ระบุน้ำหนักต่อหน่วย (กรัม) กรุณาแก้ไขสินค้าในหน้าคลังสินค้าก่อน');
+    const qty = parseInt(quantity) || 0;
+    if (qty <= 0) throw new Error('จำนวนที่แปรรูปต้องมากกว่า 0');
+    const herb = this.getProductHerb(product);
+    if (!herb) throw new Error('ไม่พบชนิดสมุนไพรของสินค้านี้ (ระบุหมวดหมู่พืชในสินค้า)');
+
+    const usedKg = parseFloat(((qty * grams) / 1000).toFixed(3));
+    const inventory = this.getInventory();
+    const lots = inventory
+      .filter(i => i.herbType && i.herbType.includes(herb) && (parseFloat(i.dryStockKg) || 0) > 0)
+      .sort((a, b) => new Date(a.processedDate || a.dryDate || 0) - new Date(b.processedDate || b.dryDate || 0));
+    const available = lots.reduce((sum, i) => sum + (parseFloat(i.dryStockKg) || 0), 0);
+    if (available + 0.0005 < usedKg) {
+      throw new Error(`ดอก${herb}แห้งในคลังไม่พอ (มี ${available.toFixed(2)} กิโลกรัม ต้องใช้ ${usedKg.toFixed(2)} กิโลกรัม)`);
+    }
+
+    // หักดอกแห้งจากล็อตเก่าก่อน
+    let remain = usedKg;
+    lots.forEach(i => {
+      if (remain <= 0) return;
+      const cur = parseFloat(i.dryStockKg) || 0;
+      const take = Math.min(cur, remain);
+      i.dryStockKg = Math.max(0, parseFloat((cur - take).toFixed(3)));
+      remain -= take;
+    });
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+    if (typeof this.inventoryCache !== 'undefined' && this.inventoryCache) this.inventoryCache = inventory;
+
+    // หักสต็อกดอกแห้งแบบกิโลกรัมในรายการสินค้า
+    const bulk = this.getProducts().find(p => (p.unit === 'กก.' || p.unit === 'kg') && this.getProductHerb(p) === herb);
+    if (bulk) {
+      this.updateProduct(bulk.id, { stock: Math.max(0, parseFloat(((parseFloat(bulk.stock) || 0) - usedKg).toFixed(3))) });
+    }
+
+    // เพิ่มสต็อกสินค้าแปรรูป
+    const actualDate = processedDate || new Date().toISOString().split('T')[0];
+    this.updateProduct(product.id, {
+      stock: (parseFloat(product.stock) || 0) + qty,
+      updatedDate: actualDate
+    });
+
+    const yearShort = String(new Date(actualDate).getFullYear() + 543).slice(-2);
+    const existing = this.getPackagingBatches();
+    let seq = existing.length + 1;
+    while (existing.some(b => b.id === `PACK-${yearShort}${String(seq).padStart(2, '0')}`)) seq++;
+    const batch = {
+      id: `PACK-${yearShort}${String(seq).padStart(2, '0')}`,
+      herbType: herb,
+      dryUsedKg: usedKg,
+      packageSize: `${grams} G`,
+      packGrams: grams,
+      jarsProduced: qty,
+      unit: this.getProductPieceUnit(product),
+      processedDate: actualDate,
+      productId: product.id,
+      productName: product.name,
+      operatorName: operatorName || 'สมาชิกกลุ่มแปรรูป',
+      note: note || `แปรรูป ${product.name} จำนวน ${qty} ${product.unit} (${grams} กรัม/${product.unit})`
+    };
+    this.addPackagingBatch(batch);
     return batch;
   }
 
@@ -2389,9 +2536,18 @@ export class AppState {
 
       // AUTO-MIGRATE: Clean up old units based on strict criteria (กก. and กระป๋อง only)
       products.forEach(p => {
-        if (p.unit === 'กระปุก' || p.unit === 'ซอง' || p.unit === 'กล่อง' || p.unit === 'ขวด' || p.unit === 'custom') {
+        if (p.unit === 'custom') {
           p.unit = 'กระป๋อง';
           needsSave = true;
+        }
+        // สินค้าแบบบรรจุที่ตั้งชื่อเป็นกิโลกรัมต่อชิ้น เช่น "ซองดอก…อบแห้ง 30 กิโลกรัม" → นับเป็นชิ้น (หน่วยจากคำหน้าชื่อ) ชิ้นละตามน้ำหนักในชื่อ
+        if (p.unit === 'กก.' || p.unit === 'kg') {
+          const mk = String(p.name || '').match(/^(.+?)ดอก.*?(\d+(?:\.\d+)?)\s*กิโลกรัม/);
+          if (mk && mk[1].trim()) {
+            p.unit = 'กรัม';
+            p.packGrams = parseFloat(mk[2]) * 1000;
+            needsSave = true;
+          }
         }
       });
 
@@ -2623,6 +2779,11 @@ export class AppState {
       category: (productData.category || 'ทั่วไป').trim(),
       updatedDate: productData.updatedDate || new Date().toISOString().split('T')[0]
     };
+    // น้ำหนักต่อหน่วย (กรัม) สำหรับสินค้าแปรรูป เช่น ซอง 30 กรัม, กระป๋อง 50 กรัม
+    if (newProduct.unit !== 'กก.' && newProduct.unit !== 'kg') {
+      const g = parseFloat(productData.packGrams);
+      if (g > 0) newProduct.packGrams = g;
+    }
 
     if (!newProduct.name) throw new Error('กรุณาระบุชื่อสินค้า');
     if (newProduct.price < 0) throw new Error('ราคาต่อหน่วยต้องไม่ติดลบ');
@@ -2647,6 +2808,11 @@ export class AppState {
       category: productData.category !== undefined ? productData.category.trim() : products[index].category,
       updatedDate: new Date().toISOString().split('T')[0]
     };
+    if (productData.packGrams !== undefined) {
+      const g = parseFloat(productData.packGrams);
+      if (g > 0 && products[index].unit !== 'กก.' && products[index].unit !== 'kg') products[index].packGrams = g;
+      else delete products[index].packGrams;
+    }
 
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
     return products[index];

@@ -17,11 +17,27 @@ const THAI_MONTHS_SELECT = [
   { val: '12', name: 'ธันวาคม' }
 ];
 
+// หน่วยเรียก: พิมพ์เองหรือเลือกจากรายการได้ ("กิโลกรัม" เก็บเป็น "กก." ตามระบบเดิม)
+const normalizeUnit = (v) => {
+  const t = String(v == null ? '' : v).trim();
+  return (t === 'กิโลกรัม' || t === 'กก.' || t.toLowerCase() === 'kg') ? 'กก.' : t;
+};
+const unitDisplay = (u) => (u === 'กก.' || u === 'kg') ? 'กิโลกรัม' : u;
+const gramsLabelText = (u, star) => (u === 'กรัม' ? 'ต้องการกี่กรัม' : `ใช้กี่กรัมต่อ 1 ${u && u !== 'กก.' ? u : 'หน่วย'}`) + (star ? ' *' : '');
+// หน่วยเรียก: เลือกได้เฉพาะ กิโลกรัม / กรัม (ถ้าสินค้าเดิมใช้หน่วยอื่น จะคงหน่วยนั้นไว้ในรายการ)
+const unitOptionsHtml = (current) => {
+  const cur = unitDisplay(current || 'กก.');
+  const list = ['กิโลกรัม', 'กรัม'];
+  if (cur && !list.includes(cur)) list.push(cur);
+  return list.map(u => `<option value="${u}"${u === cur ? ' selected' : ''}>${u}</option>`).join('');
+};
+
 export const InventoryComponent = {
   searchQuery: '',
   unitFilter: 'all',
   monthFilter: 'all',
   yearFilter: 'all',
+  historyProductId: null,
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -83,21 +99,27 @@ export const InventoryComponent = {
     const productCardsHtml = allProducts.length === 0 ? '' : `
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         ${allProducts.map(p => {
-          const isCan = p.unit === 'กระป๋อง';
-          const unitLabel = isCan ? 'กระป๋อง' : 'กิโลกรัม';
+          const isCan = p.unit !== 'กก.' && p.unit !== 'kg';
+          const unitLabel = isCan ? appState.getProductPieceUnit(p) : 'กิโลกรัม';
           const stock = parseFloat(p.stock) || 0;
           const stockText = isCan ? String(Math.round(stock)) : stock.toFixed(2);
           const accent = isCan ? 'border-teal-200 bg-teal-50/40' : 'border-amber-200 bg-amber-50/40';
           const iconBg = isCan ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700';
           return `
-            <div class="p-4 rounded-2xl border-2 ${accent} shadow-sm flex flex-col gap-3">
+            <div class="product-card cursor-pointer p-4 rounded-2xl border-2 ${accent} shadow-sm flex flex-col gap-3 transition-all hover:shadow-md ${this.historyProductId === p.id ? 'ring-4 ring-emerald-400' : ''}" data-id="${escHtml(p.id)}" title="คลิกเพื่อดูประวัติการเข้าออก">
               <div class="flex items-start gap-3">
                 <div class="w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center text-lg shrink-0">
                   <i class="fas ${isCan ? 'fa-jar' : 'fa-box-open'}"></i>
                 </div>
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <div class="font-bold text-gray-900 text-sm leading-snug">${escHtml(p.name)}</div>
                   <div class="text-xs text-gray-500 font-mono mt-0.5">${escHtml(p.id)} · ${escHtml(p.category)}</div>
+                </div>
+                <div class="flex gap-1.5 shrink-0">
+                  <button type="button" class="edit-product-btn w-9 h-9 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 flex items-center justify-center"
+                    data-id="${escHtml(p.id)}" title="แก้ไขสินค้า"><i class="fas fa-edit text-sm"></i></button>
+                  <button type="button" class="delete-product-btn w-9 h-9 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center"
+                    data-id="${escHtml(p.id)}" title="ลบสินค้า"><i class="fas fa-trash text-sm"></i></button>
                 </div>
               </div>
               <div class="rounded-xl ${isCan ? 'bg-teal-600' : 'bg-amber-600'} px-4 py-3 text-white flex items-end justify-between gap-3">
@@ -493,6 +515,60 @@ export const InventoryComponent = {
       </div>
     `;
 
+    // ประวัติการเข้าออกสินค้า (แสดงเมื่อคลิกการ์ดสินค้า)
+    const buildHistoryHtml = () => {
+      const sel = allProducts.find(p => p.id === this.historyProductId);
+      if (!sel) {
+        return `
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm py-14 px-6 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto text-xl mb-2"><i class="fas fa-clock-rotate-left"></i></div>
+            <p class="font-bold text-gray-600">ประวัติการเข้าออกสินค้า</p>
+            <p class="text-sm text-gray-400 mt-1">คลิกที่การ์ดสินค้าด้านบนเพื่อดูประวัติของสินค้านั้น</p>
+          </div>`;
+      }
+      const isKg = sel.unit === 'กก.' || sel.unit === 'kg';
+      const uLabel = isKg ? 'กิโลกรัม' : sel.unit;
+      const rows = [];
+      try {
+        (appState.getPackagingBatches() || []).filter(b => b.productId === sel.id).forEach(b => {
+          rows.push({ date: b.processedDate || '', type: 'in', qty: parseFloat(b.jarsProduced) || 0,
+            note: `แปรรูปจากดอกแห้ง ${(parseFloat(b.dryUsedKg) || 0).toLocaleString()} กิโลกรัม` });
+        });
+      } catch (e) { /* ignore */ }
+      try {
+        (appState.getSales() || []).filter(sl => sl.cropId === sel.id).forEach(sl => {
+          rows.push({ date: sl.date || '', type: 'out', qty: parseFloat(sl.amount) || 0, note: `ขายให้ ${sl.customer || 'ทั่วไป'}` });
+        });
+      } catch (e) { /* ignore */ }
+      rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const fmtQty = (n) => isKg ? n.toFixed(2) : String(Math.round(n * 100) / 100);
+      const body = rows.length === 0
+        ? `<tr><td colspan="4" class="py-10 px-6 text-center text-sm text-gray-400">ยังไม่มีประวัติเข้าออกของสินค้านี้</td></tr>`
+        : rows.map(r => `
+          <tr class="border-b border-gray-100">
+            <td class="py-3 px-6 text-sm text-gray-700">${r.date ? formatThaiDate(r.date) : '-'}</td>
+            <td class="py-3 px-6"><span class="px-2.5 py-0.5 rounded-md text-sm font-bold ${r.type === 'in' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">${r.type === 'in' ? 'เข้า' : 'ออก'}</span></td>
+            <td class="py-3 px-6 text-right font-mono font-bold ${r.type === 'in' ? 'text-emerald-700' : 'text-rose-600'}">${r.type === 'in' ? '+' : '-'}${fmtQty(r.qty)} <span class="text-xs font-normal text-gray-500">${uLabel}</span></td>
+            <td class="py-3 px-6 text-sm text-gray-600">${escHtml(r.note)}</td>
+          </tr>`).join('');
+      return `
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
+            <div class="font-bold text-gray-800"><i class="fas fa-clock-rotate-left text-emerald-700 mr-2"></i>ประวัติการเข้าออก: ${escHtml(sel.name)} <span class="font-mono text-xs text-gray-500">(${escHtml(sel.id)})</span></div>
+            <div class="text-sm text-gray-500">คงเหลือ <b class="text-gray-800">${fmtQty(parseFloat(sel.stock) || 0)}</b> ${uLabel}</div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead><tr class="text-sm font-bold text-gray-600 border-b border-gray-200">
+                <th class="py-3 px-6">วันที่</th><th class="py-3 px-6 w-28">รายการ</th><th class="py-3 px-6 text-right w-44">จำนวน</th><th class="py-3 px-6">รายละเอียด</th>
+              </tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </div>`;
+    };
+    const historyHtml = buildHistoryHtml();
+
     // 5. Generate Rows for the 5-Column Table (All Products)
     const tableRowsHtml = filteredProducts.length === 0
       ? `
@@ -616,106 +692,23 @@ export const InventoryComponent = {
         <!-- การ์ดสินค้าแต่ละรายการ (ราคา / สต็อก) -->
         ${productCardsHtml}
 
-        <!-- Search and Filter Bar (พร้อมตัวกรองเดือนและปี) -->
-        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm space-y-3">
-          <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-            
-            <!-- Search Input -->
-            <div class="relative flex-1 min-w-[240px]">
-              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                <i class="fas fa-search text-sm"></i>
-              </span>
-              <input type="text" id="inventory-search-input" value="${this.searchQuery}" placeholder="ค้นหารหัสสินค้า (PRD-XXX) หรือชื่อสินค้า..." 
-                class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-
-            <!-- Filter Controls Group: Unit, Month, Year -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <!-- Unit Filter -->
-              <div class="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
-                <span class="text-sm font-bold text-gray-500 whitespace-nowrap"><i class="fas fa-filter text-emerald-600 mr-1"></i>หน่วย:</span>
-                <select id="inventory-unit-filter" class="px-1.5 py-0.5 rounded-lg border-0 text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer">
-                  <option value="all" ${this.unitFilter === 'all' ? 'selected' : ''}>ทุกหน่วย (${allProducts.length})</option>
-                  ${activeUnits.map(u => `
-                    <option value="${u}" ${this.unitFilter === u ? 'selected' : ''}>${u}</option>
-                  `).join('')}
-                </select>
-              </div>
-
-              <!-- Month Filter (ตัวกรองเดือน) -->
-              <div class="flex items-center gap-1.5 bg-emerald-50/70 px-3 py-1.5 rounded-xl border border-emerald-200/80">
-                <span class="text-sm font-bold text-emerald-800 whitespace-nowrap"><i class="fas fa-calendar-days text-emerald-600 mr-1"></i>เดือน:</span>
-                <select id="inventory-month-filter" class="px-1.5 py-0.5 rounded-lg border-0 text-sm font-bold text-emerald-900 bg-transparent focus:outline-none cursor-pointer">
-                  <option value="all" ${this.monthFilter === 'all' ? 'selected' : ''}>ทุกเดือน</option>
-                  ${THAI_MONTHS_SELECT.map(m => `
-                    <option value="${m.val}" ${this.monthFilter === m.val ? 'selected' : ''}>${m.name}</option>
-                  `).join('')}
-                </select>
-              </div>
-
-              <!-- Year Filter (ตัวกรองปี) -->
-              <div class="flex items-center gap-1.5 bg-emerald-50/70 px-3 py-1.5 rounded-xl border border-emerald-200/80">
-                <span class="text-sm font-bold text-emerald-800 whitespace-nowrap"><i class="fas fa-calendar text-emerald-600 mr-1"></i>ปี:</span>
-                <select id="inventory-year-filter" class="px-1.5 py-0.5 rounded-lg border-0 text-sm font-bold text-emerald-900 bg-transparent focus:outline-none cursor-pointer">
-                  <option value="all" ${this.yearFilter === 'all' ? 'selected' : ''}>ทุกปี</option>
-                  ${availableYears.map(y => `
-                    <option value="${y}" ${this.yearFilter === y ? 'selected' : ''}>พ.ศ. ${parseInt(y) + 543} (${y})</option>
-                  `).join('')}
-                </select>
-              </div>
-
-              <!-- Reset Filters Button -->
-              ${(this.unitFilter !== 'all' || this.monthFilter !== 'all' || this.yearFilter !== 'all' || this.searchQuery) ? `
-                <button id="inventory-reset-filters-btn" class="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold transition-all flex items-center gap-1.5 shadow-2xs active:scale-95" title="ล้างตัวกรองทั้งหมด">
-                  <i class="fas fa-rotate-left text-sm text-gray-500"></i>
-                  <span>ล้างตัวกรอง</span>
-                </button>
-              ` : ''}
-            </div>
-
-          </div>
-
-          <!-- Active Filter Status Line -->
-          <div class="flex items-center justify-between text-sm text-gray-500 pt-2.5 border-t border-gray-100 flex-wrap gap-2">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium text-gray-400">สถานะตัวกรอง:</span>
-              <span class="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-sm">
-                ${this.yearFilter === 'all' ? 'ทุกปี' : `ปี พ.ศ. ${parseInt(this.yearFilter)+543}`} · 
-                ${this.monthFilter === 'all' ? 'ทุกเดือน' : `เดือน${THAI_MONTHS_SELECT.find(m => m.val === this.monthFilter)?.name || this.monthFilter}`} · 
-                ${this.unitFilter === 'all' ? 'ทุกหน่วยเรียก' : `หน่วย ${this.unitFilter}`}
-              </span>
-            </div>
-            <div class="text-right">
-              แสดงผล <b>${filteredProducts.length}</b> จากทั้งหมด <b>${allProducts.length}</b> รายการ
-            </div>
-          </div>
-        </div>
-
-
-        <!-- ตารางคลังสินค้า 5 คอลัมน์ (Strict 5-Column Table) -->
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-gray-50 text-sm font-bold text-gray-600 border-b border-gray-200">
-                  <th class="py-4 px-6 text-left w-36 uppercase tracking-wider">รหัสสินค้า</th>
-                  <th class="py-4 px-6 text-left uppercase tracking-wider">สินค้า</th>
-                  <th class="py-4 px-6 text-right w-44 uppercase tracking-wider">ราคา</th>
-                  <th class="py-4 px-6 text-center w-36 uppercase tracking-wider">หน่วยเรียก</th>
-                  <th class="py-4 px-6 text-right w-72 uppercase tracking-wider">จำนวนที่มีอยู่</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRowsHtml}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <!-- ประวัติการเข้าออกสินค้า -->
+        ${historyHtml}
       </div>
     `;
   },
 
   init() {
+    // 0. คลิกการ์ดสินค้า → แสดง/ซ่อนประวัติการเข้าออก
+    document.querySelectorAll('.product-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        const id = card.getAttribute('data-id');
+        this.historyProductId = (this.historyProductId === id) ? null : id;
+        this.refreshView();
+      });
+    });
+
     // 1. Button + เพิ่มรายการสินค้าใหม่
     const addProductBtn = document.getElementById('open-add-product-btn');
     if (addProductBtn) {
@@ -1427,14 +1420,13 @@ export const InventoryComponent = {
               <label for="prod-id" class="block text-sm font-semibold text-gray-500 uppercase mb-1">รหัสสินค้า *</label>
               <input type="text" id="prod-id" name="id" required value="${nextId}" placeholder="เช่น PRD-001"
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <span class="text-sm text-gray-400 block mt-0.5">ระบบรันรหัสอัตโนมัติให้ สามารถปรับเปลี่ยนได้</span>
             </div>
 
             <div>
-              <label for="prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช / ประเภทสินค้า</label>
+              <label for="prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช</label>
               <select id="prod-category" name="category"
                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
-                ${herbCategories.map(h => `<option value="${h}||kg" ${defaultUnit !== 'กระป๋อง' ? '' : ''}>${h} — ดอกอบแห้ง (กิโลกรัม)</option><option value="${h}||can" ${defaultUnit === 'กระป๋อง' && h === herbCategories[0] ? 'selected' : ''}>${h} — กระป๋อง 50 กรัม</option>`).join('')}
+                ${herbCategories.map(h => `<option value="${h}">${h}</option>`).join('')}
               </select>
             </div>
 
@@ -1452,20 +1444,28 @@ export const InventoryComponent = {
 
             <div>
               <label for="prod-unit" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หน่วยเรียก *</label>
-              <div class="flex items-center gap-2">
-                <select id="prod-unit" name="unit" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                  <option value="กก." ${defaultUnit === 'กก.' ? 'selected' : ''}>กิโลกรัม</option>
-                  <option value="กระป๋อง" ${defaultUnit === 'กระป๋อง' ? 'selected' : ''}>กระป๋อง</option>
-                </select>
-              </div>
+              <select id="prod-unit" name="unit" required
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                ${unitOptionsHtml(defaultUnit)}
+              </select>
             </div>
 
+            <div id="prod-kg-wrap" class="md:col-span-2">
+              <label for="prod-kg" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ต้องการกี่กิโลกรัม</label>
+              <input type="number" id="prod-kg" min="0" step="any" value="" placeholder="ใส่จำนวนกิโลกรัม"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div id="prod-grams-wrap" class="hidden md:col-span-2">
+              <label for="prod-grams" id="prod-grams-label" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ใช้กี่กรัมต่อ 1 ${defaultUnit === 'กก.' ? 'หน่วย' : defaultUnit} *</label>
+              <input type="number" id="prod-grams" name="packGrams" min="1" step="any" value="" placeholder="ใส่จำนวนกรัม"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
 
             <div class="md:col-span-2">
               <label for="prod-stock" class="block text-sm font-semibold text-gray-500 uppercase mb-1">จำนวนสต็อกเริ่มต้นที่มีอยู่ *</label>
               <input type="number" id="prod-stock" name="stock" required min="0" step="any" value="0" placeholder="เช่น 125, 15.5"
                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <span class="text-sm text-gray-400 block mt-0.5">ระบุยอดสินค้าที่มีอยู่จริงในคลังสินค้า</span>
             </div>
           </div>
         </div>
@@ -1495,25 +1495,61 @@ export const InventoryComponent = {
         const nameInp = dialog.querySelector('#prod-name');
         const unitSel = dialog.querySelector('#prod-unit');
         const priceInp = dialog.querySelector('#prod-price');
+        const gramsWrap = dialog.querySelector('#prod-grams-wrap');
+        const gramsInp = dialog.querySelector('#prod-grams');
+        const kgWrap = dialog.querySelector('#prod-kg-wrap');
+        const kgInp = dialog.querySelector('#prod-kg');
         let autoName = '';
         let autoPrice = '';
-        const applyCategory = () => {
-          if (!catSel) return;
-          const [herb, kind] = catSel.value.split('||');
-          const isCan = kind === 'can';
-          if (unitSel) unitSel.value = isCan ? 'กระป๋อง' : 'กก.';
-          const newName = isCan ? `กระป๋องดอก${herb}อบแห้ง 50 กรัม` : `ดอก${herb}อบแห้ง`;
+        const curUnit = () => normalizeUnit(unitSel ? unitSel.value : 'กก.');
+        const gramsLabel = dialog.querySelector('#prod-grams-label');
+        const syncGramsVisibility = () => {
+          const u = curUnit();
+          if (gramsWrap) gramsWrap.classList.toggle('hidden', u === 'กก.' || u === '');
+          if (kgWrap) kgWrap.classList.toggle('hidden', u !== 'กก.');
+          if (gramsInp) gramsInp.required = !(u === 'กก.' || u === '');
+          if (gramsLabel) gramsLabel.textContent = gramsLabelText(u, true);
+        };
+        const buildName = () => {
+          const herb = catSel ? catSel.value : '';
+          const unit = curUnit();
+          const g = gramsInp ? (parseFloat(gramsInp.value) || '') : '';
+          const kg = kgInp ? (parseFloat(kgInp.value) || '') : '';
+          const cur = nameInp ? nameInp.value : '';
+          // คงคำหน้าชื่อที่พิมพ์ไว้ (เช่น ซอง / กล่อง) ไม่ลบทิ้ง; ถ้าชื่อที่พิมพ์เองไม่มีคำว่า "ดอก" ไม่แตะชื่อ
+          const m = cur.match(/^(.*?)ดอก/);
+          if (cur && !m) return cur;
+          const prefix = m ? m[1] : (unit !== 'กก.' && unit !== 'กรัม' && unit ? unit : '');
+          if (unit === 'กก.' || !unit) return `${prefix}ดอก${herb}อบแห้ง${kg ? ' ' + kg + ' กิโลกรัม' : ''}`;
+          return `${prefix}ดอก${herb}อบแห้ง${g ? ' ' + g + ' กรัม' : ''}`;
+        };
+        // เติมชื่อและราคาให้อัตโนมัติ (ถ้ายังไม่ได้พิมพ์เอง)
+        const refreshAuto = () => {
+          const herb = catSel ? catSel.value : '';
+          const unit = curUnit();
+          const newName = buildName();
           if (nameInp && (!nameInp.value || nameInp.value === autoName)) nameInp.value = newName;
           autoName = newName;
           let price = '';
-          try { price = appState.getProductPrice(herb, isCan ? 'กระป๋อง' : 'กก.'); } catch (err) { price = ''; }
+          try { price = (unit === 'กก.' || unit === 'กระป๋อง') ? appState.getProductPrice(herb, unit) : ''; } catch (err) { price = ''; }
           if (priceInp && (!priceInp.value || String(priceInp.value) === String(autoPrice))) priceInp.value = price;
           autoPrice = price;
         };
-        if (catSel) {
-          catSel.addEventListener('change', applyCategory);
-          if (defaultUnit === 'กระป๋อง') applyCategory();
+        if (catSel) catSel.addEventListener('change', refreshAuto);
+        if (gramsInp) gramsInp.addEventListener('input', () => { if (nameInp) nameInp.value = buildName(); refreshAuto(); });
+        if (kgInp) kgInp.addEventListener('input', () => { if (nameInp) nameInp.value = buildName(); refreshAuto(); });
+        if (unitSel) {
+          unitSel.addEventListener('input', () => { syncGramsVisibility(); refreshAuto(); });
+          unitSel.addEventListener('change', () => {
+            const u = curUnit();
+            if (gramsInp) gramsInp.value = '';
+            if (kgInp) kgInp.value = '';
+            syncGramsVisibility();
+            refreshAuto();
+          });
         }
+        syncGramsVisibility();
+        if (defaultUnit === 'กระป๋อง') refreshAuto();
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1521,11 +1557,18 @@ export const InventoryComponent = {
             const data = {
               id: formData.get('id'),
               name: formData.get('name'),
-              category: String(formData.get('category') || '').split('||')[0],
+              category: String(formData.get('category') || ''),
               price: formData.get('price'),
-              unit: formData.get('unit'),
-              stock: formData.get('stock')
+              unit: normalizeUnit(formData.get('unit')),
+              stock: formData.get('stock'),
+              packGrams: formData.get('packGrams')
             };
+            // ระบุ "ต้องการกี่กิโลกรัม" = สินค้าแบบบรรจุชิ้นละกี่กิโลกรัม (หน่วยนับตามคำหน้าชื่อ เช่น ซอง/กล่อง)
+            const kgPer = parseFloat(form.querySelector('#prod-kg') ? form.querySelector('#prod-kg').value : '');
+            if (data.unit === 'กก.' && kgPer > 0) {
+              data.unit = 'กรัม';
+              data.packGrams = kgPer * 1000;
+            }
 
             try {
               appState.addProduct(data);
@@ -1584,10 +1627,16 @@ export const InventoryComponent = {
 
             <div>
               <label for="edit-prod-unit" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หน่วยเรียก *</label>
-              <select id="edit-prod-unit" name="unit" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                <option value="กก." ${product.unit === 'กก.' ? 'selected' : ''}>กิโลกรัม</option>
-                <option value="กระป๋อง" ${product.unit === 'กระป๋อง' ? 'selected' : ''}>กระป๋อง</option>
+              <select id="edit-prod-unit" name="unit" required
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                ${unitOptionsHtml(product.unit)}
               </select>
+            </div>
+
+            <div id="edit-prod-grams-wrap" class="${product.unit === 'กก.' ? 'hidden ' : ''}md:col-span-2">
+              <label for="edit-prod-grams" id="edit-prod-grams-label" class="block text-sm font-semibold text-gray-500 uppercase mb-1">ใช้กี่กรัมต่อ 1 ${product.unit === 'กก.' ? 'หน่วย' : product.unit}</label>
+              <input type="number" id="edit-prod-grams" name="packGrams" min="1" step="any" value="${appState.getProductPackGrams(product) || ''}"
+                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
             <div class="md:col-span-2">
@@ -1618,6 +1667,18 @@ export const InventoryComponent = {
       content: formHtml,
       onRender: (dialog) => {
         const form = dialog.querySelector('#global-edit-product-form');
+        const editUnitSel = dialog.querySelector('#edit-prod-unit');
+        const editGramsWrap = dialog.querySelector('#edit-prod-grams-wrap');
+        if (editUnitSel && editGramsWrap) {
+          const editGramsLabel = dialog.querySelector('#edit-prod-grams-label');
+          const syncEdit = () => {
+            const u = normalizeUnit(editUnitSel.value);
+            editGramsWrap.classList.toggle('hidden', u === 'กก.' || u === '');
+            if (editGramsLabel) editGramsLabel.textContent = gramsLabelText(u, false);
+          };
+          editUnitSel.addEventListener('input', syncEdit);
+          editUnitSel.addEventListener('change', syncEdit);
+        }
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1626,8 +1687,9 @@ export const InventoryComponent = {
               name: formData.get('name'),
               category: formData.get('category') || product.category,
               price: formData.get('price'),
-              unit: formData.get('unit'),
-              stock: formData.get('stock')
+              unit: normalizeUnit(formData.get('unit')),
+              stock: formData.get('stock'),
+              packGrams: formData.get('packGrams')
             };
 
             try {

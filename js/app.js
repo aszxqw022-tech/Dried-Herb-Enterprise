@@ -5,16 +5,16 @@ import { DashboardComponent } from './components/dashboard.js?v=21';
 import { MembersComponent } from './components/members.js?v=15';
 import { PlotsComponent } from './components/plots.js?v=5';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=20';
-import { CropsComponent } from './components/crops.js?v=48';
-import { CropHistoryComponent } from './components/cropHistory.js?v=10';
-import { FreshBuyingComponent } from './components/freshBuying.js?v=14';
-import { FreshProduceComponent } from './components/freshProduce.js?v=45';
+import { CropsComponent } from './components/crops.js?v=49';
+import { CropHistoryComponent } from './components/cropHistory.js?v=12';
+import { FreshBuyingComponent } from './components/freshBuying.js?v=16';
+import { FreshProduceComponent } from './components/freshProduce.js?v=57';
 import { SettingsComponent } from './components/settings.js?v=9';
 import { CustomersComponent } from './components/customers.js?v=7';
-import { InventoryComponent } from './components/inventory.js?v=36'; // Phase 2
+import { InventoryComponent } from './components/inventory.js?v=50'; // Phase 2
 import { FinanceComponent } from './components/finance.js?v=4';
-import { CostRevenueComponent } from './components/costRevenue.js?v=18';
-import { SalesComponent } from './components/sales.js?v=20';
+import { CostRevenueComponent } from './components/costRevenue.js?v=20';
+import { SalesComponent } from './components/sales.js?v=25';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 import { LoginComponent } from './components/login.js';
 
@@ -29,7 +29,14 @@ class AppController {
       crops: CropsComponent,
       'crop-history': CropHistoryComponent,
       'fresh-buying': FreshBuyingComponent,
-      'fresh-produce': FreshProduceComponent,
+      'fresh-produce': {
+        render() { FreshProduceComponent.mode = 'drying'; return FreshProduceComponent.render(); },
+        init() { FreshProduceComponent.init(); }
+      },
+      canning: {
+        render() { FreshProduceComponent.mode = 'canning'; return FreshProduceComponent.render(); },
+        init() { FreshProduceComponent.init(); }
+      },
       customers: CustomersComponent,
       settings: SettingsComponent,
       inventory: InventoryComponent,  // Phase 2
@@ -283,10 +290,6 @@ class AppController {
       if (container) {
         const memCount = (appState.membersCache && appState.membersCache.length) ? appState.membersCache.length : appState.getMembers().length;
         container.innerHTML = `
-          <div id="supabase-status-badge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 shadow-2xs">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-xs font-bold text-emerald-800">Supabase Cloud (${memCount} สมาชิก)</span>
-          </div>
           <div class="flex items-center gap-3 bg-emerald-50/80 px-3 py-1.5 rounded-2xl border border-emerald-100 shadow-sm">
             <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
               ${user.avatarText || 'U'}
