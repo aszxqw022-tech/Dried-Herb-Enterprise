@@ -309,7 +309,9 @@ export const DashboardComponent = {
     let totalCostVal = 0;
     try {
       const rawPur = JSON.parse(localStorage.getItem('herb_enterprise_fresh_purchases') || '[]');
+      const liveCropIds = new Set(appState.getCrops().map(c => c.id));
       (Array.isArray(rawPur) ? rawPur : []).forEach(pu => {
+        if (!liveCropIds.has(pu.cropId)) return; // นับเฉพาะรายการที่ยังมีรอบปลูก (ตรงกับหน้ารับซื้อ)
         const d = String(pu.date || '');
         if (dashFilter.year !== 'all' && d.slice(0, 4) !== dashFilter.year) return;
         if (dashFilter.month !== 'all' && d.slice(5, 7) !== dashFilter.month) return;

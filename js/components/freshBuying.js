@@ -439,7 +439,10 @@ export const FreshBuyingComponent = {
   },
 
   savePurchases(list) {
+    const prev = this.getPurchases();
     try { localStorage.setItem('herb_enterprise_fresh_purchases', JSON.stringify(list)); } catch (e) { /* ignore */ }
+    // บันทึกขึ้น Supabase ด้วย เพื่อให้ทุกเครื่องเห็นข้อมูลเดียวกัน
+    try { appState.syncJsonList('fresh_purchases', 'herb_enterprise_fresh_purchases', list, prev); } catch (e) { console.error(e); }
   },
 
   // Modal: รับซื้อดอกสดจากสมาชิก — ดึงจากรอบเพาะปลูกที่บันทึกเก็บเกี่ยวแล้ว

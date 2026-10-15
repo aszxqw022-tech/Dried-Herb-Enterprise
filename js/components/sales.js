@@ -70,7 +70,11 @@ function getDirectSales() {
 }
 
 function saveDirectSales(sales) {
+  let prev = [];
+  try { prev = JSON.parse(localStorage.getItem(DIRECT_SALES_KEY)) || []; } catch (e) { prev = []; }
   localStorage.setItem(DIRECT_SALES_KEY, JSON.stringify(sales));
+  // บันทึกบิลขึ้น Supabase ด้วย เพื่อให้ทุกเครื่องเห็นข้อมูลเดียวกัน
+  try { appState.syncJsonList('direct_sales', DIRECT_SALES_KEY, sales, prev); } catch (e) { console.error(e); }
 }
 
 function generateSaleId() {

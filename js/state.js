@@ -327,6 +327,15 @@ export class AppState {
         .select('*')
         .order('id', { ascending: true });
       
+      if (!cropsError && cropsData && cropsData.length === 0) {
+        let localCrops = [];
+        try { localCrops = JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS) || '[]'); } catch (e) { localCrops = []; }
+        if (Array.isArray(localCrops) && localCrops.length) {
+          supabaseClient.from('crops').upsert(localCrops.filter(c => c && c.id).map(c => this.cropToDb(c))).then(({ error }) => {
+            if (error) console.error('Supabase push local crops error:', error);
+          });
+        }
+      }
       if (!cropsError && cropsData && cropsData.length > 0) {
         // ตารางออนไลน์ไม่มีคอลัมน์บางอย่าง (เช่น ชนิดพืช seedlingSource, ความคืบหน้าขั้นตอน)
         // จึงนำค่าที่เก็บไว้ในเครื่องมาผสม ไม่ให้ข้อมูลหายหรือกลายเป็นค่าเริ่มต้น (เก๊กฮวย) หลังซิงค์
@@ -342,9 +351,13 @@ export class AppState {
           const prev = prevLocalById.get(c.id) || {};
           // ถ้าในเครื่องบันทึกเก็บเกี่ยว/อบแห้งไว้แล้ว แต่ออนไลน์ยังเป็นค่าเก่า (อัปเดตออนไลน์ไม่สำเร็จ) ให้คงค่าในเครื่องไว้ ไม่ให้ข้อมูลหาย
           const keepLocalHarvest = prev.status === 'harvested' && c.status !== 'harvested';
+          const fromExtra = (c.extra && typeof c.extra === 'object') ? c.extra : {};
+          const cloudSteps = c.step_progress && Object.keys(c.step_progress).length ? c.step_progress : null;
           return {
+            ...fromExtra,
             ...prev,
             ...c,
+            stepProgress: cloudSteps || prev.stepProgress || fromExtra.stepProgress || {},
             ...(keepLocalHarvest ? {
               status: prev.status,
               yield: prev.yield,
@@ -354,8 +367,14 @@ export class AppState {
             isProcessed: !!(prev.isProcessed || c.is_processed || c.isProcessed)
           };
         });
-        // รอบปลูกที่สร้างในเครื่องแต่ยังไม่ขึ้นออนไลน์ ต้องไม่หายไปตอนซิงค์
-        (prevLocalCrops || []).forEach(pc => { if (pc && !cloudCropIds.has(pc.id)) mergedCrops.push(pc); });
+        // รอบปลูกที่สร้างในเครื่องแต่ยังไม่ขึ้นออนไลน์ ต้องไม่หายไปตอนซิงค์ และส่งขึ้นออนไลน์ด้วย
+        const localOnlyCrops = (prevLocalCrops || []).filter(pc => pc && !cloudCropIds.has(pc.id));
+        localOnlyCrops.forEach(pc => mergedCrops.push(pc));
+        if (localOnlyCrops.length) {
+          supabaseClient.from('crops').upsert(localOnlyCrops.map(pc => this.cropToDb(pc))).then(({ error }) => {
+            if (error) console.error('Supabase push local crops error:', error);
+          });
+        }
         this.cropsCache = this.dedupeCrops(mergedCrops).map(c => ({
           ...c,
           seedlingSource: c.seedling_source || c.seedlingSource || (prevLocalById.get(c.id) || {}).seedlingSource,
@@ -551,6 +570,10 @@ export class AppState {
       } else if (!packError && packData && packData.length === 0) {
         localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify([]));
       }
+
+      // 12. รับซื้อดอกสด และ บิลขาย (เก็บเป็น JSON)
+      try { await this.pullJsonList('fresh_purchases', 'herb_enterprise_fresh_purchases', false); } catch (e) { console.warn('pull fresh_purchases failed', e); }
+      try { await this.pullJsonList('direct_sales', 'herb_enterprise_direct_sales_v1', true); } catch (e) { console.warn('pull direct_sales failed', e); }
 
       console.log("Supabase sync completed successfully!");
       const syncSummary = {
@@ -1224,6 +1247,100 @@ export class AppState {
   }
 
   // รวมรอบปลูกที่รหัสซ้ำกันให้เหลืออันเดียว (กันกรณีข้อมูลซ้ำทำให้หน้าจอแสดงขั้นตอนไม่ตรงกับที่บันทึก)
+  // แปลงรอบปลูกเป็นแถวในตาราง crops ของ Supabase (รวมรอบที่ ชนิดพืช และความคืบหน้าขั้นตอน)
+  cropToDb(c) {
+    return {
+      id: c.id,
+      plot_id: c.plotId,
+      plant_date: c.plantDate || null,
+      cost: parseFloat(c.cost) || 0,
+      crop_year: c.cropYear,
+      crop_cycle: parseInt(c.cropCycle) || 1,
+      seedling_source: c.seedlingSource || null,
+      harvest_date_est: c.harvestDateEst || null,
+      harvest_date_actual: c.harvestDateActual || null,
+      yield: (c.yield === null || c.yield === undefined || c.yield === '') ? null : parseFloat(c.yield),
+      status: c.status || 'growing',
+      fertilizing_log: c.fertilizingLog || [],
+      is_processed: !!c.isProcessed,
+      step_progress: c.stepProgress || {},
+      extra: c
+    };
+  }
+
+  // ---- ข้อมูลที่เก็บเป็น JSON ทั้งก้อนใน Supabase (รับซื้อดอกสด / บิลขาย) ----
+  // ตาราง: id text primary key, data jsonb, updated_at timestamptz
+  _syncedIds(storageKey) {
+    try { return new Set(JSON.parse(localStorage.getItem(storageKey + '__synced') || '[]')); } catch (e) { return new Set(); }
+  }
+  _saveSyncedIds(storageKey, set) {
+    try { localStorage.setItem(storageKey + '__synced', JSON.stringify([...set])); } catch (e) { /* ignore */ }
+  }
+
+  syncJsonList(table, storageKey, newList, prevList) {
+    if (!supabaseClient) return;
+    const ids = new Set((newList || []).filter(x => x && x.id).map(x => String(x.id)));
+    const removed = (prevList || []).filter(x => x && x.id && !ids.has(String(x.id))).map(x => String(x.id));
+    const rows = (newList || []).filter(x => x && x.id).map(x => ({ id: String(x.id), data: x, updated_at: new Date().toISOString() }));
+    if (rows.length) {
+      supabaseClient.from(table).upsert(rows).then(({ error }) => {
+        if (error) {
+          console.error(`Supabase upsert ${table} error:`, error);
+          showToast(`บันทึกออนไลน์ไม่สำเร็จ (${table}): ${error.message}`, 'error');
+          return;
+        }
+        const synced = this._syncedIds(storageKey);
+        rows.forEach(r => synced.add(r.id));
+        this._saveSyncedIds(storageKey, synced);
+      });
+    }
+    if (removed.length) {
+      supabaseClient.from(table).delete().in('id', removed).then(({ error }) => {
+        if (error) {
+          console.error(`Supabase delete ${table} error:`, error);
+          showToast(`ลบข้อมูลออนไลน์ไม่สำเร็จ (${table}): ${error.message}`, 'error');
+          return;
+        }
+        const synced = this._syncedIds(storageKey);
+        removed.forEach(id => synced.delete(id));
+        this._saveSyncedIds(storageKey, synced);
+      });
+    }
+  }
+
+  // ดึงจาก Supabase มารวมกับในเครื่อง: ของออนไลน์เป็นหลัก, ของที่มีแค่ในเครื่องและยังไม่เคยขึ้นออนไลน์จะถูกส่งขึ้น,
+  // ของที่เคยขึ้นออนไลน์แล้วแต่หายไปจากออนไลน์ (ถูกลบจากเครื่องอื่น) จะถูกลบออกจากเครื่องนี้ด้วย
+  async pullJsonList(table, storageKey, newestFirst) {
+    if (!supabaseClient) return;
+    const { data, error } = await supabaseClient.from(table).select('id,data');
+    if (error || !Array.isArray(data)) {
+      if (error) console.warn(`Supabase pull ${table} error:`, error.message);
+      return;
+    }
+    let local = [];
+    try { local = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { local = []; }
+    if (!Array.isArray(local)) local = [];
+    const cloudMap = new Map(data.filter(r => r && r.data).map(r => [String(r.id), r.data]));
+    const synced = this._syncedIds(storageKey);
+    const toPush = [];
+    const merged = [];
+    const seen = new Set();
+    local.forEach(x => {
+      if (!x || !x.id) return;
+      const id = String(x.id);
+      if (cloudMap.has(id)) { merged.push(cloudMap.get(id)); seen.add(id); }
+      else if (!synced.has(id)) { merged.push(x); toPush.push(x); seen.add(id); }
+    });
+    const cloudOnly = [];
+    cloudMap.forEach((v, id) => { if (!seen.has(id)) cloudOnly.push(v); });
+    const key = (x) => String(x.date || x.createdAt || '') + '|' + String(x.id);
+    cloudOnly.sort((a, b) => key(a).localeCompare(key(b)));
+    const finalList = newestFirst ? [...cloudOnly.reverse(), ...merged] : [...merged, ...cloudOnly];
+    localStorage.setItem(storageKey, JSON.stringify(finalList));
+    this._saveSyncedIds(storageKey, new Set(cloudMap.keys()));
+    if (toPush.length) this.syncJsonList(table, storageKey, toPush, []);
+  }
+
   dedupeCrops(list) {
     const byId = new Map();
     const out = [];
@@ -1338,7 +1455,7 @@ export class AppState {
         fertilizing_log: newCrop.fertilizingLog,
         is_processed: newCrop.isProcessed
       };
-      supabaseClient.from('crops').insert([dbCrop]).then(({ error }) => {
+      supabaseClient.from('crops').upsert([this.cropToDb(newCrop)]).then(({ error }) => {
         if (error) {
           console.error("Supabase addCrop error:", error);
           showToast("ล้มเหลวในการบันทึกออนไลน์: " + error.message, "error");
@@ -1376,7 +1493,7 @@ export class AppState {
           fertilizing_log: updatedCrop.fertilizingLog,
           is_processed: updatedCrop.isProcessed
         };
-        supabaseClient.from('crops').update(dbCropUpdate).eq('id', id).then(({ error }) => {
+        supabaseClient.from('crops').upsert([{ id, ...this.cropToDb(updatedCrop) }]).then(({ error }) => {
           if (error) {
             console.error("Supabase updateCrop error:", error);
             showToast("ล้มเหลวในการอัปเดตออนไลน์: " + error.message, "error");
