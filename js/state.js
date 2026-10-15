@@ -233,7 +233,8 @@ export class AppState {
     if (url && key && typeof supabase !== 'undefined') {
       try {
         supabaseClient = supabase.createClient(url, key);
-        mirrorPushFn = (k) => this._mirrorPush(k);
+        // ส่งขึ้นได้หลังจากดึงข้อมูลออนไลน์ครั้งแรกเสร็จแล้วเท่านั้น (กันเครื่องใหม่เขียนทับ)
+        mirrorPushFn = (k) => { if (this._mirrorReady) this._mirrorPush(k); };
         console.log("Supabase Client connected successfully to:", url);
       } catch (e) {
         console.error("Failed to initialize Supabase client:", e);
@@ -247,7 +248,6 @@ export class AppState {
   async syncFromSupabase() {
     if (!supabaseClient) return;
 
-    mirrorSilent = true; // ข้อมูลที่ดึงจากตารางเดิมไม่ถือเป็นการแก้ไขในเครื่อง
     try {
       console.log("Syncing from Supabase...");
 
@@ -594,7 +594,7 @@ export class AppState {
 
       // 12. คลังสินค้า / ล็อตอบ / ล็อตแปรรูป / รายการขาย (สำรองใน app_store)
       mirrorSilent = false;
-      try { await this.pullMirror(); } catch (e) { console.warn('pull app_store failed', e); }
+      try { await this.pullMirror(); this._mirrorReady = true; } catch (e) { console.warn('pull app_store failed', e); }
 
       // 13. รับซื้อดอกสด และ บิลขาย (เก็บเป็น JSON)
       try { await this.pullJsonList('fresh_purchases', 'herb_enterprise_fresh_purchases', false); } catch (e) { console.warn('pull fresh_purchases failed', e); }
@@ -1310,8 +1310,10 @@ export class AppState {
     try { data = JSON.parse(localStorage.getItem(key)); } catch (e) { return; }
     if (!Array.isArray(data)) return;
     const ts = parseInt(localStorage.getItem('__mirror_ts_' + key)) || Date.now();
-    supabaseClient.from('app_store').upsert([{ id: key, data, updated_at: new Date(ts).toISOString() }]).then(({ error }) => {
-      if (error) console.error('Supabase app_store push error:', key, error.message);
+    const iso = new Date(ts).toISOString();
+    supabaseClient.from('app_store').upsert([{ id: key, data, updated_at: iso }]).then(({ error }) => {
+      if (error) { console.error('Supabase app_store push error:', key, error.message); return; }
+      localStorage.setItem('__mirror_seen_' + key, iso);
     });
   }
 
@@ -1320,22 +1322,36 @@ export class AppState {
     const { data, error } = await supabaseClient.from('app_store').select('id,data,updated_at');
     if (error || !Array.isArray(data)) { if (error) console.warn('Supabase app_store pull error:', error.message); return; }
     const cloud = new Map(data.map(r => [r.id, r]));
+    // กติกา: เครื่องที่ยังไม่เคยซิงค์ (เช่น เปิดเว็บครั้งแรก) ต้องรับข้อมูลจากออนไลน์ก่อนเสมอ
+    // เครื่องจะส่งข้อมูลขึ้นทับได้ก็ต่อเมื่อมีการแก้ไขในเครื่องหลังจากซิงค์ครั้งล่าสุด และออนไลน์ไม่ได้ถูกเปลี่ยนจากเครื่องอื่นในระหว่างนั้น
     MIRROR_KEYS.forEach(key => {
       const row = cloud.get(key);
+      const seenRaw = localStorage.getItem('__mirror_seen_' + key);
+      const seen = seenRaw ? Date.parse(seenRaw) : 0;
       const localTs = parseInt(localStorage.getItem('__mirror_ts_' + key)) || 0;
-      const localRaw = localStorage.getItem(key);
       let localList = [];
-      try { localList = JSON.parse(localRaw) || []; } catch (e) { localList = []; }
+      try { localList = JSON.parse(localStorage.getItem(key)) || []; } catch (e) { localList = []; }
       const cloudTs = row && row.updated_at ? Date.parse(row.updated_at) : 0;
-      if (row && Array.isArray(row.data) && (cloudTs > localTs || (localList.length === 0 && row.data.length > 0))) {
+      const takeCloud = () => {
         mirrorSilent = true;
         try {
           localStorage.setItem(key, JSON.stringify(row.data));
-          localStorage.setItem('__mirror_ts_' + key, String(cloudTs || Date.now()));
+          localStorage.setItem('__mirror_ts_' + key, String(cloudTs));
         } finally { mirrorSilent = false; }
-      } else if (Array.isArray(localList) && localList.length > 0 && (!row || localTs > cloudTs)) {
-        if (!localTs) localStorage.setItem('__mirror_ts_' + key, String(Date.now()));
+        localStorage.setItem('__mirror_seen_' + key, row.updated_at);
+      };
+      if (!row) {
+        if (Array.isArray(localList) && localList.length > 0) this._mirrorPush(key);
+      } else if (!Array.isArray(row.data)) {
+        // ข้อมูลออนไลน์เสีย: ใช้ของในเครื่อง
         this._mirrorPush(key);
+      } else if (!seen) {
+        takeCloud(); // ครั้งแรกของเครื่องนี้: เชื่อออนไลน์
+      } else if (cloudTs > seen) {
+        // เครื่องอื่นแก้ไขหลังจากที่เครื่องนี้ซิงค์ล่าสุด
+        if (localTs > seen && localTs > cloudTs) this._mirrorPush(key); else takeCloud();
+      } else if (localTs > seen) {
+        this._mirrorPush(key); // แก้ในเครื่องแต่ยังไม่ได้ส่งขึ้น
       }
     });
     // ล้างแคชในหน่วยความจำให้อ่านค่าใหม่
