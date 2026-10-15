@@ -200,6 +200,7 @@ export const CropsComponent = {
               <span class="text-xs font-semibold text-sky-700">เก็บเกี่ยวแล้วเสร็จ:</span>
               <span class="text-sm font-bold text-sky-900">${harvestingPlotsCount} แปลง</span>
             </div>
+
           </div>
         </div>
 
@@ -442,11 +443,7 @@ export const CropsComponent = {
             <!-- Action Buttons on Mobile Card -->
             <div class="flex items-center gap-1.5 shrink-0">
               ${crop ? `
-                ${crop.status !== 'harvested' ? `
-                  <button data-crop-id="${crop.id}" data-plot-id="${plot.id}" class="reschedule-crop-btn p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-900 border border-amber-200/80 transition-all shadow-2xs cursor-pointer" title="เลื่อนกำหนดการปลูก / เลื่อนขั้นตอน (กรณีไม่ว่างหรือปลูกคนละวัน)">
-                    <i class="fas fa-calendar-alt text-base"></i>
-                  </button>
-                ` : ''}
+                ${crop.status !== 'harvested' ? '' : ''}
                 <button data-crop-id="${crop.id}" class="view-crop-detail-btn p-2 rounded-xl bg-gray-100 hover:bg-emerald-600 text-gray-600 hover:text-white transition-all shadow-2xs cursor-pointer" title="ดูรายละเอียดและ QR Code">
                   <i class="fas fa-eye text-base"></i>
                 </button>
@@ -814,11 +811,6 @@ export const CropsComponent = {
                     class="action-single-step-btn px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-1 shadow-2xs cursor-pointer" title="บันทึกขั้นที่ ${currentActiveStep.step.stepNo}: ${currentActiveStep.step.title}">
                     <i class="fas fa-plus text-xs"></i>
                     <span>ขั้น ${currentActiveStep.step.stepNo}: ${currentActiveStep.step.title}</span>
-                  </button>
-                ` : ''}
-                ${crop.status !== 'harvested' ? `
-                  <button data-crop-id="${crop.id}" data-plot-id="${plot.id}" class="reschedule-crop-btn p-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-900 border border-amber-200 transition-all shadow-2xs cursor-pointer" title="เลื่อนกำหนดการปลูก / เลื่อนขั้นตอน (กรณีไม่ว่างหรือปลูกคนละวัน)">
-                    <i class="fas fa-calendar-alt text-sm"></i>
                   </button>
                 ` : ''}
                 <button data-crop-id="${crop.id}" class="view-crop-detail-btn p-1.5 rounded-xl bg-gray-100 hover:bg-emerald-600 text-gray-600 hover:text-white transition-all shadow-2xs cursor-pointer" title="ดูรายละเอียดและ QR Code">
@@ -1253,6 +1245,18 @@ export const CropsComponent = {
         this.openRescheduleModal(cropId, plotId);
       });
     });
+
+    const clearAllBtn = document.getElementById('clear-all-crops-btn');
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', () => {
+        const n = appState.getCrops().length;
+        if (confirm(`ลบข้อมูลรอบเพาะปลูกทั้งหมด ${n} รายการ ใช่หรือไม่? (ลบแล้วกู้คืนไม่ได้)`)) {
+          appState.clearAllCrops();
+          showToast('ลบข้อมูลรอบเพาะปลูกทั้งหมดแล้ว');
+          this.refreshView();
+        }
+      });
+    }
 
     // 5. Delete Crop Buttons (both Table and Mobile Cards)
     const deleteBtns = document.querySelectorAll('.delete-crop-season-btn');
@@ -2445,6 +2449,29 @@ export const CropsComponent = {
               return;
             }
 
+            // ตรวจวันที่และปริมาณของทุกแปลงที่เลือกก่อนบันทึก (ถ้าผิดจะไม่บันทึกแปลงใดเลย)
+            for (const cropId of targetCropIds) {
+              const c = appState.getCropById(cropId);
+              if (!c) continue;
+              if (c.plantDate && actionDate && actionDate < c.plantDate) {
+                showToast(`แปลง ${c.plotId}: วันที่ดำเนินการต้องไม่ก่อนวันที่ลงต้นกล้า (${formatThaiDate(c.plantDate)})`, 'warning');
+                return;
+              }
+              const pp = c.stepProgress && c.stepProgress[targetStepNo - 1];
+              const prevDate = (pp && pp.completed) ? (pp.date || pp.completedDate) : null;
+              if (prevDate && actionDate < prevDate) {
+                showToast(`แปลง ${c.plotId}: วันที่ดำเนินการต้องไม่ก่อนขั้นตอนที่ ${targetStepNo - 1} (${formatThaiDate(prevDate)})`, 'warning');
+                return;
+              }
+              if (isHarvestStep) {
+                const yi = dialog.querySelector(`.batch-plot-yield-input[data-plot-id="${cropId}"]`);
+                if (!(parseFloat(yi ? yi.value : 0) > 0)) {
+                  showToast(`แปลง ${c.plotId}: กรุณาระบุน้ำหนักสดที่เก็บเกี่ยวได้ (มากกว่า 0)`, 'warning');
+                  return;
+                }
+              }
+            }
+
             let successCount = 0;
             targetCropIds.forEach(cropId => {
               const crop = appState.getCropById(cropId);
@@ -2604,7 +2631,7 @@ export const CropsComponent = {
 
               <div>
                 <label for="single-step-yield" class="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  <i class="fas fa-weight-hanging text-amber-600 mr-1"></i> ปริมาณผลผลิตสดที่เก็บเกี่ยวได้ (กก.) *
+                  <i class="fas fa-weight-hanging text-amber-600 mr-1"></i> ปริมาณผลผลิตสดที่เก็บเกี่ยวได้ (กิโลกรัม) *
                 </label>
                 <input type="number" step="any" min="0" id="single-step-yield" name="yieldAmount" required value="${singleDefaultYield}" placeholder="เช่น 120.00"
                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
@@ -2613,7 +2640,7 @@ export const CropsComponent = {
               <!-- ผลผลิตสดส่งต่อเข้าโรงอบแห้งกลาง -->
               <div class="sm:col-span-2 p-3.5 bg-amber-50 rounded-xl border border-amber-200/90 flex items-center gap-2.5 text-xs sm:text-sm text-amber-900 shadow-2xs">
                 <i class="fas fa-info-circle text-amber-600 text-base shrink-0"></i>
-                <span>ผลผลิตสดที่บันทึกจะถูกรวบรวมเข้าสู่ระบบ เพื่อนำไปผ่านกระบวนการอบแห้งในเมนู <b>"จัดการโรงอบแห้ง"</b> ต่อไป</span>
+                <span>บันทึกผลผลิตแล้ว ให้ไปที่เมนู <b>"จัดการรับซื้อดอกสดจากสมาชิก"</b> เพื่อบันทึกการรับซื้อ จากนั้นจึงนำเข้าเตาอบในเมนู <b>"จัดการโรงอบแห้ง"</b></span>
               </div>
             ` : `
               <div>
@@ -2684,6 +2711,21 @@ export const CropsComponent = {
               return;
             }
 
+            // ตรวจความถูกต้องของวันที่และปริมาณก่อนบันทึก
+            if (crop.plantDate && actionDate && actionDate < crop.plantDate) {
+              showToast(`วันที่ดำเนินการต้องไม่ก่อนวันที่ลงต้นกล้า (${formatThaiDate(crop.plantDate)})`, 'warning');
+              return;
+            }
+            const prevDone = (crop.stepProgress && crop.stepProgress[stepNo - 1] && crop.stepProgress[stepNo - 1].completed) ? (crop.stepProgress[stepNo - 1].date || crop.stepProgress[stepNo - 1].completedDate) : null;
+            if (prevDone && actionDate < prevDone) {
+              showToast(`วันที่ดำเนินการต้องไม่ก่อนขั้นตอนที่ ${stepNo - 1} (${formatThaiDate(prevDone)})`, 'warning');
+              return;
+            }
+            if (isHarvest && !(parseFloat(formData.get('yieldAmount')) > 0)) {
+              showToast('กรุณาระบุปริมาณผลผลิตสดที่เก็บเกี่ยวได้ (มากกว่า 0)', 'warning');
+              return;
+            }
+
             const correctionVal = formData.get('correction') || '';
             const fullNote = activityName + (correctionVal ? ` [แก้ไข: ${correctionVal}]` : '') + (noteVal ? ` (${noteVal})` : '');
 
@@ -2735,7 +2777,7 @@ export const CropsComponent = {
             }
             closeGlobalModal();
             showToast(isHarvest 
-              ? `บันทึกการเก็บเกี่ยว${produceNameVal} (${yieldVal} กก.) สำเร็จ (ส่งเข้า "จัดการโรงอบแห้ง" เรียบร้อย)` 
+              ? `บันทึกการเก็บเกี่ยว${produceNameVal} (${yieldVal} กิโลกรัม) สำเร็จ (ไปบันทึกการรับซื้อได้ที่เมนู "จัดการรับซื้อดอกสดจากสมาชิก")` 
               : `บันทึกขั้นตอนที่ ${stepNo} ของแปลง ${plot.name} สำเร็จ`);
             this.refreshView();
           });

@@ -198,7 +198,7 @@ export const SettingsComponent = {
           <div>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <i class="fa-solid fa-gear text-emerald-700"></i>
-              ตั้งค่าข้อมูลวิสาหกิจชุมชน
+              ข้อมูลวิสาหกิจชุมชน
             </h1>
             <p class="text-sm text-gray-500 mt-1">ตั้งค่าชื่อกลุ่ม ที่อยู่ และตรวจสอบแผนผังองค์กรที่เชื่อมโยงกับรายชื่อสมาชิก</p>
           </div>
@@ -314,7 +314,7 @@ export const SettingsComponent = {
                 <i class="fas fa-sitemap text-emerald-700"></i> 🌳 แผนผังองค์กรวิสาหกิจชุมชน (Organization Chart)
               </h3>
               <p class="text-sm text-gray-500 mt-1">
-                ดึงข้อมูลอัตโนมัติจาก <span class="font-semibold text-emerald-700">"จัดการข้อมูลสมาชิกวิสาหกิจชุมชน"</span> ตามบทบาทหน้าที่ (ประธาน, รองประธาน, เหรัญญิก, เลขานุการ, กรรมการ)
+                ดึงข้อมูลอัตโนมัติจาก <span class="font-semibold text-emerald-700">"ข้อมูลสมาชิกวิสาหกิจชุมชน"</span> ตามบทบาทหน้าที่ (ประธาน, รองประธาน, เหรัญญิก, เลขานุการ, กรรมการ)
               </p>
             </div>
           </div>

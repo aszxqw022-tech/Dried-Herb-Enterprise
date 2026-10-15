@@ -179,7 +179,7 @@ export class AppState {
     try {
       this.membersCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBERS)) || JSON.parse(JSON.stringify(MOCK_MEMBERS));
       this.plotsCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLOTS)) || JSON.parse(JSON.stringify(MOCK_PLOTS));
-      this.cropsCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS)) || JSON.parse(JSON.stringify(MOCK_CROPS));
+      this.cropsCache = this.dedupeCrops(JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS)) || JSON.parse(JSON.stringify(MOCK_CROPS)));
       this.inventoryCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY)) || JSON.parse(JSON.stringify(MOCK_INVENTORY));
       this.salesCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || JSON.parse(JSON.stringify(MOCK_SALES));
       this.customersCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) || JSON.parse(JSON.stringify(MOCK_CUSTOMERS));
@@ -356,7 +356,7 @@ export class AppState {
         });
         // รอบปลูกที่สร้างในเครื่องแต่ยังไม่ขึ้นออนไลน์ ต้องไม่หายไปตอนซิงค์
         (prevLocalCrops || []).forEach(pc => { if (pc && !cloudCropIds.has(pc.id)) mergedCrops.push(pc); });
-        this.cropsCache = mergedCrops.map(c => ({
+        this.cropsCache = this.dedupeCrops(mergedCrops).map(c => ({
           ...c,
           seedlingSource: c.seedling_source || c.seedlingSource || (prevLocalById.get(c.id) || {}).seedlingSource,
           plotId: c.plot_id || c.plotId,
@@ -377,7 +377,7 @@ export class AppState {
         console.warn("Supabase crops sync skipped:", cropsError.message);
         if (!this.cropsCache) {
           const stored = localStorage.getItem(STORAGE_KEYS.CROPS);
-          this.cropsCache = stored ? JSON.parse(stored) : [];
+          this.cropsCache = stored ? this.dedupeCrops(JSON.parse(stored)) : [];
         }
       }
 
@@ -1223,6 +1223,27 @@ export class AppState {
     return true;
   }
 
+  // รวมรอบปลูกที่รหัสซ้ำกันให้เหลืออันเดียว (กันกรณีข้อมูลซ้ำทำให้หน้าจอแสดงขั้นตอนไม่ตรงกับที่บันทึก)
+  dedupeCrops(list) {
+    const byId = new Map();
+    const out = [];
+    (list || []).forEach(c => {
+      if (!c || c.id === undefined || c.id === null) { out.push(c); return; }
+      const prev = byId.get(c.id);
+      if (!prev) { byId.set(c.id, c); out.push(c); return; }
+      const sp = { ...(prev.stepProgress || {}) };
+      Object.keys(c.stepProgress || {}).forEach(k => {
+        const a = sp[k], b = c.stepProgress[k];
+        if (!a || (b && b.completed && !a.completed)) sp[k] = b;
+      });
+      const logA = prev.fertilizingLog || [], logB = c.fertilizingLog || [];
+      Object.assign(prev, { ...c, ...prev, stepProgress: sp, fertilizingLog: logA.length >= logB.length ? logA : logB });
+      if (c.status === 'harvested' || prev.status === 'harvested') prev.status = 'harvested';
+      prev.isProcessed = !!(prev.isProcessed || c.isProcessed);
+    });
+    return out;
+  }
+
   // --- Crop Seasons Methods ---
   getCrops() {
     if (Array.isArray(this.cropsCache)) {
@@ -1236,7 +1257,7 @@ export class AppState {
     }
     try {
       const stored = JSON.parse(raw);
-      this.cropsCache = Array.isArray(stored) ? stored : [];
+      this.cropsCache = Array.isArray(stored) ? this.dedupeCrops(stored) : [];
       return this.cropsCache;
     } catch (e) {
       this.cropsCache = [];
@@ -1392,6 +1413,17 @@ export class AppState {
       return updatedCrop;
     }
     return null;
+  }
+
+  clearAllCrops() {
+    const ids = this.getCrops().map(c => c.id);
+    localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify([]));
+    this.cropsCache = [];
+    if (supabaseClient && ids.length) {
+      supabaseClient.from('crops').delete().in('id', ids).then(({ error }) => {
+        if (error) console.error("Supabase clearAllCrops error:", error);
+      });
+    }
   }
 
   deleteCrop(id) {

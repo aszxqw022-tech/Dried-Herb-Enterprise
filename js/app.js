@@ -1,22 +1,22 @@
 // Main App Controller and Router for Single Page Application
 import { appState } from './state.js';
 import { showToast } from './helpers.js';
-import { DashboardComponent } from './components/dashboard.js?v=21';
-import { MembersComponent } from './components/members.js?v=15';
-import { PlotsComponent } from './components/plots.js?v=5';
+import { DashboardComponent } from './components/dashboard.js?v=33';
+import { MembersComponent } from './components/members.js?v=17';
+import { PlotsComponent } from './components/plots.js?v=6';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=20';
-import { CropsComponent } from './components/crops.js?v=49';
+import { CropsComponent } from './components/crops.js?v=53';
 import { CropHistoryComponent } from './components/cropHistory.js?v=12';
 import { FreshBuyingComponent } from './components/freshBuying.js?v=16';
-import { FreshProduceComponent } from './components/freshProduce.js?v=57';
-import { SettingsComponent } from './components/settings.js?v=9';
-import { CustomersComponent } from './components/customers.js?v=7';
-import { InventoryComponent } from './components/inventory.js?v=50'; // Phase 2
-import { FinanceComponent } from './components/finance.js?v=4';
+import { FreshProduceComponent } from './components/freshProduce.js?v=56';
+import { SettingsComponent } from './components/settings.js?v=10';
+import { CustomersComponent } from './components/customers.js?v=11';
+import { InventoryComponent } from './components/inventory.js?v=54'; // Phase 2
+import { FinanceComponent } from './components/finance.js?v=5';
 import { CostRevenueComponent } from './components/costRevenue.js?v=20';
-import { SalesComponent } from './components/sales.js?v=25';
+import { SalesComponent } from './components/sales.js?v=33';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
-import { LoginComponent } from './components/login.js';
+import { LoginComponent } from './components/login.js?v=3';
 
 class AppController {
   constructor() {

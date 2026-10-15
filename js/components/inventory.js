@@ -38,6 +38,9 @@ export const InventoryComponent = {
   monthFilter: 'all',
   yearFilter: 'all',
   historyProductId: null,
+  histYear: String(new Date().getFullYear() + 543),
+  histMonth: String(new Date().getMonth() + 1).padStart(2, '0'),
+  histType: 'all',
 
   render() {
     const currentUser = appState.getCurrentUser();
@@ -96,6 +99,25 @@ export const InventoryComponent = {
 
     // 3. Generate Summary Cards (แยกสรุปตามหน่วยเรียกชัดเจน สบายตา อ่านง่าย)
     const escHtml = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    // สีการ์ดแยกตามชนิดพืช: คาโมมายล์ = เหลือง, เก๊กฮวย = ส้ม, พืชอื่น = สีสำรองวนตามลำดับ
+    const herbThemes = {
+      'คาโมมายล์': { accent: 'border-yellow-300 bg-yellow-50/60', iconBg: 'bg-yellow-100 text-yellow-700', block: 'bg-yellow-400 text-yellow-950', btn: 'border-yellow-300 text-yellow-700 hover:bg-yellow-50' },
+      'เก๊กฮวย': { accent: 'border-orange-300 bg-orange-50/60', iconBg: 'bg-orange-100 text-orange-700', block: 'bg-orange-500 text-white', btn: 'border-orange-300 text-orange-700 hover:bg-orange-50' }
+    };
+    const spareThemes = [
+      { accent: 'border-emerald-300 bg-emerald-50/60', iconBg: 'bg-emerald-100 text-emerald-700', block: 'bg-emerald-600 text-white', btn: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+      { accent: 'border-sky-300 bg-sky-50/60', iconBg: 'bg-sky-100 text-sky-700', block: 'bg-sky-600 text-white', btn: 'border-sky-300 text-sky-700 hover:bg-sky-50' },
+      { accent: 'border-violet-300 bg-violet-50/60', iconBg: 'bg-violet-100 text-violet-700', block: 'bg-violet-600 text-white', btn: 'border-violet-300 text-violet-700 hover:bg-violet-50' },
+      { accent: 'border-rose-300 bg-rose-50/60', iconBg: 'bg-rose-100 text-rose-700', block: 'bg-rose-600 text-white', btn: 'border-rose-300 text-rose-700 hover:bg-rose-50' }
+    ];
+    const spareMap = {};
+    const getTheme = (p) => {
+      const key = Object.keys(herbThemes).find(h => String(p.category || '').includes(h) || String(p.name || '').includes(h));
+      if (key) return herbThemes[key];
+      const k = String(p.category || 'อื่นๆ');
+      if (!(k in spareMap)) spareMap[k] = spareThemes[Object.keys(spareMap).length % spareThemes.length];
+      return spareMap[k];
+    };
     const productCardsHtml = allProducts.length === 0 ? '' : `
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         ${allProducts.map(p => {
@@ -103,8 +125,9 @@ export const InventoryComponent = {
           const unitLabel = isCan ? appState.getProductPieceUnit(p) : 'กิโลกรัม';
           const stock = parseFloat(p.stock) || 0;
           const stockText = isCan ? String(Math.round(stock)) : stock.toFixed(2);
-          const accent = isCan ? 'border-teal-200 bg-teal-50/40' : 'border-amber-200 bg-amber-50/40';
-          const iconBg = isCan ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700';
+          const theme = getTheme(p);
+          const accent = theme.accent;
+          const iconBg = theme.iconBg;
           return `
             <div class="product-card cursor-pointer p-4 rounded-2xl border-2 ${accent} shadow-sm flex flex-col gap-3 transition-all hover:shadow-md ${this.historyProductId === p.id ? 'ring-4 ring-emerald-400' : ''}" data-id="${escHtml(p.id)}" title="คลิกเพื่อดูประวัติการเข้าออก">
               <div class="flex items-start gap-3">
@@ -116,13 +139,13 @@ export const InventoryComponent = {
                   <div class="text-xs text-gray-500 font-mono mt-0.5">${escHtml(p.id)} · ${escHtml(p.category)}</div>
                 </div>
                 <div class="flex gap-1.5 shrink-0">
-                  <button type="button" class="edit-product-btn w-9 h-9 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 flex items-center justify-center"
+                  <button type="button" class="edit-product-btn w-9 h-9 rounded-lg bg-white border ${theme.btn} flex items-center justify-center"
                     data-id="${escHtml(p.id)}" title="แก้ไขสินค้า"><i class="fas fa-edit text-sm"></i></button>
                   <button type="button" class="delete-product-btn w-9 h-9 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center"
                     data-id="${escHtml(p.id)}" title="ลบสินค้า"><i class="fas fa-trash text-sm"></i></button>
                 </div>
               </div>
-              <div class="rounded-xl ${isCan ? 'bg-teal-600' : 'bg-amber-600'} px-4 py-3 text-white flex items-end justify-between gap-3">
+              <div class="rounded-xl ${theme.block} px-4 py-3 flex items-end justify-between gap-3">
                 <span class="text-sm font-bold opacity-90 pb-1">ในสต็อก</span>
                 <span class="text-right leading-none">
                   <span class="font-mono font-black text-4xl ${stock > 0 ? '' : 'opacity-70'}">${stockText}</span>
@@ -529,38 +552,89 @@ export const InventoryComponent = {
       const isKg = sel.unit === 'กก.' || sel.unit === 'kg';
       const uLabel = isKg ? 'กิโลกรัม' : sel.unit;
       const rows = [];
-      try {
-        (appState.getPackagingBatches() || []).filter(b => b.productId === sel.id).forEach(b => {
-          rows.push({ date: b.processedDate || '', type: 'in', qty: parseFloat(b.jarsProduced) || 0,
-            note: `แปรรูปจากดอกแห้ง ${(parseFloat(b.dryUsedKg) || 0).toLocaleString()} กิโลกรัม` });
-        });
-      } catch (e) { /* ignore */ }
+      const kgStr = (n) => (parseFloat(n) || 0).toLocaleString();
+      if (isKg) {
+        // สต็อกดอกแห้ง: เข้าจากโรงอบแห้ง / ออกไปโรงแปรรูป หรือขายตรง
+        const herb = ['เก๊กฮวย', 'คาโมมายล์'].find(h => sel.name.includes(h)) || '';
+        try {
+          (appState.getDryingBatches() || []).filter(b => !herb || String(b.herbType || '').includes(herb)).forEach(b => {
+            rows.push({ date: b.processedDate || '', type: 'in', qty: parseFloat(b.dryWeightKg) || 0,
+              from: 'โรงอบแห้ง', note: `อบแห้งจากดอกสด ${kgStr(b.freshWeightKg)} กิโลกรัม (รอบอบ ${b.id || ''})` });
+          });
+        } catch (e) { /* ignore */ }
+        try {
+          (appState.getPackagingBatches() || []).filter(b => !herb || String(b.herbType || '').includes(herb)).forEach(b => {
+            rows.push({ date: b.processedDate || '', type: 'out', qty: parseFloat(b.dryUsedKg) || 0,
+              from: 'โรงแปรรูป', note: `นำไปแปรรูปเป็น ${b.productName || 'สินค้าแปรรูป'} ${kgStr(b.jarsProduced)} ${b.unit || 'ชิ้น'} (${b.id || ''})` });
+          });
+        } catch (e) { /* ignore */ }
+      } else {
+        try {
+          (appState.getPackagingBatches() || []).filter(b => b.productId === sel.id).forEach(b => {
+            rows.push({ date: b.processedDate || '', type: 'in', qty: parseFloat(b.jarsProduced) || 0,
+              from: 'โรงแปรรูป', note: `แปรรูปจากดอกแห้ง ${kgStr(b.dryUsedKg)} กิโลกรัม (${b.id || ''})` });
+          });
+        } catch (e) { /* ignore */ }
+      }
       try {
         (appState.getSales() || []).filter(sl => sl.cropId === sel.id).forEach(sl => {
-          rows.push({ date: sl.date || '', type: 'out', qty: parseFloat(sl.amount) || 0, note: `ขายให้ ${sl.customer || 'ทั่วไป'}` });
+          rows.push({ date: sl.date || '', type: 'out', qty: parseFloat(sl.amount) || 0,
+            from: 'การขาย', note: `ขายให้ ${sl.customer || 'ทั่วไป'}${sl.id ? ` (ใบเสร็จ ${sl.id})` : ''}` });
         });
       } catch (e) { /* ignore */ }
       rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const rowYear = (r) => r.date ? String(parseInt(String(r.date).slice(0, 4), 10) + 543) : '';
+      const curYear = String(new Date().getFullYear() + 543);
+      const yearOpts = [...new Set([curYear, ...rows.map(rowYear).filter(Boolean)])].sort((a, b) => b - a);
+      const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+      const totalRows = rows.length;
+      const shown = rows.filter(r => {
+        if (this.histYear !== 'all' && rowYear(r) !== this.histYear) return false;
+        if (this.histMonth !== 'all' && String(r.date || '').slice(5, 7) !== this.histMonth) return false;
+        if (this.histType !== 'all' && r.type !== this.histType) return false;
+        return true;
+      });
+      rows.length = 0; rows.push(...shown);
+      const selCls = 'h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm font-bold text-gray-700 focus:outline-none focus:border-emerald-500';
+      const filterHtml = `
+        <div class="flex items-center gap-2 flex-wrap">
+          <select id="hist-year-filter" class="${selCls}">
+            <option value="all" ${this.histYear === 'all' ? 'selected' : ''}>ทุกปี</option>
+            ${yearOpts.map(y => `<option value="${y}" ${this.histYear === y ? 'selected' : ''}>ปี ${y}</option>`).join('')}
+          </select>
+          <select id="hist-month-filter" class="${selCls}">
+            <option value="all" ${this.histMonth === 'all' ? 'selected' : ''}>ทุกเดือน</option>
+            ${monthNames.map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${this.histMonth === v ? 'selected' : ''}>${m}</option>`; }).join('')}
+          </select>
+          <select id="hist-type-filter" class="${selCls}">
+            <option value="all" ${this.histType === 'all' ? 'selected' : ''}>เข้า + ออก</option>
+            <option value="in" ${this.histType === 'in' ? 'selected' : ''}>เฉพาะเข้า</option>
+            <option value="out" ${this.histType === 'out' ? 'selected' : ''}>เฉพาะออก</option>
+          </select>
+        </div>`;
       const fmtQty = (n) => isKg ? n.toFixed(2) : String(Math.round(n * 100) / 100);
       const body = rows.length === 0
-        ? `<tr><td colspan="4" class="py-10 px-6 text-center text-sm text-gray-400">ยังไม่มีประวัติเข้าออกของสินค้านี้</td></tr>`
+        ? `<tr><td colspan="4" class="py-10 px-6 text-center text-sm text-gray-400">${totalRows > 0
+            ? `ไม่มีรายการตามตัวกรองที่เลือก (ทั้งหมด ${totalRows} รายการ)<div class="mt-3"><button type="button" id="hist-show-all-btn" class="px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-sm border border-amber-300">ดูทุกรายการ</button></div>`
+            : 'ยังไม่มีประวัติเข้าออกของสินค้านี้'}</td></tr>`
         : rows.map(r => `
           <tr class="border-b border-gray-100">
             <td class="py-3 px-6 text-sm text-gray-700">${r.date ? formatThaiDate(r.date) : '-'}</td>
             <td class="py-3 px-6"><span class="px-2.5 py-0.5 rounded-md text-sm font-bold ${r.type === 'in' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">${r.type === 'in' ? 'เข้า' : 'ออก'}</span></td>
             <td class="py-3 px-6 text-right font-mono font-bold ${r.type === 'in' ? 'text-emerald-700' : 'text-rose-600'}">${r.type === 'in' ? '+' : '-'}${fmtQty(r.qty)} <span class="text-xs font-normal text-gray-500">${uLabel}</span></td>
-            <td class="py-3 px-6 text-sm text-gray-600">${escHtml(r.note)}</td>
+            <td class="py-3 px-6 text-sm text-gray-600"><span class="font-bold text-gray-800">${r.type === 'in' ? 'เข้าจาก' : 'ออกไป'} ${escHtml(r.from || '')}</span><div class="text-gray-500">${escHtml(r.note)}</div></td>
           </tr>`).join('');
       return `
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
             <div class="font-bold text-gray-800"><i class="fas fa-clock-rotate-left text-emerald-700 mr-2"></i>ประวัติการเข้าออก: ${escHtml(sel.name)} <span class="font-mono text-xs text-gray-500">(${escHtml(sel.id)})</span></div>
+            ${filterHtml}
             <div class="text-sm text-gray-500">คงเหลือ <b class="text-gray-800">${fmtQty(parseFloat(sel.stock) || 0)}</b> ${uLabel}</div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead><tr class="text-sm font-bold text-gray-600 border-b border-gray-200">
-                <th class="py-3 px-6">วันที่</th><th class="py-3 px-6 w-28">รายการ</th><th class="py-3 px-6 text-right w-44">จำนวน</th><th class="py-3 px-6">รายละเอียด</th>
+                <th class="py-3 px-6">วันที่</th><th class="py-3 px-6 w-28">รายการ</th><th class="py-3 px-6 text-right w-44">จำนวน</th><th class="py-3 px-6">เข้าจาก / ออกไปที่ไหน</th>
               </tr></thead>
               <tbody>${body}</tbody>
             </table>
@@ -708,6 +782,13 @@ export const InventoryComponent = {
         this.refreshView();
       });
     });
+
+    [['hist-year-filter', 'histYear'], ['hist-month-filter', 'histMonth'], ['hist-type-filter', 'histType']].forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => { this[key] = el.value; this.refreshView(); });
+    });
+    const histAll = document.getElementById('hist-show-all-btn');
+    if (histAll) histAll.addEventListener('click', () => { this.histYear = 'all'; this.histMonth = 'all'; this.histType = 'all'; this.refreshView(); });
 
     // 1. Button + เพิ่มรายการสินค้าใหม่
     const addProductBtn = document.getElementById('open-add-product-btn');
@@ -1612,7 +1693,7 @@ export const InventoryComponent = {
             </div>
 
             <div>
-              <label for="edit-prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช / ประเภทสินค้า</label>
+              <label for="edit-prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช</label>
               <select id="edit-prod-category" name="category"
                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
                 ${herbCategories.map(h => `<option value="${h}" ${product.category === h ? 'selected' : ''}>${h}</option>`).join('')}

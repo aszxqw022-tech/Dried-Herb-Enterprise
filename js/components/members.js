@@ -100,15 +100,12 @@ export const MembersComponent = {
           <div>
             <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <i class="fa-solid fa-id-card-clip text-emerald-700"></i>
-              จัดการข้อมูลสมาชิกวิสาหกิจชุมชน
+              ข้อมูลสมาชิกวิสาหกิจชุมชน
             </h1>
             <p class="text-sm text-gray-500 mt-1">ทะเบียนประวัติเกษตรกรผู้ปลูกสมุนไพรอบแห้งจำลอง (ยอดรวมทั้งหมด ${allMembers.length} ราย)</p>
           </div>
           <div class="flex flex-wrap gap-2">
             ${isOfficer ? '' : `
-              <button id="quick-mock-member-btn" class="px-4 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
-                <i class="fas fa-magic"></i> สุ่มจำลองสมาชิกเพิ่ม
-              </button>
               <button id="add-member-btn" class="px-4 py-2.5 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
                 <i class="fas fa-user-plus"></i> เพิ่มสมาชิกใหม่
               </button>

@@ -105,118 +105,94 @@
     <!-- Sidebar Navigation Links -->
     <nav class="flex-1 p-3.5 space-y-1 overflow-y-auto">
       
-      <!-- หน้าแรก / แดชบอร์ด -->
-      <a href="#" data-view="dashboard" class="sidebar-link active flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-semibold text-white" title="แดชบอร์ดภาพรวม">
-        <i class="fa-solid fa-chart-line text-lg w-5 text-white"></i>
-        <span>แดชบอร์ดภาพรวม</span>
+      <!-- หมวดที่ 1: ข้อมูลหลักและการตั้งค่า -->
+      <div id="nav-section-master-settings" class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
+        <span>หมวดที่ 1: ข้อมูลหลักและการตั้งค่า</span>
+      </div>
+
+      <!-- 14. ตั้งค่าข้อมูลวิสาหกิจ -->
+      <a href="#" data-view="settings" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ข้อมูลวิสาหกิจชุมชน (ข้อมูลกลุ่ม, ที่อยู่, คณะกรรมการ และผังองค์กร)">
+        <i class="fa-solid fa-gear text-base w-5 text-[#4ade80]"></i>
+        <span>1. ข้อมูลวิสาหกิจชุมชน</span>
       </a>
 
-      <!-- หมวดที่ 1: กระบวนการเพาะปลูกและแปรรูป -->
+      <!-- 13. จัดการสมาชิก -->
+      <a href="#" data-view="members" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ข้อมูลสมาชิกวิสาหกิจชุมชน (ทะเบียนรายชื่อสมาชิกกลุ่ม)">
+        <i class="fa-solid fa-users text-base w-5 text-white"></i>
+        <span>2. ข้อมูลสมาชิกวิสาหกิจชุมชน</span>
+      </a>
+
+      <!-- หมวดที่ 2: กระบวนการเพาะปลูกและแปรรูป -->
       <div class="pt-3.5 pb-1 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2">
         <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
-        <span>หมวดที่ 1: กระบวนการเพาะปลูกและแปรรูป</span>
+        <span>หมวดที่ 2: กระบวนการเพาะปลูกและแปรรูป</span>
       </div>
 
       <!-- 1. จัดการแปลงปลูก -->
       <a href="#" data-view="plots" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการแปลงปลูก 14 แปลง">
         <i class="fa-solid fa-map-location-dot text-base w-5 text-white"></i>
-        <span>1. จัดการแปลงปลูก</span>
+        <span>3. จัดการแปลงปลูก</span>
       </a>
 
       <!-- 2. แผนการปลูก -->
       <a href="#" data-view="roadmap" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="แผนการปลูก (กำหนดขั้นตอนและระยะเวลาเพาะปลูกสมุนไพรแต่ละชนิด)">
         <i class="fa-solid fa-route text-base w-5 text-white"></i>
-        <span>2. แผนการปลูก</span>
+        <span>4. แผนการปลูก</span>
       </a>
 
       <!-- 3. จัดการรอบปลูก -->
       <a href="#" data-view="crops" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการรอบปลูก (2569/Pxxx-R1)">
         <i class="fa-solid fa-seedling text-base w-5 text-white"></i>
-        <span>3. จัดการรอบปลูก</span>
+        <span>5. จัดการรอบปลูก</span>
       </a>
 
       <!-- 4. จัดการรับซื้อดอกสดจากสมาชิก -->
       <a href="#" data-view="fresh-buying" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการรับซื้อดอกสดจากสมาชิก (เกณฑ์ราคารับซื้อสด กก. และบันทึกจ่ายเงินสมาชิก)">
         <i class="fa-solid fa-hand-holding-dollar text-base w-5 text-amber-300"></i>
-        <span>4. จัดการรับซื้อดอกสดจากสมาชิก</span>
+        <span>6. จัดการรับซื้อดอกสดจากสมาชิก</span>
       </a>
 
       <!-- 5. จัดการโรงอบแห้ง -->
       <a href="#" data-view="fresh-produce" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการโรงอบแห้ง (บันทึกผลผลิตเข้าเตาอบ และผลิตดอกแห้ง)">
         <i class="fa-solid fa-fire-burner text-base w-5 text-white"></i>
-        <span>5. จัดการโรงอบแห้ง</span>
+        <span>7. จัดการโรงอบแห้ง</span>
       </a>
 
       <!-- 6. แปรรูปสินค้า -->
       <a href="#" data-view="canning" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="แปรรูปสินค้า (เลือกสินค้า เช่น ซอง 30 กรัม หรือกระป๋อง 50 กรัม แล้วแปรรูปจากดอกแห้ง)">
         <i class="fa-solid fa-jar text-base w-5 text-white"></i>
-        <span>6. แปรรูปสินค้า</span>
+        <span>8. แปรรูปสินค้า</span>
       </a>
 
       <!-- 7. คลังและสต็อกรวม -->
       <a href="#" data-view="inventory" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="คลังและสต็อกรวม (แสดงยอดคงเหลือ กก. และ กระป๋อง 50g)">
         <i class="fa-solid fa-boxes-stacked text-base w-5 text-white"></i>
-        <span>7. คลังและสต็อกรวม</span>
+        <span>9. คลังและสต็อกรวม</span>
       </a>
 
-      <!-- หมวดที่ 2: การจำหน่ายและลูกค้า -->
+      <!-- หมวดที่ 3: การจำหน่ายและลูกค้า -->
       <div class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
         <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
-        <span>หมวดที่ 2: การจำหน่ายและลูกค้า</span>
+        <span>หมวดที่ 3: การจำหน่ายและลูกค้า</span>
       </div>
 
       <!-- 8. จัดการขาย -->
       <a href="#" data-view="sales" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการขาย (เปิดบิลจำหน่าย/ตัดสต็อก)">
         <i class="fa-solid fa-store text-base w-5 text-white"></i>
-        <span>8. จัดการขาย</span>
+        <span>10. จัดการขาย</span>
       </a>
 
       <!-- 9. ข้อมูลลูกค้า -->
       <a href="#" data-view="customers" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ข้อมูลลูกค้า (ย้ายมาอยู่หมวดขาย เพื่อง่ายต่อการเปิดบิล)">
         <i class="fa-solid fa-handshake text-base w-5 text-white"></i>
-        <span>9. ข้อมูลลูกค้า</span>
+        <span>11. ข้อมูลลูกค้า</span>
       </a>
 
-      <!-- 10. ประวัติการขายและรอบปลูก -->
-      <a href="#" data-view="crop-history" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ประวัติการขายและรอบปลูก (Log บันทึกย้อนหลัง)">
-        <i class="fa-solid fa-clock-rotate-left text-base w-5 text-white"></i>
-        <span>10. ประวัติการขายและรอบปลูก</span>
-      </a>
-
-      <!-- หมวดที่ 3: สรุปผลและการเงิน -->
-      <div class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
-        <span>หมวดที่ 3: สรุปผลและการเงิน</span>
-      </div>
-
-      <!-- 11. การเงินรายสมาชิก -->
-      <a href="#" data-view="finance" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="การเงินรายสมาชิก (สรุปยอดรายได้/ปันผลของสมาชิกแต่ละแปลง)">
-        <i class="fa-solid fa-hand-holding-dollar text-base w-5 text-white"></i>
-        <span>11. การเงินรายสมาชิก</span>
-      </a>
-
-      <!-- 12. รายงานสรุป -->
-      <a href="#" data-view="cost-revenue" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="รายงานสรุป (วิเคราะห์ต้นทุน รายได้ กำไร และ Margin)">
-        <i class="fa-solid fa-chart-pie text-base w-5 text-white"></i>
-        <span>12. รายงานสรุป</span>
-      </a>
-
-      <!-- หมวดที่ 4: ข้อมูลหลักและการตั้งค่า (Master Settings) -->
-      <div id="nav-section-master-settings" class="pt-4 pb-1.5 px-3 text-xs font-bold text-[#86efac] tracking-wide flex items-center gap-2 border-t border-white/10 mt-2 mb-0.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-[#4ade80]"></span>
-        <span>หมวดที่ 4: ข้อมูลหลักและการตั้งค่า (Master Settings)</span>
-      </div>
-
-      <!-- 13. จัดการสมาชิก -->
-      <a href="#" data-view="members" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="จัดการสมาชิก (ทะเบียนรายชื่อสมาชิกกลุ่ม)">
-        <i class="fa-solid fa-users text-base w-5 text-white"></i>
-        <span>13. จัดการสมาชิก</span>
-      </a>
-
-      <!-- 14. ตั้งค่าข้อมูลวิสาหกิจ -->
-      <a href="#" data-view="settings" class="sidebar-link flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-medium text-white/90 hover:text-white" title="ตั้งค่าข้อมูลวิสาหกิจ (ข้อมูลกลุ่ม, ที่อยู่, คณะกรรมการ และผังองค์กร)">
-        <i class="fa-solid fa-gear text-base w-5 text-[#4ade80]"></i>
-        <span>14. ตั้งค่าข้อมูลวิสาหกิจ</span>
+      <!-- หน้าแรก / แดชบอร์ด -->
+      <a href="#" data-view="dashboard" class="sidebar-link active mt-3 flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-[15px] font-semibold text-white" title="แดชบอร์ดภาพรวม">
+        <i class="fa-solid fa-chart-line text-lg w-5 text-white"></i>
+        <span>แดชบอร์ดภาพรวม</span>
       </a>
     </nav>
 
@@ -271,7 +247,7 @@
   <div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3"></div>
 
   <!-- Main JavaScript App module -->
-  <script type="module" src="js/app.js?v=225"></script>
+  <script type="module" src="js/app.js?v=242"></script>
 </body>
 </html>
 <!-- No-Cache Meta tags injected to prevent stale bugs -->

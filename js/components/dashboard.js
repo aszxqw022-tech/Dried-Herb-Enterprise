@@ -13,6 +13,8 @@ const HERB_THEMES = {
   'ดาวเรือง': { icon: '🌻', name: 'ดอกดาวเรือง', stdRatio: 7.5, pricePerKg: 280, freshColor: 'rgba(253, 224, 71, 0.85)', freshBorder: '#ca8a04', dryColor: 'rgba(161, 98, 7, 0.9)', dryBorder: '#713f12' }
 };
 
+const dashFilter = { year: String(new Date().getFullYear()), month: 'all' };
+
 function getDirectSales(activeHerbs = null) {
   let sales = [];
   try {
@@ -34,7 +36,22 @@ function getDirectSales(activeHerbs = null) {
     });
   }
 
+  sales = sales.filter(s => {
+    const d = String(s.date || s.saleDate || '');
+    if (dashFilter.year !== 'all' && d.slice(0, 4) !== dashFilter.year) return false;
+    if (dashFilter.month !== 'all' && d.slice(5, 7) !== dashFilter.month) return false;
+    return true;
+  });
   return sales;
+}
+
+function getAllSaleYears() {
+  const ys = new Set([String(new Date().getFullYear())]);
+  try {
+    const raw = JSON.parse(localStorage.getItem(DIRECT_SALES_KEY));
+    if (Array.isArray(raw)) raw.forEach(s => { const y = String(s.date || s.saleDate || '').slice(0, 4); if (/^\d{4}$/.test(y)) ys.add(y); });
+  } catch (e) {}
+  return Array.from(ys).sort().reverse();
 }
 
 function getActiveHerbs() {
@@ -60,6 +77,8 @@ function parseSalesBreakdown(sales, activeHerbsList) {
   const herbJarMap = {};
   const monthlyRevenueMap = {};
   const productCatMap = {};
+  const monthlyCatMap = {};
+  const monthlyHerbMap = {};
 
   activeHerbsList.forEach(h => {
     herbDryMap[h] = { revenue: 0, qty: 0 };
@@ -84,6 +103,8 @@ function parseSalesBreakdown(sales, activeHerbsList) {
         }];
 
     let saleTotal = 0;
+    const saleCats = {};
+    const saleHerbs = {};
 
     items.forEach(it => {
       const pName = (it.productName || '').trim();
@@ -92,6 +113,11 @@ function parseSalesBreakdown(sales, activeHerbsList) {
       const price = parseFloat(it.totalPrice) || ((parseFloat(it.unitPrice) || 0) * qty);
 
       saleTotal += price;
+      {
+        const hh = activeHerbsList.find(h => pName.includes(h)) || activeHerbsList[0] || 'สมุนไพร';
+        saleHerbs[hh] = saleHerbs[hh] || { amt: 0, qty: 0 };
+        saleHerbs[hh].amt += price; saleHerbs[hh].qty += qty;
+      }
 
       // Identify herb
       const matchedHerb = activeHerbsList.find(h => pName.includes(h)) || activeHerbsList[0] || 'สมุนไพร';
@@ -109,6 +135,7 @@ function parseSalesBreakdown(sales, activeHerbsList) {
 
         const catKey = `กระป๋อง${matchedHerb} (50g)`;
         productCatMap[catKey] = (productCatMap[catKey] || 0) + price;
+        saleCats[pName || catKey] = (saleCats[pName || catKey] || 0) + price;
       } else {
         // Bulk dry or standard dry
         herbDryMap[matchedHerb].revenue += price;
@@ -118,6 +145,7 @@ function parseSalesBreakdown(sales, activeHerbsList) {
 
         const catKey = `ดอก${matchedHerb}แห้ง (กก.)`;
         productCatMap[catKey] = (productCatMap[catKey] || 0) + price;
+        saleCats[pName || catKey] = (saleCats[pName || catKey] || 0) + price;
       }
     });
 
@@ -129,6 +157,13 @@ function parseSalesBreakdown(sales, activeHerbsList) {
       if (parts.length >= 2) {
         const mKey = `${parts[0]}-${parts[1]}`;
         monthlyRevenueMap[mKey] = (monthlyRevenueMap[mKey] || 0) + saleTotal;
+        monthlyHerbMap[mKey] = monthlyHerbMap[mKey] || {};
+        Object.keys(saleHerbs).forEach(h => {
+          const t = monthlyHerbMap[mKey][h] = monthlyHerbMap[mKey][h] || { amt: 0, qty: 0 };
+          t.amt += saleHerbs[h].amt; t.qty += saleHerbs[h].qty;
+        });
+        monthlyCatMap[mKey] = monthlyCatMap[mKey] || {};
+        Object.keys(saleCats).forEach(k => { monthlyCatMap[mKey][k] = (monthlyCatMap[mKey][k] || 0) + saleCats[k]; });
       }
     }
   });
@@ -137,6 +172,8 @@ function parseSalesBreakdown(sales, activeHerbsList) {
     herbDryMap,
     herbJarMap,
     monthlyRevenueMap,
+    monthlyCatMap,
+    monthlyHerbMap,
     productCatMap,
     totalRevenue,
     totalDrySalesAmt,
@@ -262,6 +299,25 @@ export const DashboardComponent = {
     const totalJarSalesCount = salesSummary.totalJarSalesCount;
     const totalRevenueVal = salesSummary.totalRevenue;
 
+    // การ์ดดอกแห้งแยกตามสมุนไพร + ต้นทุนรับซื้อดอกสด
+    const dryCardsData = activeHerbsList.map(h => {
+      const kg = allProducts.filter(pr => pr.unit === 'กก.' && (pr.name || '').includes(h)).reduce((t, pr) => t + (parseFloat(pr.stock) || 0), 0);
+      const th = HERB_THEMES[h] || {};
+      const palette = { 'เก๊กฮวย': ['#fff7ed', '#fed7aa'], 'คาโมมายล์': ['#fefce8', '#fde68a'] }[h] || ['#ecfdf5', '#a7f3d0'];
+      return { herb: h, kg, icon: th.icon || '🌿', bg: palette[0], border: palette[1] };
+    });
+    let totalCostVal = 0;
+    try {
+      const rawPur = JSON.parse(localStorage.getItem('herb_enterprise_fresh_purchases') || '[]');
+      (Array.isArray(rawPur) ? rawPur : []).forEach(pu => {
+        const d = String(pu.date || '');
+        if (dashFilter.year !== 'all' && d.slice(0, 4) !== dashFilter.year) return;
+        if (dashFilter.month !== 'all' && d.slice(5, 7) !== dashFilter.month) return;
+        totalCostVal += parseFloat(pu.amount) || ((parseFloat(pu.kg) || 0) * (parseFloat(pu.price) || 0));
+      });
+    } catch (e) {}
+    const netVal = totalRevenueVal - totalCostVal;
+
     // Recent 4 Sales Transactions
     const recentSales = directSales.slice(0, 4);
 
@@ -283,179 +339,76 @@ export const DashboardComponent = {
               สรุปภาพรวมผลผลิต สต็อกสินค้าคงคลัง และแนวโน้มยอดขายด้วยแผนภูมิภาพสำหรับคณะกรรมการวิสาหกิจชุมชน
             </p>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold shadow-2xs flex items-center gap-2">
-              <i class="fa-solid fa-circle-check text-emerald-600"></i>
-              <span>พืชหลัก: ${activeHerbsList.join(' / ')}</span>
-            </span>
-          </div>
+        </div>
+
+
+        <!-- ตัวกรอง -->
+        <div class="bg-white rounded-2xl border border-gray-200/90 px-4 py-3 shadow-xs flex flex-wrap items-center gap-3">
+          <i class="fas fa-filter text-emerald-700"></i>
+          <select id="dash-filter-year" class="px-3 py-2 rounded-xl border border-gray-300 text-sm font-semibold bg-white">
+            <option value="all" ${dashFilter.year === 'all' ? 'selected' : ''}>ทุกปี</option>
+            ${getAllSaleYears().map(y => `<option value="${y}" ${dashFilter.year === y ? 'selected' : ''}>ปี ${parseInt(y) + 543}</option>`).join('')}
+          </select>
+          <select id="dash-filter-month" class="px-3 py-2 rounded-xl border border-gray-300 text-sm font-semibold bg-white">
+            <option value="all" ${dashFilter.month === 'all' ? 'selected' : ''}>ทุกเดือน</option>
+            ${['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'].map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${dashFilter.month === v ? 'selected' : ''}>${m}</option>`; }).join('')}
+          </select>
+          <button id="dash-filter-all" class="px-3 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">ดูทั้งหมด</button>
         </div>
 
         <!-- ============================================================== -->
         <!-- 1. แถบสรุปด่วนด้านบน (4 Summary Metric Cards)                  -->
         <!-- ============================================================== -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          
-          <!-- Card 1: ยอดขายรวมสุทธิ -->
-          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">ยอดขายรวมสุทธิ</span>
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg border border-emerald-100 group-hover:scale-105 transition-transform">
-                  <i class="fas fa-coins"></i>
-                </div>
-              </div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight">
-                ${formatBaht(totalRevenueVal)}
-              </div>
+          ${dryCardsData.map(c => `
+          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-bold text-gray-700">ดอก${c.herb}แห้ง</span>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg border" style="background:${c.bg};border-color:${c.border}">${c.icon}</div>
             </div>
-            <div class="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span class="text-emerald-700 font-bold flex items-center gap-1">
-                <i class="fas fa-receipt"></i> บันทึกขาย ${directSales.length} รายการ
-              </span>
-              <span class="text-gray-400">จากหน้าบันทึกการขาย</span>
+            <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight flex items-baseline gap-1.5">
+              <span>${c.kg.toFixed(1)}</span><span class="text-sm font-bold text-gray-500">กิโลกรัม</span>
             </div>
-          </div>
-
-          <!-- Card 2: ผลผลิตสดรวม -->
-          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">ผลผลิตสดรวม</span>
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg border border-emerald-100 group-hover:scale-105 transition-transform">
-                  <i class="fas fa-seedling"></i>
-                </div>
-              </div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight flex items-baseline gap-1.5">
-                <span>${totalFreshAll.toFixed(1)}</span>
-                <span class="text-sm font-bold text-gray-500">กก.</span>
-              </div>
-            </div>
-            <div class="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span class="text-gray-600 font-medium">${activeHerbsList.map(h => `${h} ${(produceMap[h]?.freshKg || 0).toFixed(1)}`).join(' · ')}</span>
-              <span class="text-emerald-700 font-bold">${plots.length} แปลง</span>
-            </div>
-          </div>
-
-          <!-- Card 3: ผลผลิตแห้งรวม -->
-          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">ผลผลิตแห้งรวม</span>
-                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg border border-amber-100 group-hover:scale-105 transition-transform">
-                  <i class="fas fa-boxes-stacked"></i>
-                </div>
-              </div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight flex items-baseline gap-1.5">
-                <span>${totalDryAll.toFixed(1)}</span>
-                <span class="text-sm font-bold text-gray-500">กก.</span>
-              </div>
-            </div>
-            <div class="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span class="text-gray-600 font-medium">มูลค่าประเมินผลผลิต</span>
-              <span class="text-amber-800 font-bold">${formatBaht(totalDryEstValue)}</span>
-            </div>
-          </div>
-
-          <!-- Card 4: มูลค่าสต็อกพร้อมขาย -->
-          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">มูลค่าสต็อกพร้อมขาย</span>
-                <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-lg border border-teal-100 group-hover:scale-105 transition-transform">
-                  <i class="fas fa-warehouse"></i>
-                </div>
-              </div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight">
-                ${formatBaht(totalInventoryValue)}
-              </div>
-            </div>
-            <div class="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-              <span class="text-gray-600 font-medium">พร้อมขาย ${totalStockCans} กระป๋อง</span>
-              <span class="text-teal-800 font-bold">แห้ง ${totalDryInventoryKg.toFixed(1)} กก.</span>
-            </div>
-          </div>
-
+          </div>`).join('')}
         </div>
 
-        <!-- ============================================================== -->
-        <!-- 2. โซนกราฟแท่งเปรียบเทียบยอดขาย (Sales Comparison Bar Charts)  -->
-        <!-- ฝั่งซ้าย: ยอดขายดอกแห้ง (กก.) | ฝั่งขวา: ยอดขายแบบกระป๋องแยกต่างหาก -->
-        <!-- ============================================================== -->
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-
-          <!-- ฝั่งซ้าย: กราฟแท่งยอดขายสมุนไพรอบแห้งยกกิโลกรัม (Dried Flower Bulk) -->
-          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
-            <div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
-                <div>
-                  <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <i class="fas fa-boxes-stacked text-amber-700"></i>
-                    <span>ยอดขายสมุนไพรอบแห้งยกกิโลกรัม (กก.)</span>
-                  </h2>
-                  <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                    เปรียบเทียบยอดขายดอกไม้แห้ง: ${activeHerbsList.map(h => 'ดอก' + h + 'แห้ง').join(', ')} (บาท)
-                  </p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                    แสดงตัวเลขบนหัวแท่ง
-                  </span>
-                </div>
-              </div>
-
-              <!-- Dry Sales Summary Badges -->
-              <div class="flex items-center gap-2 flex-wrap pt-3 text-xs">
-                <span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-semibold">
-                  💰 รวมยอดขายดอกแห้ง: ฿${totalDrySalesAmt.toLocaleString()}
-                </span>
-                <span class="px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  ⚖️ ปริมาณรวม: ${totalDrySalesKg.toFixed(1)} กก.
-                </span>
-              </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-bold text-gray-700">ต้นทุน (รับซื้อดอกสดจากสมาชิก)</span>
+              <div class="w-10 h-10 rounded-xl bg-orange-50 text-orange-700 flex items-center justify-center text-lg border border-orange-100"><i class="fas fa-basket-shopping"></i></div>
             </div>
+            <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight">${formatBaht(totalCostVal)}</div>
+          </div>
+          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-bold text-gray-700">รายได้ที่ขายได้</span>
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg border border-emerald-100"><i class="fas fa-coins"></i></div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight">${formatBaht(totalRevenueVal)}</div>
+          </div>
+          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-bold text-gray-700">รายได้สุทธิ</span>
+              <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-lg border border-teal-100"><i class="fas fa-sack-dollar"></i></div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${netVal < 0 ? 'text-red-600' : 'text-emerald-700'}">${formatBaht(netVal)}</div>
+          </div>
+        </div>
 
-            <div class="relative h-72 sm:h-80 w-full mt-4">
-              <canvas id="chart-dry-sales-by-herb"></canvas>
+        <div class="bg-white rounded-2xl border border-gray-200/90 p-5 sm:p-6 shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-chart-line text-emerald-700"></i>
+                <span>แนวโน้มการขายแยกตามหมวดหมู่พืช</span>
+              </h2>
+              <p class="text-xs sm:text-sm text-gray-500 mt-0.5">รวมทุกสินค้าที่ขายออก (ดอกแห้ง กระป๋อง ซอง)</p>
             </div>
           </div>
-
-          <!-- ฝั่งขวา: กราฟแท่งยอดขายผลิตภัณฑ์ชาดอกไม้แบบกระป๋อง (Canned Herbal Tea Cans) -->
-          <div class="bg-white rounded-2xl border border-gray-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
-            <div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
-                <div>
-                  <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <i class="fas fa-jar text-emerald-700"></i>
-                    <span>ยอดขายผลิตภัณฑ์ชาดอกไม้แบบกระป๋อง (กระป๋อง)</span>
-                  </h2>
-                  <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                    เปรียบเทียบยอดขายกระป๋อง: ${activeHerbsList.map(h => 'กระป๋อง' + h).join(', ')} (บาท)
-                  </p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    แยกอีกกราฟแท่ง
-                  </span>
-                </div>
-              </div>
-
-              <!-- Jar Sales Summary Badges -->
-              <div class="flex items-center gap-2 flex-wrap pt-3 text-xs">
-                <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold">
-                  💰 รวมยอดขายชากระป๋อง: ฿${totalJarSalesAmt.toLocaleString()}
-                </span>
-                <span class="px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200 font-medium">
-                  📦 ปริมาณรวม: ${totalJarSalesCount.toLocaleString()} กระป๋อง
-                </span>
-              </div>
-            </div>
-
-            <div class="relative h-72 sm:h-80 w-full mt-4">
-              <canvas id="chart-jar-sales-by-herb"></canvas>
-            </div>
+          <div class="relative h-80 sm:h-96 w-full mt-4">
+            <canvas id="chart-herb-lines"></canvas>
           </div>
-
         </div>
 
         <!-- ============================================================== -->
@@ -470,10 +423,10 @@ export const DashboardComponent = {
                 <div>
                   <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
                     <i class="fas fa-chart-column text-emerald-700"></i>
-                    <span>แนวโน้มยอดขายรายเดือน (Monthly Revenue)</span>
+                    <span>สัดส่วนยอดขายแยกตามเดือน (100% Stacked)</span>
                   </h2>
                   <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                    รายได้จากการจำหน่ายผลิตภัณฑ์สมุนไพรสะสมรายเดือน (บาท)
+                    สัดส่วนยอดขายของแต่ละประเภทสินค้าในแต่ละเดือน (ชี้เมาส์ดูรายละเอียด)
                   </p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -519,119 +472,6 @@ export const DashboardComponent = {
 
         </div>
 
-        <!-- ============================================================== -->
-        <!-- 4. รายการเคลื่อนไหวด่วนด้านล่าง (Bottom Activity Bar)           -->
-        <!-- ============================================================== -->
-        <div class="bg-white rounded-2xl border border-gray-200/90 shadow-xs overflow-hidden">
-          
-          <!-- Bar Header & Quick Actions -->
-          <div class="px-5 sm:px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-            <div>
-              <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
-                <i class="fas fa-clock-rotate-left text-emerald-700"></i>
-                <span>รายการเคลื่อนไหวการขายล่าสุด (Recent Transactions)</span>
-              </h2>
-              <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                4 รายการขายล่าสุด พร้อมตรวจสอบรายละเอียดและเปิดดูใบเสร็จรับเงิน
-              </p>
-            </div>
-
-            <!-- Quick Action Buttons -->
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <a href="#sales" class="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm transition-all shadow-xs flex items-center gap-1.5 active:scale-95">
-                <i class="fas fa-plus"></i>
-                <span>บันทึกการขายใหม่</span>
-              </a>
-              <a href="#crops" class="px-4 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs sm:text-sm transition-all shadow-2xs flex items-center gap-1.5 active:scale-95">
-                <i class="fas fa-seedling"></i>
-                <span>บันทึกรอบเพาะปลูก</span>
-              </a>
-            </div>
-          </div>
-
-          <!-- Recent Transactions Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr class="bg-gray-50/80 text-gray-600 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
-                  <th class="py-3 px-4 sm:px-5">รหัสใบเสร็จ</th>
-                  <th class="py-3 px-4">วันที่</th>
-                  <th class="py-3 px-4">ลูกค้า (ผู้ซื้อ)</th>
-                  <th class="py-3 px-4">รายการสินค้า</th>
-                  <th class="py-3 px-4 text-right">ยอดเงินสุทธิ</th>
-                  <th class="py-3 px-4 text-center">การชำระเงิน</th>
-                  <th class="py-3 px-4 sm:px-5 text-right">ใบเสร็จรับเงิน</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                ${recentSales.length > 0 ? recentSales.map(s => {
-                  const invoiceId = s.invoiceNo || s.id || 'INV-2568-001';
-                  const itemTitle = s.productName || (s.items && s.items[0] ? s.items[0].productName : 'ผลิตภัณฑ์สมุนไพร');
-                  const itemQtyText = s.quantity ? `${s.quantity} ${s.unit || 'ชิ้น'}` : (s.items && s.items[0] ? `${s.items[0].quantity} ${s.items[0].unit || 'ชิ้น'}` : '');
-                  const paymentBadge = s.payment === 'เงินสด' 
-                    ? '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">💵 เงินสด</span>'
-                    : '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-800 border border-sky-200">📱 โอนเงิน</span>';
-
-                  return `
-                    <tr class="hover:bg-emerald-50/30 transition-colors">
-                      <td class="py-3.5 px-4 sm:px-5 font-mono font-bold text-emerald-800 whitespace-nowrap">
-                        ${invoiceId}
-                      </td>
-                      <td class="py-3.5 px-4 text-gray-600 whitespace-nowrap">
-                        ${formatThaiDate(s.date)}
-                      </td>
-                      <td class="py-3.5 px-4 font-bold text-gray-800">
-                        <div>${s.customerName || 'ลูกค้าทั่วไป'}</div>
-                        ${s.customerType ? `<div class="text-xs font-normal text-gray-400 mt-0.5">${s.customerType}</div>` : ''}
-                      </td>
-                      <td class="py-3.5 px-4 text-gray-700">
-                        <span class="font-medium">${itemTitle}</span>
-                        ${itemQtyText ? `<span class="text-xs text-gray-500 ml-1">(${itemQtyText})</span>` : ''}
-                      </td>
-                      <td class="py-3.5 px-4 text-right font-mono font-bold text-gray-900 text-sm sm:text-base whitespace-nowrap">
-                        ${formatBaht(s.totalAmount || s.totalPrice || 0)}
-                      </td>
-                      <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                        ${paymentBadge}
-                      </td>
-                      <td class="py-3.5 px-4 sm:px-5 text-right whitespace-nowrap">
-                        <button type="button" 
-                          class="view-dashboard-receipt-btn px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold transition-all shadow-2xs inline-flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                          data-id="${invoiceId}">
-                          <i class="fas fa-receipt text-emerald-600"></i>
-                          <span>เปิดดูใบเสร็จ</span>
-                        </button>
-                      </td>
-                    </tr>
-                  `;
-                }).join('') : `
-                  <tr>
-                    <td colspan="7" class="py-12 px-4 text-center text-slate-400">
-                      <div class="flex flex-col items-center justify-center gap-2">
-                        <i class="fa-solid fa-receipt text-3xl text-slate-300"></i>
-                        <span class="text-sm font-medium">ยังไม่มีรายการบันทึกการขายในระบบ</span>
-                        <a href="#sales" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition">
-                          + ไปที่หน้าบันทึกการขาย
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                `}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Bottom Footer Link -->
-          <div class="p-3 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 px-5">
-            <span>แสดง ${recentSales.length} รายการล่าสุดจากระบบบันทึกการขาย</span>
-            <a href="#sales" class="font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">
-              <span>ดูประวัติการขายทั้งหมด (${directSales.length} รายการ)</span>
-              <i class="fas fa-arrow-right text-xs"></i>
-            </a>
-          </div>
-
-        </div>
-
       </div>
     `;
   },
@@ -642,6 +482,16 @@ export const DashboardComponent = {
   },
 
   bindEvents() {
+    const rerender = () => {
+      const main = document.getElementById('app-view');
+      if (main) { main.innerHTML = this.render(); this.init(); }
+    };
+    const ySel = document.getElementById('dash-filter-year');
+    const mSel = document.getElementById('dash-filter-month');
+    if (ySel) ySel.addEventListener('change', () => { dashFilter.year = ySel.value; rerender(); });
+    if (mSel) mSel.addEventListener('change', () => { dashFilter.month = mSel.value; rerender(); });
+    const allBtn = document.getElementById('dash-filter-all');
+    if (allBtn) allBtn.addEventListener('click', () => { dashFilter.year = 'all'; dashFilter.month = 'all'; rerender(); });
     const receiptBtns = document.querySelectorAll('.view-dashboard-receipt-btn');
     receiptBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -913,65 +763,131 @@ export const DashboardComponent = {
         revenueData = [0, 0, 0];
       }
 
+      let monthKeysUse = [];
+      if (dashFilter.month !== 'all') {
+        const yy = dashFilter.year !== 'all' ? dashFilter.year : (monthlyKeys.length ? monthlyKeys[monthlyKeys.length - 1].slice(0, 4) : String(new Date().getFullYear()));
+        monthKeysUse = [`${yy}-${dashFilter.month}`];
+      } else if (dashFilter.year !== 'all') {
+        for (let m = 1; m <= 12; m++) monthKeysUse.push(`${dashFilter.year}-${String(m).padStart(2, '0')}`);
+      } else {
+        const last = monthlyKeys.length ? monthlyKeys[monthlyKeys.length - 1] : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        const first = monthlyKeys.length ? monthlyKeys[0] : last;
+        let [ly, lm] = last.split('-').map(Number);
+        const [fy, fm] = first.split('-').map(Number);
+        let count = Math.max(12, (ly - fy) * 12 + (lm - fm) + 1);
+        let y = ly, m = lm;
+        for (let i = 0; i < count; i++) { monthKeysUse.unshift(`${y}-${String(m).padStart(2, '0')}`); m--; if (m === 0) { m = 12; y--; } }
+      }
+      this._monthKeysUse = monthKeysUse;
+      monthLabels = monthKeysUse.map(k => { const [yy, mm] = k.split('-'); return `${THAI_MONTH_NAMES[parseInt(mm)]} '${String(parseInt(yy) + 543).slice(-2)}`; });
+      const catTotals = {};
+      monthKeysUse.forEach(k => Object.entries(salesSummary.monthlyCatMap[k] || {}).forEach(([c, v]) => { catTotals[c] = (catTotals[c] || 0) + v; }));
+      const catNames = Object.keys(catTotals).filter(c => catTotals[c] > 0).sort((x, y) => catTotals[y] - catTotals[x]);
+      const PALETTE = ['#166534', '#e6b422', '#b08d6a', '#0ea5e9', '#e11d48', '#8b5cf6', '#f97316', '#14b8a6', '#84cc16', '#ec4899', '#64748b', '#a16207'];
+      const catColor = (name, idx) => PALETTE[idx % PALETTE.length];
+      const datasets = catNames.map((name, idx) => ({
+        label: name,
+        data: monthKeysUse.map(k => {
+          const tot = salesSummary.monthlyRevenueMap[k] || 0;
+          const v = (salesSummary.monthlyCatMap[k] || {})[name] || 0;
+          return tot > 0 ? (v / tot) * 100 : 0;
+        }),
+        rawAmounts: monthKeysUse.map(k => (salesSummary.monthlyCatMap[k] || {})[name] || 0),
+        backgroundColor: catColor(name, idx),
+        borderColor: '#ffffff',
+        borderWidth: 1.5,
+        borderRadius: 4,
+        barPercentage: 0.6
+      }));
+      const monthTotals = monthKeysUse.map(k => salesSummary.monthlyRevenueMap[k] || 0);
+      const totalLabelPlugin = {
+        id: 'monthTotalLabels',
+        afterDatasetsDraw(chart) {
+          const { ctx, chartArea } = chart;
+          const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+          if (!meta) return;
+          ctx.save();
+          ctx.font = "bold 12px 'Prompt', 'Sarabun', sans-serif";
+          ctx.fillStyle = '#065f46';
+          ctx.textAlign = 'center';
+          meta.data.forEach((bar, i) => {
+            ctx.fillText('฿' + monthTotals[i].toLocaleString(), bar.x, chartArea.top - 6);
+          });
+          ctx.restore();
+        }
+      };
+
       this.charts.monthlyRevenue = new Chart(ctx2.getContext('2d'), {
         type: 'bar',
-        data: {
-          labels: monthLabels,
-          datasets: [
-            {
-              label: 'รายได้จากการขาย (บาท)',
-              data: revenueData,
-              backgroundColor: 'rgba(16, 185, 129, 0.85)',
-              hoverBackgroundColor: 'rgba(5, 150, 105, 0.95)',
-              borderColor: '#047857',
-              borderWidth: 1.5,
-              borderRadius: 6,
-              barPercentage: 0.65
-            }
-          ]
-        },
-        plugins: [makeTopBarPlugin('monthlyRevenueTopLabels', '฿', '', '#065f46')],
+        data: { labels: monthLabels, datasets },
+        plugins: [totalLabelPlugin],
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: { padding: { top: 24 } },
           plugins: {
             legend: {
-              position: 'top',
-              labels: {
-                boxWidth: 14,
-                boxHeight: 14,
-                padding: 12,
-                font: { size: 12, weight: 'bold' }
-              }
+              position: 'bottom',
+              labels: { boxWidth: 14, boxHeight: 14, padding: 12, font: { size: 12, weight: 'bold' } }
             },
             tooltip: {
               backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleFont: { size: 13, weight: 'bold' },
-              bodyFont: { size: 12 },
               padding: 12,
               cornerRadius: 10,
               callbacks: {
-                label: (ctx) => ` ยอดขาย: ${ctx.raw.toLocaleString()} บาท`
+                label: (c) => {
+                  const amt = c.dataset.rawAmounts[c.dataIndex] || 0;
+                  return ` ${c.dataset.label}: ฿${amt.toLocaleString()} (${c.parsed.y.toFixed(1)}%)`;
+                },
+                footer: (items) => items.length ? `ยอดรวมเดือนนี้: ฿${(monthTotals[items[0].dataIndex] || 0).toLocaleString()}` : ''
               }
             }
           },
           scales: {
             y: {
-              beginAtZero: true,
-              grace: '15%',
+              stacked: true, min: 0, max: 100,
               grid: { color: '#f1f5f9' },
-              ticks: {
-                font: { size: 12 },
-                callback: (val) => `${val.toLocaleString()} บ.`
-              }
+              ticks: { font: { size: 12 }, stepSize: 20, callback: (v) => `${v}%` }
             },
-            x: {
-              grid: { display: false },
-              ticks: { font: { size: 14, weight: 'bold' } }
-            }
+            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 14, weight: 'bold' } } }
           }
         }
       });
+    }
+
+    // 3.5 กราฟเส้นแยกตามหมวดหมู่พืช
+    const ctxLine = document.getElementById('chart-herb-lines');
+    if (ctxLine) {
+      const keys = this._monthKeysUse || [];
+      const TM = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const labels = keys.map(k => { const [yy, mm] = k.split('-'); return `${TM[parseInt(mm)]} '${String(parseInt(yy) + 543).slice(-2)}`; });
+      const lineColors = { 'เก๊กฮวย': '#f97316', 'คาโมมายล์': '#e6b422' };
+      const extra = ['#166534', '#0ea5e9', '#8b5cf6', '#e11d48', '#14b8a6'];
+      let ex = 0;
+      const herbs = activeHerbsList.filter(h => keys.some(k => ((salesSummary.monthlyHerbMap[k] || {})[h] || { amt: 0 }).amt > 0));
+      const build = (mode) => herbs.map(h => {
+        const col = lineColors[h] || extra[ex++ % extra.length];
+        return {
+          label: h,
+          data: keys.map(k => ((salesSummary.monthlyHerbMap[k] || {})[h] || { amt: 0, qty: 0 })[mode]),
+          borderColor: col, backgroundColor: col, borderWidth: 3, tension: 0.3, pointRadius: 4, pointHoverRadius: 6
+        };
+      });
+      let mode = 'amt';
+      const chart = new Chart(ctxLine.getContext('2d'), {
+        type: 'line',
+        data: { labels, datasets: build('amt') },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12, weight: 'bold' } } },
+            tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()} ${mode === 'amt' ? 'บาท' : 'ชิ้น'}` } }
+          },
+          scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+        }
+      });
+      this.charts.herbLines = chart;
     }
 
     // ==============================================================
@@ -1015,6 +931,13 @@ export const DashboardComponent = {
         catColors.push(pal.dry);
       });
 
+      // ไม่แสดงสินค้าที่ยอดขายเป็น 0
+      {
+        const keep = catRevenue.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0);
+        catLabels = keep.map(i => catLabels[i]);
+        catColors = keep.map(i => catColors[i]);
+        catRevenue = keep.map(i => catRevenue[i]);
+      }
       // If all revenue is 0, show friendly zero distribution
       const totalPieRev = catRevenue.reduce((a, b) => a + b, 0);
       if (totalPieRev === 0) {

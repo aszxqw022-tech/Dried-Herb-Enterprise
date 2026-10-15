@@ -112,9 +112,6 @@ export const CustomersComponent = {
                 <div>
                   <div class="flex items-center gap-1.5">
                     <span class="text-sm font-mono font-bold text-emerald-900">${c.id}</span>
-                    <span class="px-2 py-0.5 text-sm font-bold rounded-full border ${meta.badge}">
-                      <i class="${meta.icon} mr-1 text-sm"></i>${c.customerType || 'ลูกค้าทั่วไป'}
-                    </span>
                   </div>
                   <div class="text-base font-bold text-gray-900 mt-1">${c.name}</div>
                 </div>
@@ -227,9 +224,6 @@ export const CustomersComponent = {
                       <h3 class="text-base font-bold text-gray-900 leading-snug">${c.name}</h3>
                     </div>
                   </div>
-                  <span class="px-2.5 py-1 text-sm font-bold rounded-full border ${meta.badge} shrink-0">
-                    <i class="${meta.icon} mr-1"></i>${c.customerType || 'ลูกค้าทั่วไป'}
-                  </span>
                 </div>
 
                 <!-- Structured Channels (แยก ที่อยู่, เบอร์โทร, ไลน์, เฟส) -->
@@ -402,7 +396,7 @@ export const CustomersComponent = {
                 <thead>
                   <tr class="bg-gray-50 text-sm font-bold text-gray-700 border-b border-gray-200 uppercase tracking-wider">
                     <th class="px-5 py-3.5">ชื่อลูกค้า / กิจการ</th>
-                    <th class="px-5 py-3.5">ที่อยู่จัดส่ง / สถานประกอบการ</th>
+                    <th class="px-5 py-3.5">ที่อยู่</th>
                     <th class="px-5 py-3.5">เบอร์โทรศัพท์</th>
                     <th class="px-5 py-3.5">LINE ID</th>
                     <th class="px-5 py-3.5">Facebook</th>
@@ -527,7 +521,7 @@ export const CustomersComponent = {
     const cust = id ? appState.getCustomerById(id) : null;
     const isEdit = !!cust;
 
-    const title = isEdit ? `แก้ไขข้อมูลลูกค้า (${cust.id})` : 'ลงทะเบียนลูกค้าใหม่ (Customer Profile)';
+    const title = isEdit ? `แก้ไขข้อมูลลูกค้า (${cust.id})` : 'ลงทะเบียนลูกค้าใหม่';
     const icon = isEdit ? 'fa-solid fa-user-pen' : 'fa-solid fa-user-plus';
 
     const formHtml = `
@@ -536,14 +530,10 @@ export const CustomersComponent = {
           
           <!-- Section 1: ข้อมูลระบุตัวตนและประเภทลูกค้า -->
           <div class="space-y-3">
-            <div class="flex items-center gap-2 pb-1.5 border-b border-gray-100">
-              <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
-              <span class="text-sm font-bold text-gray-600 uppercase tracking-wider">1. ข้อมูลทั่วไปและประเภทลูกค้า</span>
-            </div>
 
             <div class="grid grid-cols-1 gap-4">
               <div>
-                <label for="cust-name" class="block text-sm font-bold text-gray-700 mb-1">ชื่อลูกค้า / ชื่อร้านค้าหรือองค์กร *</label>
+                <label for="cust-name" class="block text-sm font-bold text-gray-700 mb-1">ชื่อลูกค้า *</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
                     <i class="fa-solid fa-building text-sm"></i>
@@ -559,10 +549,6 @@ export const CustomersComponent = {
 
           <!-- Section 2: ช่องทางการติดต่อสื่อสาร แยกตามหลักสากล (เบอร์โทร, ไลน์, เฟส) -->
           <div class="space-y-3">
-            <div class="flex items-center gap-2 pb-1.5 border-b border-gray-100">
-              <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-              <span class="text-sm font-bold text-gray-600 uppercase tracking-wider">2. ช่องทางการติดต่อสื่อสาร (Contact Channels)</span>
-            </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               
@@ -604,14 +590,10 @@ export const CustomersComponent = {
 
           <!-- Section 3: ที่อยู่จัดส่งพัสดุและสถานที่ตั้ง -->
           <div class="space-y-3">
-            <div class="flex items-center gap-2 pb-1.5 border-b border-gray-100">
-              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-              <span class="text-sm font-bold text-gray-600 uppercase tracking-wider">3. ที่อยู่จัดส่งและสถานที่ตั้ง (Address & Logistics)</span>
-            </div>
 
             <div>
               <label for="cust-address" class="block text-sm font-bold text-gray-700 mb-1">
-                <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> ที่อยู่จัดส่งสินค้า / สถานประกอบการ (ถ้ามี)
+                <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> ที่อยู่
               </label>
               <textarea id="cust-address" name="address" rows="3" 
                 placeholder="ระบุบ้านเลขที่, หมู่, ถนน, ตำบล, อำเภอ, จังหวัด และรหัสไปรษณีย์ สำหรับพิมพ์แปะกล่องพัสดุจัดส่ง..."
@@ -679,8 +661,20 @@ export const CustomersComponent = {
     const cust = appState.getCustomerById(id);
     if (!cust) return;
 
-    const allSales = appState.getSales();
-    const customerSales = allSales.filter(s => s.customerId === cust.id || s.customer === cust.name || (s.customerName && s.customerName === cust.name));
+    // ประวัติซื้อ: รวมเป็น 1 แถวต่อ 1 บิล (ใบเสร็จ) ไม่แยกรายการสินค้าเป็นคำสั่งซื้อย่อย
+    let rawBills = [];
+    try { rawBills = JSON.parse(localStorage.getItem('herb_enterprise_direct_sales_v1')) || []; } catch (e) { rawBills = []; }
+    const billMap = new Map();
+    rawBills.filter(b => b && (b.customerId === cust.id || (b.customerName && b.customerName === cust.name))).forEach(b => {
+      let key = b.invoiceNo || (b.id ? String(b.id).replace(/-\d+$/, '') : '');
+      key = String(key).replace(/^INV-/, 'REC-');
+      const items = (Array.isArray(b.items) && b.items.length) ? b.items : [{ productId: b.productId, productName: b.productName, unit: b.unit, quantity: b.quantity, totalPrice: b.totalPrice }];
+      const total = parseFloat(b.totalPrice || b.totalAmount) || items.reduce((a, it) => a + (parseFloat(it.totalPrice) || 0), 0);
+      if (billMap.has(key)) { const o = billMap.get(key); o.items.push(...items); o.totalPrice += total; }
+      else billMap.set(key, { id: key, date: b.date || b.saleDate, items: [...items], totalPrice: total });
+    });
+    const customerSales = [...billMap.values()].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const unitTh = (u) => (u === 'กก.' || u === 'kg') ? 'กิโลกรัม' : (u || '');
     const totalAmount = customerSales.reduce((sum, s) => sum + (parseFloat(s.totalPrice) || 0), 0);
     const meta = this.getTypeMeta(cust.customerType);
     const cleanPhone = cust.phone ? cust.phone.replace(/[^0-9]/g, '') : '';
@@ -735,11 +729,11 @@ export const CustomersComponent = {
               <span class="text-xl sm:text-2xl font-bold text-emerald-900 mt-1 block">${formatBaht(totalAmount)}</span>
             </div>
             <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
-              <span class="text-sm text-gray-500 font-bold block">จำนวนครั้งที่สั่งซื้อ</span>
-              <span class="text-xl sm:text-2xl font-bold text-gray-800 mt-1 block">${customerSales.length} ครั้ง</span>
+              <span class="text-sm text-gray-500 font-bold block">จำนวนบิลที่ซื้อ</span>
+              <span class="text-xl sm:text-2xl font-bold text-gray-800 mt-1 block">${customerSales.length} บิล</span>
             </div>
             <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-center col-span-2 sm:col-span-1">
-              <span class="text-sm text-amber-700 font-bold block">ยอดซื้อเฉลี่ยต่อคำสั่งซื้อ</span>
+              <span class="text-sm text-amber-700 font-bold block">ยอดซื้อเฉลี่ยต่อบิล</span>
               <span class="text-lg sm:text-xl font-bold text-amber-900 mt-1 block">
                 ${customerSales.length > 0 ? formatBaht(totalAmount / customerSales.length) : '0 บาท'}
               </span>
@@ -748,7 +742,7 @@ export const CustomersComponent = {
 
           <!-- Sales Transactions List -->
           <div class="space-y-3">
-            <span class="text-sm font-bold text-gray-700 block">รายการประวัติคำสั่งซื้อทั้งหมด (${customerSales.length} รายการ)</span>
+            <span class="text-sm font-bold text-gray-700 block">ประวัติการซื้อทั้งหมด (${customerSales.length} บิล)</span>
             ${customerSales.length === 0 
               ? `<div class="p-8 text-center text-sm text-gray-400 bg-gray-50 rounded-2xl border border-gray-100">ยังไม่มีประวัติการสั่งซื้อสำหรับลูกค้ารายนี้</div>`
               : `
@@ -756,35 +750,23 @@ export const CustomersComponent = {
                   <table class="w-full text-left border-collapse text-sm">
                     <thead>
                       <tr class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
-                        <th class="p-3.5">รหัสคำสั่งซื้อ</th>
-                        <th class="p-3.5">รายการสินค้า / ล็อต</th>
-                        <th class="p-3.5">ประเภทการขาย</th>
-                        <th class="p-3.5 text-right">จำนวน</th>
+                        <th class="p-3.5">เลขที่ใบเสร็จ</th>
+                        <th class="p-3.5">รหัสสินค้า</th>
                         <th class="p-3.5 text-right">ยอดรวม</th>
                         <th class="p-3.5">วันที่ซื้อ</th>
                       </tr>
                     </thead>
                     <tbody>
-                      ${customerSales.map(s => {
-                        const inv = appState.getInventoryByCropId ? appState.getInventoryByCropId(s.cropId) : null;
-                        const herbType = inv ? inv.herbType : (s.productName || 'สมุนไพร');
-                        return `
-                          <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                      ${customerSales.map(s => `
+                          <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors align-top">
                             <td class="p-3.5 font-bold text-emerald-800 font-mono">${s.id}</td>
-                            <td class="p-3.5 font-medium text-gray-800">${s.cropId ? `${s.cropId} (${herbType})` : (s.productName || herbType)}</td>
-                            <td class="p-3.5">
-                              <span class="px-2 py-0.5 rounded-md text-sm font-bold ${
-                                s.saleType === 'jar' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                              }">
-                                ${s.saleType === 'jar' ? 'กระป๋อง' : 'กก. วัตถุดิบ'}
-                              </span>
+                            <td class="p-3.5 text-gray-800">
+                              ${s.items.map(it => `<div class="py-0.5"><span class="font-mono font-bold text-emerald-800">${it.productId || '-'}</span> <span class="text-gray-700">${it.productName || ''}</span> <span class="font-bold text-gray-900">· ${it.quantity} ${unitTh(it.unit)}</span></div>`).join('')}
                             </td>
-                            <td class="p-3.5 text-right font-bold text-gray-900">${s.amount || s.amountKg || 1} ${s.saleType === 'jar' ? 'กระป๋อง' : 'กก.'}</td>
                             <td class="p-3.5 text-right font-bold text-emerald-800">${formatBaht(s.totalPrice)}</td>
                             <td class="p-3.5 text-gray-500">${formatThaiDate(s.date)}</td>
                           </tr>
-                        `;
-                      }).join('')}
+                      `).join('')}
                     </tbody>
                   </table>
                 </div>
@@ -801,7 +783,7 @@ export const CustomersComponent = {
     `;
 
     openGlobalModal({
-      title: `ประวัติคำสั่งซื้อ: ${cust.name}`,
+      title: `ประวัติการซื้อ: ${cust.name}`,
       icon: 'fas fa-receipt',
       size: 'max-w-5xl',
       headerColor: 'bg-[#163819]',

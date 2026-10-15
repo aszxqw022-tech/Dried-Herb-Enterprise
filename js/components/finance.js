@@ -788,7 +788,7 @@ export const FinanceComponent = {
               </div>
               <div>
                 <span class="text-sm text-gray-400 block">เลขอ้างอิง / ใบเสร็จ:</span>
-                <span class="text-sm font-bold text-gray-600">${sale.invoiceNo || `INV-${sale.id.split('-')[1]}`}</span>
+                <span class="text-sm font-bold text-gray-600">${sale.invoiceNo || `REC-${sale.id.split('-')[1]}`}</span>
               </div>
             </div>
           </div>

@@ -16,7 +16,7 @@ function normalizeSales(raw) {
   for (const s of raw) {
     if (!s) continue;
     // Base invoice ID without split suffixes like -1, -2
-    const baseId = s.invoiceNo || (s.id ? s.id.replace(/-\d+$/, '') : ('INV-' + Date.now()));
+    const baseId = s.invoiceNo || (s.id ? s.id.replace(/-\d+$/, '') : ('REC-' + Date.now()));
 
     const itemEntry = {
       productId: s.productId || (s.items && s.items[0] ? s.items[0].productId : ''),
@@ -53,6 +53,12 @@ function normalizeSales(raw) {
     }
   }
 
+  // เปลี่ยนเลขที่เอกสารเดิมที่ขึ้นต้น INV- เป็น REC-
+  result.forEach(o => {
+    ['id', 'invoiceNo', 'receiptNo'].forEach(k => {
+      if (typeof o[k] === 'string' && o[k].startsWith('INV-')) o[k] = 'REC-' + o[k].slice(4);
+    });
+  });
   return result;
 }
 
@@ -70,7 +76,7 @@ function saveDirectSales(sales) {
 function generateSaleId() {
   const sales = getDirectSales();
   const currentThaiYear = new Date().getFullYear() + 543;
-  const prefix = `INV-${currentThaiYear}-`;
+  const prefix = `REC-${currentThaiYear}-`;
   let maxNum = 0;
   sales.forEach(s => {
     const id = s.invoiceNo || s.id || '';
@@ -244,7 +250,7 @@ export const SalesComponent = {
 
     // Table rows: 1 Order = 1 Row
     const tableRowsHtml = filtered.length === 0
-      ? `<tr><td colspan="7" class="py-14 text-center">
+      ? `<tr><td colspan="6" class="py-14 text-center">
            <div class="flex flex-col items-center gap-2 text-gray-400">
              <i class="fas fa-receipt text-4xl opacity-30"></i>
              <p class="text-sm font-bold text-gray-500">ยังไม่มีรายการขาย</p>
@@ -278,6 +284,7 @@ export const SalesComponent = {
               <span class="text-xs text-emerald-800 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">
                 ${it.quantity} ${thUnit(it.unit)}
               </span>
+              <span class="text-xs text-gray-500 tabular-nums shrink-0">× ${formatBaht(parseFloat(it.unitPrice) || ((parseFloat(it.totalPrice) || 0) / (parseFloat(it.quantity) || 1)))} = <b class="text-gray-800">${formatBaht(parseFloat(it.totalPrice) || 0)}</b></span>
             </div>
           `).join('');
 
@@ -306,12 +313,6 @@ export const SalesComponent = {
                 </div>
               </td>
 
-              <!-- จำนวนรวม -->
-              <td class="py-3.5 px-4 text-center align-top">
-                <div class="font-bold text-gray-900 text-base tabular-nums">${totalOrderQty.toLocaleString()}</div>
-                <div class="text-xs text-gray-500 font-medium">${units || 'รายการ'}</div>
-              </td>
-
               <!-- ยอดรวมทั้งบิล -->
               <td class="py-3.5 px-4 text-right align-top">
                 <div class="text-base sm:text-lg font-bold text-emerald-800 font-mono tabular-nums">${formatBaht(totalBillAmount)}</div>
@@ -323,19 +324,14 @@ export const SalesComponent = {
               <!-- ผู้ซื้อ / ผู้ขาย -->
               <td class="py-3.5 px-4 align-top">
                 <div class="font-bold text-gray-900 text-sm">${s.customerName || '-'}</div>
-                <div class="text-xs text-gray-500 font-medium mt-0.5">${s.sellerName ? 'โดย: ' + s.sellerName : ''}</div>
               </td>
 
               <!-- จัดการ -->
               <td class="py-3.5 px-4 text-right align-top">
                 <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                  <button class="download-direct-sale-pdf-btn px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
-                    data-id="${docId}" title="ดาวน์โหลดเป็นไฟล์ PDF">
-                    <i class="fas fa-file-pdf text-red-600"></i> PDF
-                  </button>
                   <button class="view-direct-sale-btn px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
-                    data-id="${docId}" title="เปิดดูใบเสร็จ">
-                    <i class="fas fa-receipt text-emerald-600"></i> ใบเสร็จ
+                    data-id="${docId}" title="ดูใบเสร็จ">
+                    <i class="fas fa-receipt text-emerald-600"></i> ดูใบเสร็จ
                   </button>
                   <button class="delete-direct-sale-btn p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs transition-all cursor-pointer shadow-2xs"
                     data-id="${docId}" title="ยกเลิกบิลและคืนสต็อก">
@@ -361,13 +357,8 @@ export const SalesComponent = {
             </h1>
             <p class="text-sm text-gray-500 mt-1 ml-1">บันทึกรายการขายสินค้า · ออกใบเสร็จรับเงิน · ติดตามรายได้</p>
           </div>
-          <a href="#inventory" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-sm font-bold transition-all shadow-xs self-start sm:self-auto">
-            <i class="fas fa-boxes-stacked"></i> คลังสินค้า →
-          </a>
         </div>
 
-        <!-- Summary Cards -->
-        ${summaryHtml}
 
 
 
@@ -400,10 +391,6 @@ export const SalesComponent = {
 
             <!-- แถวที่ 1 (ข้อมูลอ้างอิงและคู่ค้า): วันที่ขาย | ลูกค้า | ผู้บันทึกขาย -->
             <div class="space-y-1.5">
-              <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs">1</span>
-                <span>ข้อมูลอ้างอิงและคู่ค้า</span>
-              </div>
               <div class="grid grid-cols-1 md:grid-cols-[repeat(2,minmax(0,300px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
                 <!-- วันที่ขาย -->
                 <div>
@@ -412,7 +399,6 @@ export const SalesComponent = {
                   </label>
                   <input type="date" id="sale-date" name="date" required value="${today}"
                     class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
-                  <p class="text-xs text-gray-500 mt-1">วันที่บันทึกรายการขาย (แก้ไขได้)</p>
                 </div>
 
                 <!-- ลูกค้า -->
@@ -435,11 +421,7 @@ export const SalesComponent = {
 
             <!-- แถวที่ 2 (ข้อมูลสินค้า): สินค้าที่ขาย | จำนวนที่ขาย + หน่วย | ราคาต่อหน่วย -->
             <div class="space-y-1.5">
-              <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs">2</span>
-                <span>ข้อมูลสินค้าและสต็อก</span>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[260px_300px_200px_240px] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[260px_300px_200px_240px] 2xl:grid-cols-[260px_300px_200px_240px_220px] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
                 <!-- สินค้าที่ขาย -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
@@ -450,7 +432,6 @@ export const SalesComponent = {
                     <option value="">— เลือกสินค้าจากคลัง —</option>
                     ${productOptions}
                   </select>
-                  <p class="text-xs text-gray-500 mt-1">ตัดสต็อกอัตโนมัติเมื่อกดบันทึก</p>
                 </div>
 
                 <!-- จำนวนที่ขาย + หน่วย -->
@@ -463,7 +444,6 @@ export const SalesComponent = {
                       class="flex-1 min-w-0 h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 tabular-nums bg-white shadow-xs">
                     <span id="sale-unit-display" class="h-11 px-3 inline-flex items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-bold text-emerald-800 whitespace-nowrap min-w-[64px] shadow-xs">หน่วย</span>
                   </div>
-                  <p class="text-xs text-gray-500 mt-1">เช่น 50 G / 1 กระป๋อง / กิโลกรัม</p>
                 </div>
 
                 <!-- ราคาต่อหน่วย -->
@@ -473,62 +453,26 @@ export const SalesComponent = {
                   </label>
                   <input type="number" id="sale-unit-price" name="unitPrice" min="0" step="any" placeholder="0"
                     class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-emerald-700 tabular-nums bg-white shadow-xs">
-                  <p class="text-xs text-gray-500 mt-1">ราคาจะดึงตามสินค้าที่เลือกอัตโนมัติ</p>
                 </div>
 
                 <!-- ยอดรวมสุทธิ -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
-                    <i class="fas fa-coins text-amber-500 mr-1.5"></i>ยอดรวมสุทธิ (คำนวณอัตโนมัติ)
+                    <i class="fas fa-coins text-amber-500 mr-1.5"></i>ยอดรวมสุทธิ
                   </label>
                   <div class="w-full h-11 px-3.5 rounded-xl border-2 border-amber-300 bg-amber-50/80 text-base font-bold text-amber-900 tabular-nums flex items-center justify-between shadow-xs" id="sale-total-display">
                     <span>0.00</span> <span class="text-sm font-bold text-amber-700">บาท</span>
                   </div>
-                  <p class="text-xs text-gray-500 mt-1">คำนวณจากจำนวน × ราคาต่อหน่วย</p>
                 </div>
-              </div>
-            </div>
 
-            <!-- แถวที่ 3 (การเงินและสรุปยอด): ช่องทางชำระเงิน | หมายเหตุ -->
-            <div class="space-y-1.5">
-              <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs">3</span>
-                <span>การเงินและสรุปยอด</span>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-[repeat(2,minmax(0,300px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
-                <!-- ช่องทางชำระเงิน -->
+                <!-- ปุ่มเพิ่มลงบิล (ต่อจากยอดรวมสุทธิ) -->
                 <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-1.5">
-                    <i class="fas fa-credit-card text-emerald-600 mr-1.5"></i>ช่องทางชำระเงิน *
-                  </label>
-                  <select id="sale-payment" name="payment"
-                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
-                    <option value="เงินสด">💵 เงินสด</option>
-                    <option value="โอนเงิน">📱 โอนเงิน (พร้อมเพย์/ธนาคาร)</option>
-                    <option value="บัตรเครดิต">💳 บัตรเครดิต/เดบิต</option>
-                    <option value="ค้างชำระ">⏳ ค้างชำระ (เครดิต)</option>
-                    <option value="อื่นๆ">📝 อื่นๆ</option>
-                  </select>
-                  <p class="text-xs text-gray-500 mt-1">เลือกประเภทการชำระเงิน</p>
-                </div>
-
-                <!-- หมายเหตุ -->
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-1.5">
-                    <i class="fas fa-note-sticky text-gray-400 mr-1.5"></i>หมายเหตุ (ถ้ามี)
-                  </label>
-                  <input type="text" id="sale-note" name="note" placeholder="เช่น สั่งพิเศษ, ส่งมอบหน้าร้าน, ซื้อยกล็อต..."
-                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
-                  <p class="text-xs text-gray-500 mt-1">ข้อความเพิ่มเติมบนใบเสร็จ</p>
+                  <label class="block text-sm font-bold mb-1.5 invisible">เพิ่ม</label>
+                  <button type="button" id="add-to-cart-btn" class="w-full h-11 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fas fa-plus"></i> เพิ่มรายการนี้ลงบิล
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <!-- Optional Multi-Item Cart Button -->
-            <div class="flex justify-end pt-1">
-              <button type="button" id="add-to-cart-btn" class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-sm font-bold transition-all flex items-center gap-2">
-                <i class="fas fa-plus"></i> เพิ่มรายการนี้ลงบิล (กรณีต้องการขายหลายชิ้นพร้อมกัน)
-              </button>
             </div>
 
             <!-- Cart Items Table -->
@@ -550,13 +494,59 @@ export const SalesComponent = {
                         </thead>
                         <tbody id="cart-items-tbody"></tbody>
                         <tfoot>
+                            <tr class="border-t border-emerald-100">
+                                <td colspan="3" class="py-2 px-3 text-right text-sm text-gray-600">รวมเงินสินค้า (ยังไม่หักส่วนลด):</td>
+                                <td colspan="2" class="py-2 px-3 text-right text-sm font-bold text-gray-800" id="cart-summary-subtotal">0.00 บาท</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="py-2 px-3 text-right text-sm text-gray-600">ส่วนลด:</td>
+                                <td colspan="2" class="py-2 px-3 text-right text-sm font-bold text-rose-600" id="cart-summary-discount">0.00 บาท</td>
+                            </tr>
                             <tr class="bg-emerald-50/50 border-t border-emerald-100 font-bold">
-                                <td colspan="3" class="py-3 px-3 text-right text-sm text-emerald-800">ยอดรวมทั้งบิล (Grand Total):</td>
+                                <td colspan="3" class="py-3 px-3 text-right text-sm text-emerald-800">ยอดรวมทั้งบิล (หักส่วนลดแล้ว):</td>
                                 <td colspan="2" class="py-3 px-3 text-right text-base text-emerald-700 font-bold" id="cart-summary-total">0.00 บาท</td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
+            </div>
+
+            <!-- แถวที่ 3 (การเงินและสรุปยอด): ช่องทางชำระเงิน | หมายเหตุ -->
+            <div class="space-y-1.5">
+              <div class="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,260px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
+                <!-- ช่องทางชำระเงิน -->
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1.5">
+                    <i class="fas fa-credit-card text-emerald-600 mr-1.5"></i>ช่องทางชำระเงิน *
+                  </label>
+                  <select id="sale-payment" name="payment"
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                    <option value="เงินสด">💵 เงินสด</option>
+                    <option value="โอนเงิน">📱 โอนเงิน (พร้อมเพย์/ธนาคาร)</option>
+                    <option value="บัตรเครดิต">💳 บัตรเครดิต/เดบิต</option>
+                    <option value="ค้างชำระ">⏳ ค้างชำระ (เครดิต)</option>
+                    <option value="อื่นๆ">📝 อื่นๆ</option>
+                  </select>
+                </div>
+
+                <!-- ส่วนลด -->
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1.5">
+                    <i class="fas fa-percent text-rose-500 mr-1.5"></i>ส่วนลด (บาท)
+                  </label>
+                  <input type="number" id="sale-discount" name="discount" min="0" step="any" placeholder="0"
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-rose-600 tabular-nums bg-white shadow-xs">
+                </div>
+
+                <!-- หมายเหตุ -->
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1.5">
+                    <i class="fas fa-note-sticky text-gray-400 mr-1.5"></i>หมายเหตุ (ถ้ามี)
+                  </label>
+                  <input type="text" id="sale-note" name="note" placeholder="เช่น สั่งพิเศษ, ส่งมอบหน้าร้าน, ซื้อยกล็อต..."
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                </div>
+              </div>
             </div>
 
             <!-- Submit Buttons -->
@@ -588,7 +578,7 @@ export const SalesComponent = {
               </div>
               <div>
                 <h2 class="text-base font-bold text-gray-900">ประวัติรายการขายทั้งหมด</h2>
-                <p class="text-sm text-gray-400">กดปุ่ม "ใบเสร็จ" เพื่อดูและพิมพ์ใบเสร็จรับเงิน</p>
+                <p class="text-sm text-gray-400">กดปุ่ม "ดูใบเสร็จ" เพื่อดูและพิมพ์ใบเสร็จรับเงิน</p>
               </div>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
@@ -645,9 +635,8 @@ export const SalesComponent = {
                   <th class="py-3.5 px-4 w-36">เลขที่ใบเสร็จ</th>
                   <th class="py-3.5 px-4 w-44">วันที่ขาย</th>
                   <th class="py-3.5 px-4">สินค้า</th>
-                  <th class="py-3.5 px-4 text-center w-28">จำนวนรวม</th>
                   <th class="py-3.5 px-4 text-right w-36">ยอดรวมทั้งบิล</th>
-                  <th class="py-3.5 px-4 w-52">ผู้ซื้อ / ผู้ขาย</th>
+                  <th class="py-3.5 px-4 w-52">ผู้ซื้อ</th>
                   <th class="py-3.5 px-4 text-right w-44">จัดการ</th>
                 </tr>
               </thead>
@@ -656,7 +645,6 @@ export const SalesComponent = {
               <tfoot>
                 <tr class="bg-emerald-50 border-t-2 border-emerald-600 font-bold text-sm">
                   <td colspan="3" class="py-3 px-4 text-right text-emerald-900">รวม (${filtered.length} บิล):</td>
-                  <td class="py-3 px-4 text-center text-emerald-800">${totalQty.toLocaleString()}</td>
                   <td class="py-3 px-4 text-right text-emerald-800 text-base">${formatBaht(totalRevenue)}</td>
                   <td colspan="2"></td>
                 </tr>
@@ -692,6 +680,8 @@ export const SalesComponent = {
       }
     };
 
+    const discInput = document.getElementById('sale-discount');
+    if (discInput) discInput.addEventListener('input', () => this._renderCartItems());
     if (qtyInput) qtyInput.addEventListener('input', updateCalc);
     if (priceInput) priceInput.addEventListener('input', updateCalc);
 
@@ -850,7 +840,13 @@ export const SalesComponent = {
           `;
       });
       tbody.innerHTML = html;
-      if (summaryTotal) summaryTotal.textContent = `${grandTotal.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2})} บาท`;
+      const fmt2 = (n) => `${n.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2})} บาท`;
+      const disc = Math.min(Math.max(parseFloat(document.getElementById('sale-discount')?.value) || 0, 0), grandTotal);
+      const subEl = document.getElementById('cart-summary-subtotal');
+      const discEl = document.getElementById('cart-summary-discount');
+      if (subEl) subEl.textContent = fmt2(grandTotal);
+      if (discEl) discEl.textContent = disc > 0 ? `-${fmt2(disc)}` : fmt2(0);
+      if (summaryTotal) summaryTotal.textContent = fmt2(grandTotal - disc);
       
       const removeBtns = tbody.querySelectorAll('.remove-cart-item-btn');
       removeBtns.forEach(btn => {
@@ -1006,12 +1002,18 @@ export const SalesComponent = {
       createdAt: new Date().toISOString()
     };
 
+    const discountAmt = Math.min(Math.max(parseFloat(document.getElementById('sale-discount')?.value) || 0, 0), grandTotal);
+    newOrder.subtotal = grandTotal;
+    newOrder.discount = discountAmt;
+    newOrder.totalPrice = parseFloat((grandTotal - discountAmt).toFixed(2));
+    newOrder.totalAmount = newOrder.totalPrice;
+
     sales.unshift(newOrder);
     saveDirectSales(sales);
     this.currentCart = [];
 
     form.reset();
-    showToast(`บันทึกการขาย ${invoiceNo} สำเร็จ! (${orderItems.length} รายการ ยอดรวม ${formatBaht(grandTotal)})`, 'success');
+    showToast(`บันทึกการขาย ${invoiceNo} สำเร็จ! (${orderItems.length} รายการ ยอดรวม ${formatBaht(newOrder.totalPrice)})`, 'success');
     this.refreshView();
 
     setTimeout(() => this._openReceipt(newOrder.id), 300);
@@ -1160,7 +1162,8 @@ export const SalesComponent = {
         `;
     });
     
-    const grand      = subtotal;
+    const discountVal = Math.min(Math.max(parseFloat(s.discount) || 0, 0), subtotal);
+    const grand      = subtotal - discountVal;
     const documentId = s.invoiceNo || s.id || s.receiptNo;
     const barDigits  = (documentId || '').replace(/\D/g, '').padStart(12, '0');
 
@@ -1280,7 +1283,7 @@ export const SalesComponent = {
             </div>
             <div class="flex justify-between text-sm text-gray-600 pb-2 border-b border-emerald-200">
               <span>ส่วนลด</span>
-              <span class="tabular-nums font-bold text-gray-800">0.00 บาท</span>
+              <span class="tabular-nums font-bold text-gray-800">${discountVal > 0 ? '-' : ''}${formatBaht(discountVal)}</span>
             </div>
             <div class="flex justify-between items-baseline pt-1">
               <span class="text-sm sm:text-base font-bold text-emerald-950">รวมเป็นเงินทั้งสิ้น</span>

@@ -45,9 +45,6 @@ export const PlotsComponent = {
                 ${(parseFloat(p.lat) || 0).toFixed(4)}, ${(parseFloat(p.lng) || 0).toFixed(4)}
               </td>
               <td class="px-6 py-3.5 text-sm text-right space-x-1">
-                <button data-id="${p.id}" class="add-crop-from-plot-btn text-amber-600 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-colors" title="เริ่มปลูก (สร้างรอบการปลูกใหม่)">
-                  <i class="fas fa-seedling"></i>
-                </button>
                 <button data-id="${p.id}" class="pan-to-plot-btn text-emerald-600 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors" title="ดูแผนที่">
                   <i class="fas fa-map-marker-alt"></i>
                 </button>
