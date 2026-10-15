@@ -327,10 +327,6 @@ export const DashboardComponent = {
         <!-- ===== Page Header ===== -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-1">
           <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-bold mb-2 border border-emerald-200 shadow-2xs">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>ระบบแดชบอร์ดสารสนเทศกลาง (Central Enterprise Analytics)</span>
-            </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 flex items-center gap-2.5">
               <i class="fa-solid fa-chart-line text-emerald-700"></i>
               <span>แดชบอร์ดภาพรวม (Dashboard Overview)</span>
