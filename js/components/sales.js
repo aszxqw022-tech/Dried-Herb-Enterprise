@@ -62,6 +62,50 @@ function normalizeSales(raw) {
   return result;
 }
 
+// ย่อรูปหลักฐานให้ด้านยาวไม่เกิน 1000px (JPEG) เพื่อเก็บในบิลได้
+function compressProofImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) { reject(new Error('not image')); return; }
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const max = 1000;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// เปิดดูรูปหลักฐานแบบเต็มจอ พร้อมปุ่มดาวน์โหลด
+function openProofViewer(dataUrl, docId) {
+  if (!dataUrl) return;
+  const old = document.getElementById('proof-viewer-overlay');
+  if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'proof-viewer-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px';
+  ov.innerHTML = `
+    <img src="${dataUrl}" alt="หลักฐานการชำระเงิน" style="max-width:100%;max-height:80vh;border-radius:12px;background:#fff">
+    <div style="display:flex;gap:10px">
+      <a href="${dataUrl}" download="หลักฐานการชำระ-${docId || 'บิล'}.jpg" style="padding:10px 18px;border-radius:12px;background:#047857;color:#fff;font-weight:700;text-decoration:none"><i class="fas fa-download"></i> ดาวน์โหลดรูป</a>
+      <button type="button" id="proof-viewer-close" style="padding:10px 18px;border-radius:12px;background:#fff;color:#334155;font-weight:700;border:0;cursor:pointer">ปิด</button>
+    </div>`;
+  ov.addEventListener('click', (e) => { if (e.target === ov || e.target.id === 'proof-viewer-close') ov.remove(); });
+  document.body.appendChild(ov);
+}
+
 function getDirectSales() {
   try {
     const raw = JSON.parse(localStorage.getItem(DIRECT_SALES_KEY)) || [];
@@ -72,7 +116,11 @@ function getDirectSales() {
 function saveDirectSales(sales) {
   let prev = [];
   try { prev = JSON.parse(localStorage.getItem(DIRECT_SALES_KEY)) || []; } catch (e) { prev = []; }
-  localStorage.setItem(DIRECT_SALES_KEY, JSON.stringify(sales));
+  try {
+    localStorage.setItem(DIRECT_SALES_KEY, JSON.stringify(sales));
+  } catch (e) {
+    showToast('พื้นที่เก็บข้อมูลในเบราว์เซอร์เต็ม (รูปหลักฐานมีขนาดใหญ่) — ข้อมูลยังถูกส่งขึ้นออนไลน์', 'warning');
+  }
   // บันทึกบิลขึ้น Supabase ด้วย เพื่อให้ทุกเครื่องเห็นข้อมูลเดียวกัน
   try { appState.syncJsonList('direct_sales', DIRECT_SALES_KEY, sales, prev); } catch (e) { console.error(e); }
 }
@@ -517,7 +565,7 @@ export const SalesComponent = {
 
             <!-- แถวที่ 3 (การเงินและสรุปยอด): ช่องทางชำระเงิน | หมายเหตุ -->
             <div class="space-y-1.5">
-              <div class="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,260px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
+              <div class="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,260px))_minmax(0,300px)] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
                 <!-- ช่องทางชำระเงิน -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
@@ -549,6 +597,21 @@ export const SalesComponent = {
                   </label>
                   <input type="text" id="sale-note" name="note" placeholder="เช่น สั่งพิเศษ, ส่งมอบหน้าร้าน, ซื้อยกล็อต..."
                     class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                </div>
+
+                <!-- หลักฐานการชำระเงิน -->
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1.5">
+                    <i class="fas fa-image text-sky-600 mr-1.5"></i>หลักฐานการชำระเงิน
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <label for="sale-proof-input" class="flex-1 h-11 px-3.5 rounded-xl border-2 border-dashed border-sky-300 bg-white hover:bg-sky-50 text-sm font-bold text-sky-700 flex items-center gap-2 cursor-pointer min-w-0">
+                      <i class="fas fa-upload"></i><span id="sale-proof-label" class="truncate">แนบรูปสลิป / หลักฐาน</span>
+                    </label>
+                    <img id="sale-proof-thumb" alt="หลักฐาน" class="hidden w-11 h-11 rounded-lg object-cover border border-gray-200">
+                    <button type="button" id="sale-proof-clear" class="hidden w-9 h-9 rounded-lg bg-red-50 text-red-600 border border-red-200 cursor-pointer" title="ลบรูป"><i class="fas fa-xmark"></i></button>
+                  </div>
+                  <input type="file" id="sale-proof-input" accept="image/*" class="hidden">
                 </div>
               </div>
             </div>
@@ -686,6 +749,28 @@ export const SalesComponent = {
 
     const discInput = document.getElementById('sale-discount');
     if (discInput) discInput.addEventListener('input', () => this._renderCartItems());
+
+    // หลักฐานการชำระเงิน (รูป) — ย่อขนาดก่อนเก็บ
+    this._proofDataUrl = '';
+    const proofInput = document.getElementById('sale-proof-input');
+    const proofThumb = document.getElementById('sale-proof-thumb');
+    const proofClear = document.getElementById('sale-proof-clear');
+    const proofLabel = document.getElementById('sale-proof-label');
+    const setProof = (dataUrl, name) => {
+      this._proofDataUrl = dataUrl || '';
+      if (proofThumb) { proofThumb.src = dataUrl || ''; proofThumb.classList.toggle('hidden', !dataUrl); }
+      if (proofClear) proofClear.classList.toggle('hidden', !dataUrl);
+      if (proofLabel) proofLabel.textContent = dataUrl ? (name || 'แนบรูปแล้ว') : 'แนบรูปสลิป / หลักฐาน';
+    };
+    if (proofInput) proofInput.addEventListener('change', async () => {
+      const f = proofInput.files && proofInput.files[0];
+      if (!f) return;
+      try { setProof(await compressProofImage(f), f.name); }
+      catch (e) { showToast('อ่านไฟล์รูปไม่สำเร็จ กรุณาเลือกไฟล์รูปภาพ', 'error'); }
+      proofInput.value = '';
+    });
+    if (proofClear) proofClear.addEventListener('click', () => setProof('', ''));
+    if (proofInput && proofInput.form) proofInput.form.addEventListener('reset', () => setProof('', ''));
     if (qtyInput) qtyInput.addEventListener('input', updateCalc);
     if (priceInput) priceInput.addEventListener('input', updateCalc);
 
@@ -1011,6 +1096,8 @@ export const SalesComponent = {
     newOrder.discount = discountAmt;
     newOrder.totalPrice = parseFloat((grandTotal - discountAmt).toFixed(2));
     newOrder.totalAmount = newOrder.totalPrice;
+    newOrder.paymentProof = this._proofDataUrl || '';
+    this._proofDataUrl = '';
 
     sales.unshift(newOrder);
     saveDirectSales(sales);
@@ -1260,9 +1347,7 @@ export const SalesComponent = {
             <div class="grid grid-cols-2 gap-3 text-center pt-1">
               <div></div>
               <div>
-                <div class="border-b border-dashed border-gray-300 pb-1 mb-1 text-xs font-bold text-emerald-800 truncate" title="${s.sellerName || ''}">
-                  ${s.sellerName || ''}
-                </div>
+                <div class="border-b border-dashed border-gray-300 pb-5 mb-1"></div>
                 <div class="text-xs text-gray-500">ผู้รับเงิน</div>
               </div>
             </div>
@@ -1317,7 +1402,18 @@ export const SalesComponent = {
           <button type="button" class="close-global-modal-btn px-4 sm:px-5 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
             ปิดหน้าต่าง
           </button>
-          <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-2.5 flex-wrap justify-end">
+            ${s.paymentProof ? `
+            <button type="button" id="view-proof-btn"
+              class="px-4 py-2.5 text-sm font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer">
+              <img src="${s.paymentProof}" alt="" class="w-6 h-6 rounded object-cover border border-sky-200">
+              <span>ดูหลักฐานการชำระเงิน</span>
+            </button>` : `
+            <label for="receipt-proof-input"
+              class="px-4 py-2.5 text-sm font-bold text-sky-700 bg-white hover:bg-sky-50 border-2 border-dashed border-sky-300 rounded-xl transition-all flex items-center gap-2 cursor-pointer">
+              <i class="fas fa-upload"></i><span>แนบหลักฐานการชำระเงิน</span>
+            </label>
+            <input type="file" id="receipt-proof-input" accept="image/*" class="hidden">`}
             <button type="button" id="download-receipt-pdf-btn"
               class="px-4 sm:px-5 py-2.5 text-sm font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all shadow-xs flex items-center gap-2 active:scale-95 cursor-pointer">
               <i class="fas fa-file-pdf text-red-600 text-sm"></i>
@@ -1346,6 +1442,22 @@ export const SalesComponent = {
             this._printReceipt(saleId);
           });
         }
+
+        const viewProofBtn = dialog.querySelector('#view-proof-btn');
+        if (viewProofBtn) viewProofBtn.addEventListener('click', () => openProofViewer(s.paymentProof, s.invoiceNo || s.id));
+        const receiptProofInput = dialog.querySelector('#receipt-proof-input');
+        if (receiptProofInput) receiptProofInput.addEventListener('change', async () => {
+          const f = receiptProofInput.files && receiptProofInput.files[0];
+          if (!f) return;
+          try {
+            const dataUrl = await compressProofImage(f);
+            const list = getDirectSales();
+            const target = list.find(x => x.id === s.id);
+            if (target) { target.paymentProof = dataUrl; saveDirectSales(list); }
+            showToast('แนบหลักฐานการชำระเงินเรียบร้อย', 'success');
+            this._openReceipt(s.id);
+          } catch (e) { showToast('อ่านไฟล์รูปไม่สำเร็จ กรุณาเลือกไฟล์รูปภาพ', 'error'); }
+        });
 
         const downloadPdfBtn = dialog.querySelector('#download-receipt-pdf-btn');
         if (downloadPdfBtn) {

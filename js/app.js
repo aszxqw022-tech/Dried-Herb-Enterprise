@@ -14,7 +14,7 @@ import { CustomersComponent } from './components/customers.js?v=11';
 import { InventoryComponent } from './components/inventory.js?v=54'; // Phase 2
 import { FinanceComponent } from './components/finance.js?v=5';
 import { CostRevenueComponent } from './components/costRevenue.js?v=20';
-import { SalesComponent } from './components/sales.js?v=35';
+import { SalesComponent } from './components/sales.js?v=36';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 import { LoginComponent } from './components/login.js?v=3';
 
