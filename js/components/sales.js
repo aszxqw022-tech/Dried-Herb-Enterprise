@@ -2,6 +2,9 @@
 import { appState } from '../state.js';
 import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModal } from '../helpers.js';
 
+// แสดงหน่วยเป็นชื่อเต็ม (ค่าที่เก็บในระบบยังเป็น กก. เหมือนเดิม)
+const thUnit = (u) => (u === 'กก.' || u === 'kg') ? 'กิโลกรัม' : u;
+
 // ---- LocalStorage key for direct product sales ----
 const DIRECT_SALES_KEY = 'herb_enterprise_direct_sales_v1';
 
@@ -218,7 +221,7 @@ export const SalesComponent = {
     // Product options with [PRD-XXX] badge
     const productOptions = products.map(p =>
       `<option value="${p.id}" data-price="${p.price}" data-unit="${p.unit}" data-stock="${p.stock}">
-        [${p.id}] ${p.name} (${p.price.toLocaleString()} บาท/${p.unit}) — คงเหลือ ${p.unit === 'กก.' ? p.stock.toFixed(2) : p.stock} ${p.unit}
+        [${p.id}] ${p.name} (${p.price.toLocaleString()} บาท/${thUnit(p.unit)}) — คงเหลือ ${p.unit === 'กก.' ? p.stock.toFixed(2) : p.stock} ${thUnit(p.unit)}
       </option>`
     ).join('');
 
@@ -265,7 +268,7 @@ export const SalesComponent = {
           const totalOrderQty = parseFloat(s.totalQuantity) || items.reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
 
           // Units summary
-          const units = [...new Set(items.map(it => it.unit).filter(Boolean))].join(', ');
+          const units = [...new Set(items.map(it => thUnit(it.unit)).filter(Boolean))].join(', ');
 
           // Products summary display
           const itemsSummaryHtml = items.map(it => `
@@ -273,7 +276,7 @@ export const SalesComponent = {
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
               <span class="font-medium text-gray-900">${it.productName || 'สินค้า'}</span>
               <span class="text-xs text-emerald-800 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">
-                ${it.quantity} ${it.unit}
+                ${it.quantity} ${thUnit(it.unit)}
               </span>
             </div>
           `).join('');
@@ -377,7 +380,7 @@ export const SalesComponent = {
               </div>
               <div>
                 <h2 class="text-base font-bold text-white flex items-center gap-2">
-                  <span>บันทึกรายการขายใหม่</span>
+                  <span>บันทึกรายการขาย</span>
                 </h2>
                 <p class="text-sm text-emerald-200">บันทึกข้อมูลการขาย ตัดสต็อกสินค้า และออกใบเสร็จรับเงินอัตโนมัติ</p>
               </div>
@@ -395,68 +398,68 @@ export const SalesComponent = {
             <input type="hidden" id="sale-customer-id" name="customerId" value="">
             <input type="hidden" id="sale-seller-id" name="sellerId" value="${currentUser && currentUser.memberId ? currentUser.memberId : ''}">
 
-            <!-- แถวที่ 1 (ข้อมูลอ้างอิงและคู่ค้า): วันที่ขาย | ลูกค้า (FK) | ผู้บันทึกขาย (FK) -->
+            <!-- แถวที่ 1 (ข้อมูลอ้างอิงและคู่ค้า): วันที่ขาย | ลูกค้า | ผู้บันทึกขาย -->
             <div class="space-y-1.5">
               <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
                 <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs">1</span>
-                <span>ข้อมูลอ้างอิงและคู่ค้า (Reference & Partners)</span>
+                <span>ข้อมูลอ้างอิงและคู่ค้า</span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+              <div class="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,300px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
                 <!-- วันที่ขาย -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
                     <i class="fas fa-calendar-day text-emerald-600 mr-1.5"></i>วันที่ขาย *
                   </label>
                   <input type="date" id="sale-date" name="date" required value="${today}"
-                    class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
                   <p class="text-xs text-gray-500 mt-1">วันที่บันทึกรายการขาย (แก้ไขได้)</p>
                 </div>
 
-                <!-- ลูกค้า (FK) -->
+                <!-- ลูกค้า -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
-                    <i class="fas fa-user text-emerald-600 mr-1.5"></i>ลูกค้า (FK) *
+                    <i class="fas fa-user text-emerald-600 mr-1.5"></i>ลูกค้า *
                   </label>
                   <select id="sale-customer-select"
-                    class="w-full px-3 py-2 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-medium text-gray-800 bg-white mb-1.5 shadow-xs">
-                    <option value="">— เลือกลูกค้าในระบบ (FK) —</option>
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white mb-2 shadow-xs">
+                    <option value="">— เลือกลูกค้าในระบบ —</option>
                     ${customerOptions}
                   </select>
                   <input type="text" id="sale-customer-name" name="customerName" required placeholder="หรือพิมพ์ชื่อลูกค้าใหม่..."
-                    class="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
                 </div>
 
-                <!-- ผู้บันทึกขาย (FK) -->
+                <!-- ผู้บันทึกขาย -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
-                    <i class="fas fa-user-tie text-emerald-600 mr-1.5"></i>ผู้บันทึกขาย (FK) *
+                    <i class="fas fa-user-tie text-emerald-600 mr-1.5"></i>ผู้บันทึกขาย *
                   </label>
                   <select id="sale-seller-select"
-                    class="w-full px-3 py-2 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-medium text-gray-800 bg-white mb-1.5 shadow-xs">
-                    <option value="">— เลือกสมาชิกผู้ขาย (FK) —</option>
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white mb-2 shadow-xs">
+                    <option value="">— เลือกสมาชิกผู้ขาย —</option>
                     ${sellerOptions}
                   </select>
                   <input type="text" id="sale-seller-name" name="sellerName" required placeholder="ชื่อผู้บันทึกขาย..."
                     value="${currentUser ? currentUser.name : ''}"
-                    class="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
                 </div>
               </div>
             </div>
 
-            <!-- แถวที่ 2 (ข้อมูลสินค้า): สินค้าที่ขาย (FK) | จำนวนที่ขาย + หน่วย | ราคาต่อหน่วย -->
+            <!-- แถวที่ 2 (ข้อมูลสินค้า): สินค้าที่ขาย | จำนวนที่ขาย + หน่วย | ราคาต่อหน่วย -->
             <div class="space-y-1.5">
               <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
                 <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs">2</span>
-                <span>ข้อมูลสินค้าและสต็อก (Product & Stock Details)</span>
+                <span>ข้อมูลสินค้าและสต็อก</span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                <!-- สินค้าที่ขาย (FK) -->
+              <div class="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,300px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
+                <!-- สินค้าที่ขาย -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
-                    <i class="fas fa-box text-emerald-600 mr-1.5"></i>สินค้าที่ขาย (FK) *
+                    <i class="fas fa-box text-emerald-600 mr-1.5"></i>สินค้าที่ขาย *
                   </label>
                   <select id="sale-product-id" name="productId"
-                    class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
                     <option value="">— เลือกสินค้าจากคลัง —</option>
                     ${productOptions}
                   </select>
@@ -470,10 +473,10 @@ export const SalesComponent = {
                   </label>
                   <div class="flex items-center gap-2">
                     <input type="number" id="sale-quantity" name="quantity" min="0.01" step="any" placeholder="0"
-                      class="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-base font-bold text-gray-800 tabular-nums bg-white shadow-xs">
-                    <span id="sale-unit-display" class="px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-bold text-emerald-800 whitespace-nowrap min-w-[64px] text-center shadow-xs">หน่วย</span>
+                      class="flex-1 h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 tabular-nums bg-white shadow-xs">
+                    <span id="sale-unit-display" class="h-11 px-3 inline-flex items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-bold text-emerald-800 whitespace-nowrap min-w-[64px] shadow-xs">หน่วย</span>
                   </div>
-                  <p class="text-xs text-gray-500 mt-1">เช่น 50 G / 1 กระป๋อง / กก.</p>
+                  <p class="text-xs text-gray-500 mt-1">เช่น 50 G / 1 กระป๋อง / กิโลกรัม</p>
                 </div>
 
                 <!-- ราคาต่อหน่วย -->
@@ -482,7 +485,7 @@ export const SalesComponent = {
                     <i class="fas fa-tag text-emerald-600 mr-1.5"></i>ราคาต่อหน่วย (บาท) *
                   </label>
                   <input type="number" id="sale-unit-price" name="unitPrice" min="0" step="any" placeholder="0"
-                    class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-base font-bold text-emerald-700 tabular-nums bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-emerald-700 tabular-nums bg-white shadow-xs">
                   <p class="text-xs text-gray-500 mt-1">ราคาจะดึงตามสินค้าที่เลือกอัตโนมัติ</p>
                 </div>
               </div>
@@ -492,15 +495,15 @@ export const SalesComponent = {
             <div class="space-y-1.5">
               <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
                 <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs">3</span>
-                <span>การเงินและสรุปยอด (Payment & Financial Summary)</span>
+                <span>การเงินและสรุปยอด</span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+              <div class="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,300px))] gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 w-fit max-w-full">
                 <!-- ยอดรวมสุทธิ -->
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1.5">
                     <i class="fas fa-coins text-amber-500 mr-1.5"></i>ยอดรวมสุทธิ (คำนวณอัตโนมัติ)
                   </label>
-                  <div class="w-full px-4 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50/80 text-lg font-bold text-amber-900 tabular-nums flex items-center justify-between shadow-xs" id="sale-total-display">
+                  <div class="w-full h-11 px-3.5 rounded-xl border-2 border-amber-300 bg-amber-50/80 text-base font-bold text-amber-900 tabular-nums flex items-center justify-between shadow-xs" id="sale-total-display">
                     <span>0.00</span> <span class="text-sm font-bold text-amber-700">บาท</span>
                   </div>
                   <p class="text-xs text-gray-500 mt-1">คำนวณจากจำนวน × ราคาต่อหน่วย</p>
@@ -512,7 +515,7 @@ export const SalesComponent = {
                     <i class="fas fa-credit-card text-emerald-600 mr-1.5"></i>ช่องทางชำระเงิน *
                   </label>
                   <select id="sale-payment" name="payment"
-                    class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
                     <option value="เงินสด">💵 เงินสด</option>
                     <option value="โอนเงิน">📱 โอนเงิน (พร้อมเพย์/ธนาคาร)</option>
                     <option value="บัตรเครดิต">💳 บัตรเครดิต/เดบิต</option>
@@ -528,7 +531,7 @@ export const SalesComponent = {
                     <i class="fas fa-note-sticky text-gray-400 mr-1.5"></i>หมายเหตุ (ถ้ามี)
                   </label>
                   <input type="text" id="sale-note" name="note" placeholder="เช่น สั่งพิเศษ, ส่งมอบหน้าร้าน, ซื้อยกล็อต..."
-                    class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm text-gray-700 bg-white shadow-xs">
+                    class="w-full h-11 px-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:outline-none text-sm font-bold text-gray-800 bg-white shadow-xs">
                   <p class="text-xs text-gray-500 mt-1">ข้อความเพิ่มเติมบนใบเสร็จ</p>
                 </div>
               </div>
@@ -711,13 +714,13 @@ export const SalesComponent = {
         if (opt && opt.value) {
           if (priceInput) priceInput.value = opt.getAttribute('data-price') || '';
           const unit = opt.getAttribute('data-unit') || 'หน่วย';
-          if (unitDisplay) unitDisplay.textContent = unit;
+          if (unitDisplay) unitDisplay.textContent = thUnit(unit);
           
           const stock = parseFloat(opt.getAttribute('data-stock')) || 0;
           if (stockWarning) {
               if (stock <= 5) {
                 stockWarning.classList.remove('hidden');
-                stockWarning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> สินค้าในสต็อกเหลือ ${stock} ${unit}`;
+                stockWarning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> สินค้าในสต็อกเหลือ ${stock} ${thUnit(unit)}`;
               } else {
                 stockWarning.classList.add('hidden');
               }
@@ -807,7 +810,7 @@ export const SalesComponent = {
       
       const existingQty = this.currentCart.reduce((sum, item) => item.productId === productId ? sum + item.quantity : sum, 0);
       if (product && (existingQty + quantity) > stock) {
-          showToast(`สต็อกไม่พอ! (ในสต็อกมี ${stock} ${unit})`, 'error');
+          showToast(`สต็อกไม่พอ! (ในสต็อกมี ${stock} ${thUnit(unit)})`, 'error');
           return;
       }
 
@@ -848,7 +851,7 @@ export const SalesComponent = {
           html += `
             <tr class="border-b border-gray-100 last:border-0 hover:bg-slate-50">
               <td class="py-2 px-3 text-sm font-bold text-gray-800">${item.productName}</td>
-              <td class="py-2 px-3 text-center text-sm font-bold text-emerald-700">${item.quantity.toLocaleString()} ${item.unit}</td>
+              <td class="py-2 px-3 text-center text-sm font-bold text-emerald-700">${item.quantity.toLocaleString()} ${thUnit(item.unit)}</td>
               <td class="py-2 px-3 text-right text-sm text-gray-600">${item.unitPrice.toLocaleString('th-TH', {minimumFractionDigits:2})}</td>
               <td class="py-2 px-3 text-right text-sm font-bold text-gray-900">${item.totalPrice.toLocaleString('th-TH', {minimumFractionDigits:2})}</td>
               <td class="py-2 px-3 text-right">
@@ -912,7 +915,7 @@ export const SalesComponent = {
       const stock = parseFloat(opt.getAttribute('data-stock')) || 0;
 
       if (qty > stock) {
-        showToast(`สต็อกไม่พอ! (ในสต็อกมี ${stock} ${unit})`, 'error');
+        showToast(`สต็อกไม่พอ! (ในสต็อกมี ${stock} ${thUnit(unit)})`, 'error');
         return;
       }
 
@@ -1163,7 +1166,7 @@ export const SalesComponent = {
                   <div class="font-bold text-gray-900 text-sm leading-snug">${item.productName}</div>
                   <div class="text-xs text-gray-400 font-normal mt-0.5 tracking-wide">รหัส: ${item.productId || '-'}</div>
                 </td>
-                <td style="width: 55px;" class="py-2.5 px-2 text-center text-gray-600 font-medium whitespace-nowrap">${item.unit || 'ชิ้น'}</td>
+                <td style="width: 55px;" class="py-2.5 px-2 text-center text-gray-600 font-medium whitespace-nowrap">${thUnit(item.unit) || 'ชิ้น'}</td>
                 <td style="width: 55px;" class="py-2.5 px-2 text-center font-bold text-gray-800 tabular-nums whitespace-nowrap">${itemQty.toLocaleString()}</td>
                 <td style="width: 95px;" class="py-2.5 px-2 text-right text-gray-600 tabular-nums whitespace-nowrap">${formatBaht(itemPrice)}</td>
                 <td style="width: 110px;" class="py-2.5 px-2 text-right font-bold text-gray-900 tabular-nums whitespace-nowrap">${formatBaht(itemTotal)}</td>

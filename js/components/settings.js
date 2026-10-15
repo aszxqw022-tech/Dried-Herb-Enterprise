@@ -16,20 +16,19 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
 
   // 1. President (ประธานกลุ่ม)
   const president = activeMembers.find(m => m.role === 'ประธานกลุ่ม' || (m.role && m.role.includes('ประธาน') && !m.role.includes('รอง')))
-    || (enterprise.chairman ? { name: enterprise.chairman, phone: enterprise.phone || '-', role: 'ประธานกลุ่ม' } : null)
-    || { name: 'นายวีรวัฒน์ ปินทรายมูล', phone: '061-139-1105', role: 'ประธานกลุ่ม' };
+    || {};
 
   // 2. Vice President (รองประธานกลุ่ม)
   const vicePresidents = activeMembers.filter(m => m.role === 'รองประธาน' || (m.role && m.role.includes('รองประธาน')));
-  const vicePresident = vicePresidents[0] || { name: 'นางแหม่ม สุตินกาศ', phone: '089-765-4321', role: 'รองประธาน' };
+  const vicePresident = vicePresidents[0] || {};
 
   // 3. Treasurer (เหรัญญิก)
   const treasurer = activeMembers.find(m => m.role === 'เหรัญญิก' || (m.role && (m.role.includes('เหรัญญิก') || m.role.includes('การเงิน') || m.role.includes('บัญชี'))))
-    || { name: 'นายมานะ รักเกษตร', phone: '081-234-5699', role: 'เหรัญญิก' };
+    || {};
 
   // 4. Secretary (เลขานุการ)
   const secretary = activeMembers.find(m => m.role === 'เลขานุการ' || (m.role && (m.role.includes('เลขานุการ') || m.role.includes('สารบรรณ'))))
-    || { name: 'นางสมศรี มีวิถี', phone: '081-234-5604', role: 'เลขานุการ' };
+    || {};
 
   // 5. Board Members (คณะกรรมการ / ฝ่ายปฏิบัติการ)
   const assignedIds = new Set([president.id, vicePresident.id, treasurer.id, secretary.id].filter(Boolean));
@@ -37,16 +36,8 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
 
   let boardMembers = activeMembers.filter(m => {
     if (assignedIds.has(m.id) || assignedNames.has(m.name)) return false;
-    return m.role === 'กรรมการ' || (m.role && m.role.includes('กรรมการ')) || (m.role !== 'สมาชิกทั่วไป' && !m.role.includes('สมาชิก'));
+    return !!(m.role && m.role.includes('กรรมการ'));
   });
-
-  // If no explicit board members found, fallback to first few members so the tree displays nicely
-  if (boardMembers.length === 0) {
-    const candidates = activeMembers.filter(m => !assignedIds.has(m.id) && !assignedNames.has(m.name)).slice(0, 3);
-    if (candidates.length > 0) {
-      boardMembers = candidates.map(m => ({ ...m, role: 'กรรมการ' }));
-    }
-  }
 
   return `
     <div class="flex flex-col items-center py-6 min-w-[320px] select-none">
@@ -67,7 +58,7 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
           </div>
           <div class="text-xs text-emerald-100 mt-1 flex items-center justify-center gap-1.5 font-medium">
             <i class="fas fa-phone-alt text-[10px] text-amber-300"></i>
-            <span>${escapeHtml(president.phone || '-')}</span>
+            <span>${escapeHtml(president.phone || '')}</span>
           </div>
         </div>
       </div>
@@ -89,7 +80,7 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
           </div>
           <div class="text-xs text-teal-100 mt-1 flex items-center justify-center gap-1 font-medium">
             <i class="fas fa-phone-alt text-[10px] text-teal-300"></i>
-            <span>${escapeHtml(vicePresident.phone || '-')}</span>
+            <span>${escapeHtml(vicePresident.phone || '')}</span>
           </div>
         </div>
       </div>
@@ -122,7 +113,7 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
               </div>
               <div class="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1 font-medium">
                 <i class="fas fa-phone-alt text-[10px] text-amber-600"></i>
-                <span>${escapeHtml(treasurer.phone || '-')}</span>
+                <span>${escapeHtml(treasurer.phone || '')}</span>
               </div>
             </div>
           </div>
@@ -145,7 +136,7 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
               </div>
               <div class="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1 font-medium">
                 <i class="fas fa-phone-alt text-[10px] text-sky-600"></i>
-                <span>${escapeHtml(secretary.phone || '-')}</span>
+                <span>${escapeHtml(secretary.phone || '')}</span>
               </div>
             </div>
           </div>
@@ -165,7 +156,7 @@ function renderOrgChartTreeHtml(members = [], enterprise = {}) {
 
         ${boardMembers.length === 0 ? `
           <div class="text-xs text-gray-400 py-4 italic text-center">
-            ยังไม่มีรายชื่อสมาชิกที่มีบทบาท 'กรรมการ' ในระบบ
+            ยังไม่มีกรรมการ
           </div>
         ` : `
           <div class="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-4xl">

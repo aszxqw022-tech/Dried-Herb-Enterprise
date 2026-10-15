@@ -328,11 +328,22 @@ export class AppState {
         .order('id', { ascending: true });
       
       if (!cropsError && cropsData && cropsData.length > 0) {
+        // ตารางออนไลน์ไม่มีคอลัมน์บางอย่าง (เช่น ชนิดพืช seedlingSource, ความคืบหน้าขั้นตอน)
+        // จึงนำค่าที่เก็บไว้ในเครื่องมาผสม ไม่ให้ข้อมูลหายหรือกลายเป็นค่าเริ่มต้น (เก๊กฮวย) หลังซิงค์
+        let prevLocalCrops = [];
+        try {
+          prevLocalCrops = (this.cropsCache && this.cropsCache.length)
+            ? this.cropsCache
+            : JSON.parse(localStorage.getItem(STORAGE_KEYS.CROPS) || '[]');
+        } catch (e) { prevLocalCrops = []; }
+        const prevLocalById = new Map((prevLocalCrops || []).map(pc => [pc.id, pc]));
         this.cropsCache = cropsData.map(c => ({
+          ...(prevLocalById.get(c.id) || {}),
           ...c,
+          seedlingSource: c.seedling_source || c.seedlingSource || (prevLocalById.get(c.id) || {}).seedlingSource,
           plotId: c.plot_id || c.plotId,
           cropYear: c.crop_year || c.cropYear,
-          cropCycle: c.crop_cycle || c.cropCycle || 1,
+          cropCycle: c.crop_cycle || c.cropCycle || (prevLocalById.get(c.id) || {}).cropCycle || 1,
           plantDate: c.plant_date || c.plantDate,
           harvestDateEst: c.harvest_date_est || c.harvestDateEst || '',
           harvestDateActual: c.harvest_date_actual || c.harvestDateActual || null,
@@ -1598,6 +1609,62 @@ export class AppState {
   }
 
   /**
+   * ลบประวัติการอบแห้ง 1 ล็อต: คืนสถานะ "รออบ" ให้รอบเพาะปลูกที่ถูกนำเข้าอบ
+   * และหักดอกแห้งที่เคยเพิ่มเข้าคลังออก (ลบไม่ได้ถ้าดอกแห้งล็อตนี้ถูกบรรจุกระป๋องไปแล้ว)
+   */
+  deleteDryingBatch(batchId) {
+    const batches = this.getDryingBatches();
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch) throw new Error('ไม่พบประวัติการอบแห้งที่ต้องการลบ');
+
+    const dryKg = parseFloat(batch.dryWeightKg) || 0;
+    const herb = batch.herbType || '';
+
+    // 1. เช็กว่าดอกแห้งในคลังยังพอให้หักคืน (ถ้าถูกนำไปบรรจุกระป๋องแล้วจะลบไม่ได้)
+    const inventory = this.getInventory();
+    const invItem = inventory.find(i => i.isPooledBatch && i.herbType && herb && i.herbType.includes(herb))
+      || inventory.find(i => i.herbType && herb && i.herbType.includes(herb));
+    if (dryKg > 0 && invItem && (parseFloat(invItem.dryStockKg) || 0) + 0.005 < dryKg) {
+      throw new Error(`ลบไม่ได้: ดอกแห้งในคลังเหลือ ${(parseFloat(invItem.dryStockKg) || 0).toFixed(2)} กิโลกรัม น้อยกว่าล็อตนี้ (${dryKg.toFixed(2)} กิโลกรัม) เพราะถูกนำไปบรรจุกระป๋องหรือขายแล้ว`);
+    }
+
+    // 2. คืนสถานะรอบเพาะปลูกให้กลับเป็น "รออบ"
+    (batch.cropIds || []).forEach(cropId => {
+      try {
+        this.updateCrop(cropId, { isProcessed: false, dryingDate: null, dryWeight: null, freshUsed: null });
+      } catch (e) {
+        console.error('revert crop error', cropId, e);
+      }
+    });
+
+    // 3. หักดอกแห้งออกจากคลัง
+    if (invItem && dryKg > 0) {
+      invItem.dryStockKg = Math.max(0, parseFloat(((parseFloat(invItem.dryStockKg) || 0) - dryKg).toFixed(2)));
+      if (!supabaseClient) {
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+      }
+    }
+
+    // 4. หักสต็อกสินค้าดอกแห้ง (กก.) ในรายการสินค้า
+    try {
+      if (dryKg > 0 && herb && batch.syncedToStock) {
+        const products = this.getProducts();
+        const matchPrd = products.find(p => p.unit === 'กก.' && p.name.includes(herb));
+        if (matchPrd) {
+          this.updateProduct(matchPrd.id, { stock: Math.max(0, parseFloat(((parseFloat(matchPrd.stock) || 0) - dryKg).toFixed(2))) });
+        }
+      }
+    } catch (e) {
+      console.error('revert product stock error', e);
+    }
+
+    // 5. ลบล็อตออกจากประวัติ
+    const remaining = batches.filter(b => b.id !== batchId);
+    localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(remaining));
+    return batch;
+  }
+
+  /**
    * Process pooled fresh flowers of a specific herb type into dry herb stock
    * Gathers fresh harvest from all plots of this herb without plot/member division
    */
@@ -1610,7 +1677,7 @@ export class AppState {
     const pendingCrops = allCrops.filter(c => {
       if (c.status !== 'harvested' || c.isProcessed) return false;
       const plot = this.getPlotById(c.plotId);
-      const cHerb = c.seedlingSource || (plot ? plot.plantType : '') || '';
+      const cHerb = c.seedlingSource || (plot ? plot.plantType : '') || 'เก๊กฮวย';
       return cHerb.includes(targetHerb);
     });
 
@@ -1771,6 +1838,51 @@ export class AppState {
   }
 
   /**
+   * ลบประวัติบรรจุกระป๋อง 1 ล็อต: คืนดอกแห้งเข้าคลัง และหักจำนวนกระป๋องออกจากสต็อก
+   * (ลบไม่ได้ถ้ากระป๋องล็อตนี้ถูกขายไปแล้ว จนสต็อกไม่พอให้หัก)
+   */
+  deletePackagingBatch(batchId) {
+    const batches = this.getPackagingBatches();
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch) throw new Error('ไม่พบประวัติบรรจุกระป๋องที่ต้องการลบ');
+
+    const jars = parseInt(batch.jarsProduced) || 0;
+    const usedKg = parseFloat(batch.dryUsedKg) || 0;
+    const herb = batch.herbType || '';
+
+    // 1. เช็กสต็อกกระป๋องว่ายังพอให้หักคืน
+    const products = this.getProducts();
+    const canned = products.find(p => p.id === batch.productId)
+      || products.find(p => p.unit === 'กระป๋อง' && herb && (p.name.includes(herb) || (p.category || '').includes(herb)));
+    if (canned && jars > 0 && (parseFloat(canned.stock) || 0) < jars) {
+      throw new Error(`ลบไม่ได้: สต็อกกระป๋องเหลือ ${parseFloat(canned.stock) || 0} กระป๋อง น้อยกว่าล็อตนี้ (${jars} กระป๋อง) เพราะขายออกไปแล้ว`);
+    }
+
+    // 2. หักจำนวนกระป๋องออกจากสต็อก
+    if (canned && jars > 0) {
+      this.updateProduct(canned.id, { stock: Math.max(0, (parseFloat(canned.stock) || 0) - jars) });
+    }
+
+    // 3. คืนดอกแห้งที่ใช้บรรจุกลับเข้าคลัง
+    if (usedKg > 0 && herb) {
+      const inventory = this.getInventory();
+      const invItem = inventory.find(i => i.isPooledBatch && i.herbType && i.herbType.includes(herb))
+        || inventory.find(i => i.herbType && i.herbType.includes(herb));
+      if (invItem) {
+        invItem.dryStockKg = parseFloat(((parseFloat(invItem.dryStockKg) || 0) + usedKg).toFixed(2));
+        if (!supabaseClient) {
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+        }
+      }
+    }
+
+    // 4. ลบล็อตออกจากประวัติ
+    const remaining = batches.filter(b => b.id !== batchId);
+    localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(remaining));
+    return batch;
+  }
+
+  /**
    * Process dry herb into canned/jar packaging products
    * (ดอกแห้ง > แบบกระป๋อง: สูตร 50 G ต่อ 1 กระป๋อง, 1 กก. = 20 กระป๋อง)
    */
@@ -1797,6 +1909,7 @@ export class AppState {
     const batchId = `PACK-${yearShort}${String(existingBatches.length + 1).padStart(2, '0')}`;
 
     // 1. Deduct dry herbs used from inventory & bulk dry product stock (PRD-001/PRD-002)
+    const products = this.getProducts();
     try {
       const inventory = this.getInventory();
       const invItem = inventory.find(i => (i.herbType && i.herbType.includes(targetHerb)));
@@ -1814,8 +1927,9 @@ export class AppState {
     }
 
     // 2. Find canned product in products catalog and increase jar stock
-    const products = this.getProducts();
-    let cannedProduct = products.find(p => (p.unit === 'กระป๋อง' || p.unit === 'กระป๋อง') && (p.category.includes(targetHerb) || p.name.includes(targetHerb)));
+    // (อ่านรายการสินค้าใหม่ เพราะสต็อกแบบกิโลกรัมเพิ่งถูกหักไป)
+    const freshProducts = this.getProducts();
+    let cannedProduct = freshProducts.find(p => (p.unit === 'กระป๋อง' || p.unit === 'กระป๋อง') && (p.category.includes(targetHerb) || p.name.includes(targetHerb)));
 
     if (cannedProduct) {
       this.updateProduct(cannedProduct.id, {
@@ -2190,7 +2304,17 @@ export class AppState {
 
       // Total Revenue = Sum of sales of this member's crop lots
       const memberSales = sales.filter(s => cropIds.includes(s.cropId));
-      const totalRevenue = memberSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+      const salesRevenue = memberSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+
+      // เงินที่ได้จากการขายดอกสดให้วิสาหกิจ (รับซื้อดอกสดจากสมาชิก) นับเป็นรายได้ของสมาชิกด้วย
+      let memberPurchases = [];
+      try {
+        const rawPur = JSON.parse(localStorage.getItem('herb_enterprise_fresh_purchases') || '[]');
+        memberPurchases = (Array.isArray(rawPur) ? rawPur : []).filter(pu => cropIds.includes(pu.cropId));
+      } catch (e) { memberPurchases = []; }
+      const purchaseAmount = (pu) => parseFloat(pu.amount) || ((parseFloat(pu.kg) || 0) * (parseFloat(pu.price) || 0));
+      const purchaseRevenue = memberPurchases.reduce((sum, pu) => sum + purchaseAmount(pu), 0);
+      const totalRevenue = salesRevenue + purchaseRevenue;
 
       const netProfit = totalRevenue - totalCost;
 
@@ -2224,6 +2348,15 @@ export class AppState {
         herbBreakdown[hName].revenue += (parseFloat(s.totalPrice) || 0);
       });
 
+      memberPurchases.forEach(pu => {
+        const crop = memberCrops.find(c => c.id === pu.cropId);
+        const hName = pu.herb || (crop ? crop.seedlingSource : 'เก๊กฮวย') || 'เก๊กฮวย';
+        if (!herbBreakdown[hName]) {
+          herbBreakdown[hName] = { herbName: hName, cropsCount: 0, freshYieldKg: 0, cost: 0, revenue: 0, net: 0 };
+        }
+        herbBreakdown[hName].revenue += purchaseAmount(pu);
+      });
+
       Object.values(herbBreakdown).forEach(hb => {
         hb.net = hb.revenue - hb.cost;
       });
@@ -2248,23 +2381,63 @@ export class AppState {
   getProducts() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      if (!data) {
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
-        return [];
-      }
-      let products = JSON.parse(data) || [];
-      if (!Array.isArray(products) || products.length === 0) {
-        return [];
-      }
-      
+      let products = [];
+      try { products = JSON.parse(data) || []; } catch (e) { products = []; }
+      if (!Array.isArray(products)) products = [];
+
+      let needsSave = !data;
+
       // AUTO-MIGRATE: Clean up old units based on strict criteria (กก. and กระป๋อง only)
-      let needsSave = false;
       products.forEach(p => {
         if (p.unit === 'กระปุก' || p.unit === 'ซอง' || p.unit === 'กล่อง' || p.unit === 'ขวด' || p.unit === 'custom') {
           p.unit = 'กระป๋อง';
           needsSave = true;
         }
       });
+
+      // AUTO-SEED: สินค้ามาตรฐาน 2 รายการต่อพืชแต่ละชนิด (ดอกอบแห้ง และกระป๋อง 50 กรัม)
+      let roadmapHerbs = [];
+      try { roadmapHerbs = Object.keys(this.getRoadmaps() || {}); } catch (e) { roadmapHerbs = []; }
+      const herbList = Array.from(new Set(['เก๊กฮวย', 'คาโมมายล์', ...roadmapHerbs]))
+        .map(h => (h || '').trim()).filter(Boolean);
+      const defaultPrices = { 'เก๊กฮวย': [250, 150], 'คาโมมายล์': [450, 100] };
+      let maxIdNum = products.reduce((max, p) => {
+        const m = (p.id || '').match(/PRD-(\d+)/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        return n > max ? n : max;
+      }, 0);
+      const today = new Date().toISOString().split('T')[0];
+      herbList.forEach(herb => {
+        const matches = p => p.category === herb || (p.name || '').includes(herb);
+        const [bulkPrice, canPrice] = defaultPrices[herb] || [300, 120];
+        if (!products.some(p => matches(p) && (p.unit === 'กก.' || p.unit === 'kg'))) {
+          maxIdNum++;
+          products.push({
+            id: `PRD-${String(maxIdNum).padStart(3, '0')}`,
+            name: `ดอก${herb}อบแห้ง`,
+            price: bulkPrice,
+            unit: 'กก.',
+            stock: 0,
+            category: herb,
+            updatedDate: today
+          });
+          needsSave = true;
+        }
+        if (!products.some(p => matches(p) && p.unit === 'กระป๋อง')) {
+          maxIdNum++;
+          products.push({
+            id: `PRD-${String(maxIdNum).padStart(3, '0')}`,
+            name: `กระป๋องดอก${herb}อบแห้ง 50 กรัม`,
+            price: canPrice,
+            unit: 'กระป๋อง',
+            stock: 0,
+            category: herb,
+            updatedDate: today
+          });
+          needsSave = true;
+        }
+      });
+
       if (needsSave) {
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
       }

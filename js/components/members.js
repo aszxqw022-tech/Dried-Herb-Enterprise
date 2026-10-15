@@ -70,7 +70,7 @@ export const MembersComponent = {
                       m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                     }">
                       <span class="w-1.5 h-1.5 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-red-500'}"></span>
-                      ${m.status === 'active' ? 'สมาชิก' : 'ไม่อยู่ในระบบ'}
+                      ${m.status === 'active' ? 'สมาชิก' : 'ออกจากสมาชิก'}
                     </span>
                   </div>
                 </div>
@@ -140,7 +140,7 @@ export const MembersComponent = {
             <select id="member-status-filter" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
               <option value="" ${this.statusFilter === '' ? 'selected' : ''}>สถานะทั้งหมด</option>
               <option value="active" ${this.statusFilter === 'active' ? 'selected' : ''}>สมาชิก (ในระบบ)</option>
-              <option value="inactive" ${this.statusFilter === 'inactive' ? 'selected' : ''}>ไม่อยู่ในระบบ</option>
+              <option value="inactive" ${this.statusFilter === 'inactive' ? 'selected' : ''}>ออกจากสมาชิก</option>
             </select>
           </div>
         </div>
@@ -378,7 +378,7 @@ export const MembersComponent = {
               <select id="mem-status" name="status" required
                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium bg-white">
                 <option value="active" ${(!member || member.status === 'active') ? 'selected' : ''}>สมาชิก (อยู่ในระบบ)</option>
-                <option value="inactive" ${member && member.status === 'inactive' ? 'selected' : ''}>ไม่อยู่ในระบบ</option>
+                <option value="inactive" ${member && member.status === 'inactive' ? 'selected' : ''}>ออกจากสมาชิก</option>
               </select>
             </div>
 
@@ -537,7 +537,15 @@ export const MembersComponent = {
       const fertCost = (c.fertilizingLog || []).reduce((fSum, f) => fSum + (f.cost || 0), 0);
       return sum + (c.cost || 0) + fertCost;
     }, 0);
-    const totalRevenue = mSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+    // เงินที่ได้จากการขายดอกสดให้วิสาหกิจ (รับซื้อดอกสด) นับเป็นรายได้ของสมาชิกด้วย
+    let mPurchases = [];
+    try {
+      const rawPur = JSON.parse(localStorage.getItem('herb_enterprise_fresh_purchases') || '[]');
+      mPurchases = (Array.isArray(rawPur) ? rawPur : []).filter(pu => mCropIds.includes(pu.cropId));
+    } catch (e) { mPurchases = []; }
+    const purchaseAmount = (pu) => parseFloat(pu.amount) || ((parseFloat(pu.kg) || 0) * (parseFloat(pu.price) || 0));
+    const totalRevenue = mSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0)
+      + mPurchases.reduce((sum, pu) => sum + purchaseAmount(pu), 0);
     const netProfit = totalRevenue - totalCost;
     const totalDryStock = mInventory.reduce((sum, i) => sum + (i.dryStockKg || 0), 0);
     const totalFreshYield = mCrops.reduce((sum, c) => sum + (parseFloat(c.yield) || 0), 0);
@@ -588,8 +596,22 @@ export const MembersComponent = {
                     m.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                   }">
                     <span class="w-2 h-2 rounded-full ${m.status === 'active' ? 'bg-green-500' : 'bg-red-500'}"></span>
-                    ${m.status === 'active' ? 'สมาชิก' : 'ไม่อยู่ในระบบ'}
+                    ${m.status === 'active' ? 'สมาชิก' : 'ออกจากสมาชิก'}
                   </span>
+                </div>
+                <div class="pt-4 mt-1 border-t border-gray-100 space-y-2.5">
+                  <div class="flex items-baseline justify-between">
+                    <span class="text-sm text-gray-400 font-bold">แปลงปลูกทั้งหมด</span>
+                    <span class="text-base font-bold text-emerald-800">${mPlots.length} <span class="text-xs font-semibold">แปลง</span></span>
+                  </div>
+                  <div class="flex items-baseline justify-between">
+                    <span class="text-sm text-gray-400 font-bold">จำนวนที่เคยปลูก</span>
+                    <span class="text-base font-bold text-emerald-800">${mCrops.length} <span class="text-xs font-semibold">รอบ</span></span>
+                  </div>
+                  <div class="flex items-baseline justify-between">
+                    <span class="text-sm text-gray-400 font-bold">ดอกสดที่เก็บเกี่ยวได้</span>
+                    <span class="text-base font-bold text-emerald-800">${totalFreshYield.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span class="text-xs font-semibold">กิโลกรัม</span></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -599,18 +621,6 @@ export const MembersComponent = {
               
               <!-- Statistics Cards Grid (6 cards: Agricultural + Financial) -->
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">แปลงปลูกทั้งหมด</span>
-                  <span class="text-xl font-bold text-emerald-800">${mPlots.length} <span class="text-xs text-gray-550 font-semibold">แปลง</span></span>
-                </div>
-                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">รอบการเพาะปลูก</span>
-                  <span class="text-xl font-bold text-emerald-800">${mCrops.length} <span class="text-xs text-gray-550 font-semibold">รอบ</span></span>
-                </div>
-                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">ดอกสดที่เก็บเกี่ยวได้</span>
-                  <span class="text-xl font-bold text-emerald-800">${totalFreshYield.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span class="text-xs text-gray-550 font-semibold">กก.</span></span>
-                </div>
                 <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                   <span class="text-xs text-gray-400 font-bold block uppercase mb-1">ต้นทุนสะสม</span>
                   <span class="text-xl font-bold text-amber-700">${totalCost.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
@@ -625,50 +635,15 @@ export const MembersComponent = {
                 </div>
               </div>
 
-              <!-- Plot Details List -->
-              <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
-                <h5 class="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <i class="fas fa-map-marked-alt text-emerald-700"></i> ชื่อแปลงที่ปลูก (${mPlots.length})
-                </h5>
-                
-                ${mPlots.length === 0 
-                  ? `<p class="text-sm text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
-                  : `
-                    <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
-                      ${mPlots.map(p => {
-                        const activeCrop = mCrops.find(c => c.plotId === p.id);
-                        const herbBadge = p.plantType || (activeCrop ? (activeCrop.seedlingSource || activeCrop.produceName || 'เก๊กฮวย') : 'พร้อมปลูก');
-                        return `
-                        <div class="py-2.5 flex justify-between items-center text-sm">
-                          <div>
-                            <span class="font-bold text-gray-800">${p.name}</span>
-                            <span class="text-gray-400 text-sm block mt-0.5">รหัสแปลง: ${p.id}</span>
-                          </div>
-                          <div class="text-right">
-                            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${
-                              herbBadge === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 
-                              herbBadge === 'คาโมมายล์' ? 'bg-blue-50 text-blue-800 border border-blue-200' : 
-                              herbBadge === 'พร้อมปลูก' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                              'bg-gray-100 text-gray-700 border border-gray-200'
-                            }">${herbBadge}</span>
-                            <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
-                          </div>
-                        </div>
-                      `;}).join('')}
-                    </div>
-                  `
-                }
-              </div>
-
               <!-- Planting History Section (ประวัติการปลูกที่เคยเก็บเกี่ยวแล้ว) -->
-              <div class="bg-white p-5 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
+              <div class="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-3 text-left">
                 <div class="flex items-center justify-between">
                   <h5 class="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fas fa-history text-emerald-700"></i> ประวัติการปลูกที่เคยเก็บเกี่ยวแล้ว (${harvestedCrops.length})
                   </h5>
                   ${harvestedCrops.length > 0 ? `
                     <span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
-                      รวม ${totalFreshYield.toLocaleString()} กก.
+                      รวม ${totalFreshYield.toLocaleString()} กิโลกรัม
                     </span>
                   ` : ''}
                 </div>
@@ -680,14 +655,15 @@ export const MembersComponent = {
                     ${mCrops.length > 0 ? `<p class="text-xs text-emerald-700 font-medium">ปัจจุบันมีรอบที่อยู่ระหว่างการปลูก ${mCrops.length} แปลง</p>` : ''}
                   </div>
                 ` : `
-                  <div class="divide-y divide-gray-100 max-h-56 overflow-y-auto pr-1 space-y-1">
+                  <div class="divide-y divide-gray-100 max-h-[26rem] overflow-y-auto pr-1 space-y-1">
                     ${harvestedCrops.map(crop => {
                       const plot = mPlots.find(p => p.id === crop.plotId) || appState.getPlotById(crop.plotId);
                       const plotName = plot ? plot.name : crop.plotId;
                       const cleanCropId = formatCropSeasonId(crop.id, crop.cropYear, crop.cropCycle);
                       const cropTotalCost = (crop.cost || 0) + ((crop.fertilizingLog || []).reduce((fSum, f) => fSum + (f.cost || 0), 0));
                       const cropSales = mSales.filter(s => s.cropId === crop.id);
-                      const cropRevenue = cropSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+                      const cropRevenue = cropSales.reduce((sum, s) => sum + (s.totalPrice || 0), 0)
+                        + mPurchases.filter(pu => pu.cropId === crop.id).reduce((sum, pu) => sum + purchaseAmount(pu), 0);
                       const yieldKg = parseFloat(crop.yield) || 0;
 
                       return `
@@ -728,6 +704,41 @@ export const MembersComponent = {
                     }).join('')}
                   </div>
                 `}
+              </div>
+
+              <!-- Plot Details List -->
+              <div class="bg-white px-4 py-3 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
+                <h5 class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fas fa-map-marked-alt text-emerald-700"></i> ชื่อแปลงที่ปลูก (${mPlots.length})
+                </h5>
+                
+                ${mPlots.length === 0 
+                  ? `<p class="text-sm text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
+                  : `
+                    <div class="divide-y divide-gray-100 max-h-28 overflow-y-auto pr-1">
+                      ${mPlots.map(p => {
+                        const activeCrop = mCrops.find(c => c.plotId === p.id);
+                        const herbBadge = p.plantType || (activeCrop ? (activeCrop.seedlingSource || activeCrop.produceName || 'เก๊กฮวย') : 'พร้อมปลูก');
+                        return `
+                        <div class="py-1.5 flex justify-between items-center text-xs">
+                          <div>
+                            <span class="font-bold text-gray-800">${p.name}</span>
+                            <span class="text-gray-400 text-xs block">รหัสแปลง: ${p.id}</span>
+                          </div>
+                          <div class="text-right">
+                            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                              herbBadge === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 
+                              herbBadge === 'คาโมมายล์' ? 'bg-blue-50 text-blue-800 border border-blue-200' : 
+                              herbBadge === 'พร้อมปลูก' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                              'bg-gray-100 text-gray-700 border border-gray-200'
+                            }">${herbBadge}</span>
+                            <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
+                          </div>
+                        </div>
+                      `;}).join('')}
+                    </div>
+                  `
+                }
               </div>
             </div>
             

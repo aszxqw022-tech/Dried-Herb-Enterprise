@@ -79,6 +79,43 @@ export const InventoryComponent = {
     });
 
     // 3. Generate Summary Cards (แยกสรุปตามหน่วยเรียกชัดเจน สบายตา อ่านง่าย)
+    const escHtml = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const productCardsHtml = allProducts.length === 0 ? '' : `
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        ${allProducts.map(p => {
+          const isCan = p.unit === 'กระป๋อง';
+          const unitLabel = isCan ? 'กระป๋อง' : 'กิโลกรัม';
+          const stock = parseFloat(p.stock) || 0;
+          const stockText = isCan ? String(Math.round(stock)) : stock.toFixed(2);
+          const accent = isCan ? 'border-teal-200 bg-teal-50/40' : 'border-amber-200 bg-amber-50/40';
+          const iconBg = isCan ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700';
+          return `
+            <div class="p-4 rounded-2xl border-2 ${accent} shadow-sm flex flex-col gap-3">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center text-lg shrink-0">
+                  <i class="fas ${isCan ? 'fa-jar' : 'fa-box-open'}"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-bold text-gray-900 text-sm leading-snug">${escHtml(p.name)}</div>
+                  <div class="text-xs text-gray-500 font-mono mt-0.5">${escHtml(p.id)} · ${escHtml(p.category)}</div>
+                </div>
+              </div>
+              <div class="rounded-xl ${isCan ? 'bg-teal-600' : 'bg-amber-600'} px-4 py-3 text-white flex items-end justify-between gap-3">
+                <span class="text-sm font-bold opacity-90 pb-1">ในสต็อก</span>
+                <span class="text-right leading-none">
+                  <span class="font-mono font-black text-4xl ${stock > 0 ? '' : 'opacity-70'}">${stockText}</span>
+                  <span class="block text-sm font-bold mt-1 opacity-95">${unitLabel}</span>
+                </span>
+              </div>
+              <div class="flex items-baseline justify-between text-sm">
+                <span class="font-bold text-gray-500">ราคา</span>
+                <span class="font-mono font-bold text-gray-800">${(parseFloat(p.price) || 0).toLocaleString()} บาท <span class="text-xs font-normal text-gray-500">/ ${unitLabel}</span></span>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+
     const summaryCardsHtml = `
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${Math.min(activeUnits.length + 1, 4)} gap-4">
         ${activeUnits.map(unit => {
@@ -133,7 +170,6 @@ export const InventoryComponent = {
               <span class="text-3xl font-bold text-gray-900 font-mono">${allProducts.length}</span>
               <span class="text-sm font-bold text-gray-500">รายการ</span>
             </div>
-            <span class="text-sm text-emerald-800 font-semibold block pt-0.5">ครอบคลุม ${activeUnits.length} หน่วยเรียก (กก. และ กระป๋อง)</span>
           </div>
           <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center text-xl shrink-0 shadow-2xs">
             <i class="fas fa-list-check"></i>
@@ -574,26 +610,11 @@ export const InventoryComponent = {
               <i class="fas fa-plus"></i>
               <span>+ เพิ่มรายการสินค้าใหม่</span>
             </button>
-
-            <a href="#fresh-buying" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
-              <i class="fa-solid fa-hand-holding-dollar text-amber-600"></i>
-              <span>รับซื้อดอกสด &rarr;</span>
-            </a>
-            <a href="#fresh-produce" class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-sm flex items-center gap-1.5 transition-all shadow-2xs">
-              <i class="fa-solid fa-fire-burner text-emerald-600"></i>
-              <span>โรงอบแห้ง &rarr;</span>
-            </a>
           </div>
         </div>
 
-        <!-- สรุปภาพรวมสต็อกคลัง -->
-        ${summaryCardsHtml}
-
-        <!-- แถบเกณฑ์ราคาจำหน่ายผลผลิตแปรรูปวิสาหกิจชุมชน -->
-        ${standardPriceBarHtml}
-
-        <!-- ===== ตารางสินค้ากระป๋อง ===== -->
-        ${canProductsSectionHtml}
+        <!-- การ์ดสินค้าแต่ละรายการ (ราคา / สต็อก) -->
+        ${productCardsHtml}
 
         <!-- Search and Filter Bar (พร้อมตัวกรองเดือนและปี) -->
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm space-y-3">
@@ -1413,7 +1434,7 @@ export const InventoryComponent = {
               <label for="prod-category" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หมวดหมู่พืช / ประเภทสินค้า</label>
               <select id="prod-category" name="category"
                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
-                ${herbCategories.map(h => `<option value="${h}">${h}</option>`).join('')}
+                ${herbCategories.map(h => `<option value="${h}||kg" ${defaultUnit !== 'กระป๋อง' ? '' : ''}>${h} — ดอกอบแห้ง (กิโลกรัม)</option><option value="${h}||can" ${defaultUnit === 'กระป๋อง' && h === herbCategories[0] ? 'selected' : ''}>${h} — กระป๋อง 50 กรัม</option>`).join('')}
               </select>
             </div>
 
@@ -1433,7 +1454,7 @@ export const InventoryComponent = {
               <label for="prod-unit" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หน่วยเรียก *</label>
               <div class="flex items-center gap-2">
                 <select id="prod-unit" name="unit" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                  <option value="กก." ${defaultUnit === 'กก.' ? 'selected' : ''}>กก.</option>
+                  <option value="กก." ${defaultUnit === 'กก.' ? 'selected' : ''}>กิโลกรัม</option>
                   <option value="กระป๋อง" ${defaultUnit === 'กระป๋อง' ? 'selected' : ''}>กระป๋อง</option>
                 </select>
               </div>
@@ -1470,6 +1491,29 @@ export const InventoryComponent = {
         
 
         const form = dialog.querySelector('#global-add-product-form');
+        const catSel = dialog.querySelector('#prod-category');
+        const nameInp = dialog.querySelector('#prod-name');
+        const unitSel = dialog.querySelector('#prod-unit');
+        const priceInp = dialog.querySelector('#prod-price');
+        let autoName = '';
+        let autoPrice = '';
+        const applyCategory = () => {
+          if (!catSel) return;
+          const [herb, kind] = catSel.value.split('||');
+          const isCan = kind === 'can';
+          if (unitSel) unitSel.value = isCan ? 'กระป๋อง' : 'กก.';
+          const newName = isCan ? `กระป๋องดอก${herb}อบแห้ง 50 กรัม` : `ดอก${herb}อบแห้ง`;
+          if (nameInp && (!nameInp.value || nameInp.value === autoName)) nameInp.value = newName;
+          autoName = newName;
+          let price = '';
+          try { price = appState.getProductPrice(herb, isCan ? 'กระป๋อง' : 'กก.'); } catch (err) { price = ''; }
+          if (priceInp && (!priceInp.value || String(priceInp.value) === String(autoPrice))) priceInp.value = price;
+          autoPrice = price;
+        };
+        if (catSel) {
+          catSel.addEventListener('change', applyCategory);
+          if (defaultUnit === 'กระป๋อง') applyCategory();
+        }
         if (form) {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1477,7 +1521,7 @@ export const InventoryComponent = {
             const data = {
               id: formData.get('id'),
               name: formData.get('name'),
-              category: formData.get('category'),
+              category: String(formData.get('category') || '').split('||')[0],
               price: formData.get('price'),
               unit: formData.get('unit'),
               stock: formData.get('stock')
@@ -1541,7 +1585,7 @@ export const InventoryComponent = {
             <div>
               <label for="edit-prod-unit" class="block text-sm font-semibold text-gray-500 uppercase mb-1">หน่วยเรียก *</label>
               <select id="edit-prod-unit" name="unit" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                <option value="กก." ${product.unit === 'กก.' ? 'selected' : ''}>กก.</option>
+                <option value="กก." ${product.unit === 'กก.' ? 'selected' : ''}>กิโลกรัม</option>
                 <option value="กระป๋อง" ${product.unit === 'กระป๋อง' ? 'selected' : ''}>กระป๋อง</option>
               </select>
             </div>

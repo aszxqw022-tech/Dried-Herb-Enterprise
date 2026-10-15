@@ -4,8 +4,12 @@ import { formatThaiDate, formatBaht, showToast, openGlobalModal, closeGlobalModa
 
 export const FreshProduceComponent = {
   selectedHerb: 'เก๊กฮวย',
-  activeTab: 'drying', // 'drying' | 'canning' | 'history'
+  activeTab: 'drying', // 'drying' | 'canning'
   historySubTab: 'drying', // 'drying' | 'canning'
+  dryYearFilter: 'all',
+  dryCycleFilter: 'all',
+  canYearFilter: 'all',
+  canCycleFilter: 'all',
 
   render() {
     const allCrops = appState.getCrops();
@@ -76,6 +80,25 @@ export const FreshProduceComponent = {
     const filteredDryFromBatches = selectedPool ? selectedPool.actualDryKg : 0;
     const cropsForHerb = allHarvestedCrops.filter(c => getCropHerb(c) === currentSelectedHerb);
 
+    // ปี (พ.ศ.) / รอบ ของล็อตอบแห้ง — อ่านจากรหัสรอบเพาะปลูกที่นำเข้าอบ เช่น 2569/P003-R1
+    const batchYears = (b) => {
+      const ys = (b.cropIds || []).map(id => String(id).split('/')[0]).filter(y => /^\d{4}$/.test(y));
+      if (ys.length > 0) return [...new Set(ys)];
+      const d = b.processedDate ? new Date(b.processedDate) : null;
+      return d && !isNaN(d) ? [String(d.getFullYear() + 543)] : [];
+    };
+    const batchCycles = (b) => [...new Set((b.cropIds || []).map(id => (String(id).match(/-R(\d+)/) || [])[1]).filter(Boolean))];
+    const dryYearOptions = [...new Set(filteredBatches.flatMap(batchYears))].sort((a, b) => b - a);
+    const dryCycleOptions = [...new Set(['1', '2', ...filteredBatches.flatMap(batchCycles)])].sort((a, b) => a - b);
+    const dryHistoryBatches = filteredBatches.filter(b => {
+      if (this.dryYearFilter !== 'all' && !batchYears(b).includes(this.dryYearFilter)) return false;
+      if (this.dryCycleFilter !== 'all' && !batchCycles(b).includes(this.dryCycleFilter)) return false;
+      return true;
+    });
+    const dryHistoryFresh = dryHistoryBatches.reduce((sum, b) => sum + (parseFloat(b.freshWeightKg) || 0), 0);
+    const dryHistoryDry = dryHistoryBatches.reduce((sum, b) => sum + (parseFloat(b.dryWeightKg) || 0), 0);
+
+
     const filteredPackBatches = packagingBatches.filter(b => {
       if (b.herbType === currentSelectedHerb) return true;
       if (selectedPool && selectedPool.isChrys && b.herbType && b.herbType.includes('เก๊กฮวย')) return true;
@@ -84,6 +107,26 @@ export const FreshProduceComponent = {
     });
     const filteredDryUsedSum = filteredPackBatches.reduce((sum, b) => sum + (parseFloat(b.dryUsedKg) || 0), 0);
     const filteredJarsProducedSum = filteredPackBatches.reduce((sum, b) => sum + (parseInt(b.jarsProduced) || 0), 0);
+
+    // ประวัติบรรจุกระป๋อง — ปีดูจากวันที่บรรจุ, รอบอนุมานจากล็อตอบแห้งล่าสุดของพืชเดียวกันที่อบก่อนหรือวันเดียวกัน
+    const packYears = (b) => {
+      const d = b.processedDate ? new Date(b.processedDate) : null;
+      return d && !isNaN(d) ? [String(d.getFullYear() + 543)] : [];
+    };
+    const packCycles = (b) => {
+      const dt = new Date(b.processedDate);
+      const src = dryingBatches.find(x => x.herbType === b.herbType && !isNaN(dt) && new Date(x.processedDate) <= dt);
+      return src ? batchCycles(src) : [];
+    };
+    const canYearOptions = [...new Set(filteredPackBatches.flatMap(packYears))].sort((a, b) => b - a);
+    const canCycleOptions = ['1', '2'];
+    const canHistoryBatches = filteredPackBatches.filter(b => {
+      if (this.canYearFilter !== 'all' && !packYears(b).includes(this.canYearFilter)) return false;
+      if (this.canCycleFilter !== 'all' && !packCycles(b).includes(this.canCycleFilter)) return false;
+      return true;
+    });
+    const canHistoryKg = canHistoryBatches.reduce((sum, b) => sum + (parseFloat(b.dryUsedKg) || 0), 0);
+    const canHistoryJars = canHistoryBatches.reduce((sum, b) => sum + (parseInt(b.jarsProduced) || 0), 0);
 
     const pricePerKg = appState.getProductPrice(selectedPool.herb, 'กก.');
     const pricePerJar = appState.getProductPrice(selectedPool.herb, 'กระป๋อง');
@@ -233,14 +276,6 @@ export const FreshProduceComponent = {
               <i class="fa-solid fa-jar text-base ${this.activeTab === 'canning' ? 'text-teal-200' : 'text-teal-600'}"></i>
               <span>2. แปรรูปบรรจุกระป๋อง</span>
             </button>
-            <button data-tab="history" class="fresh-tab-btn flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              this.activeTab === 'history'
-                ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-md'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 font-medium'
-            }">
-              <i class="fa-solid fa-clock-rotate-left text-base ${this.activeTab === 'history' ? 'text-emerald-300' : 'text-gray-500'}"></i>
-              <span>3. ประวัติย้อนหลัง (${filteredBatches.length + filteredPackBatches.length} รอบ)</span>
-            </button>
           </nav>
         </div>
 
@@ -253,91 +288,71 @@ export const FreshProduceComponent = {
               <!-- Clean Process Pipeline Card -->
               ${this.renderProcessFlowCard(selectedPool)}
 
-              <!-- Data Table -->
+              <!-- ประวัติการอบแห้ง -->
               <div class="bg-white rounded-3xl border-2 border-emerald-100 shadow-md overflow-hidden">
                 <div class="px-6 py-4 bg-gradient-to-r from-emerald-800 to-teal-800 text-white flex items-center justify-between flex-wrap gap-4">
                   <div class="flex items-center gap-3">
                     <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-base">
-                      <i class="fa-solid fa-list-check"></i>
+                      <i class="fa-solid fa-clock-rotate-left"></i>
                     </span>
                     <div>
-                      <h3 class="text-base font-bold">รายการแปลงเก็บเกี่ยว (ผลผลิตสด)</h3>
-                      <p class="text-xs text-emerald-200 mt-0.5">รวม ${cropsForHerb.length} แปลง · ยอดสดรวม ${(selectedPool.pendingFreshKg + selectedPool.processedFreshKg).toFixed(1)} กก.</p>
+                      <h3 class="text-base font-bold">ประวัติการอบแห้ง</h3>
+                      <p class="text-xs text-emerald-200 mt-0.5">รวม ${dryHistoryBatches.length} รอบ · สด ${dryHistoryFresh.toFixed(1)} กิโลกรัม · แห้ง ${dryHistoryDry.toFixed(1)} กิโลกรัม</p>
                     </div>
+                  </div>
+                  <div class="flex items-center gap-2.5 flex-wrap">
+                    <select id="dry-history-year-filter" class="px-3 py-1.5 rounded-xl border border-white/30 text-xs font-bold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 cursor-pointer">
+                      <option value="all" ${this.dryYearFilter === 'all' ? 'selected' : ''}>ทุกปี</option>
+                      ${dryYearOptions.map(y => `<option value="${y}" ${this.dryYearFilter === y ? 'selected' : ''}>ปี ${y}</option>`).join('')}
+                    </select>
+                    <select id="dry-history-cycle-filter" class="px-3 py-1.5 rounded-xl border border-white/30 text-xs font-bold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 cursor-pointer">
+                      <option value="all" ${this.dryCycleFilter === 'all' ? 'selected' : ''}>ทุกรอบ</option>
+                      ${dryCycleOptions.map(r => `<option value="${r}" ${this.dryCycleFilter === r ? 'selected' : ''}>รอบ ${r}</option>`).join('')}
+                    </select>
                   </div>
                 </div>
                 <div class="overflow-x-auto">
                   <table class="w-full text-left border-collapse">
                     <thead class="bg-emerald-50/80 border-b-2 border-emerald-200 text-sm font-bold text-emerald-950 tracking-wider">
                       <tr>
-                        <th class="px-6 py-4 whitespace-nowrap">วันที่เก็บเกี่ยว</th>
-                        <th class="px-6 py-4 whitespace-nowrap">รหัสแปลง</th>
-                        <th class="px-6 py-4 whitespace-nowrap">เกษตรกร</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">ปริมาณสด (กก.)</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">ราคารับซื้อสด</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">ยอดเงินรับซื้อ</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-center">สถานะ</th>
+                        <th class="px-6 py-4 whitespace-nowrap">วันที่อบ</th>
+                        <th class="px-6 py-4 whitespace-nowrap">รหัสล็อต</th>
+                        <th class="px-6 py-4 whitespace-nowrap">รอบเพาะปลูก</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-right">สด (กิโลกรัม)</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-right">แห้ง (กิโลกรัม)</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-center">อัตราส่วน</th>
+                        <th class="px-6 py-4 whitespace-nowrap">หมายเหตุ</th>
                         <th class="px-6 py-4 whitespace-nowrap text-center">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-base font-medium text-slate-800">
-                      ${cropsForHerb.length === 0 ? `
+                      ${dryHistoryBatches.length === 0 ? `
                         <tr>
                           <td colspan="8" class="px-6 py-12 text-center text-slate-400 font-medium">
-                            ไม่มีข้อมูลผลผลิตสดในระบบ
+                            ไม่มีประวัติการอบแห้ง
                           </td>
                         </tr>
-                      ` : cropsForHerb.map(c => {
-                        const plot = plots.find(p => p.id === c.plotId);
-                        const members = appState.getMembers();
-                        const owner = plot ? members.find(m => (plot.memberIds && plot.memberIds.includes(m.id)) || plot.memberId === m.id) : null;
-                        const yieldNum = parseFloat(c.yield) || 0;
-                        const cHerb = getCropHerb(c);
-                        const masterHerb = appState.getHerbByName ? (appState.getHerbByName(cHerb) || appState.getHerbById(cHerb)) : null;
-                        const freshBuyingPrice = typeof c.freshBuyingPrice === 'number' 
-                          ? c.freshBuyingPrice 
-                          : (masterHerb ? (parseFloat(masterHerb.freshBuyingPrice || masterHerb.baselinePriceFresh) || 50) : 50);
-                        const totalPayout = yieldNum * freshBuyingPrice;
-
+                      ` : dryHistoryBatches.map(b => {
+                        const freshUsed = parseFloat(b.freshWeightKg) || 0;
+                        const dryYield = parseFloat(b.dryWeightKg) || 0;
+                        const ratioStr = String(parseFloat(b.ratioActual || (freshUsed / (dryYield || 1)).toFixed(2)) || 0); // ตัด .00 ออก เช่น 8.00 → 8
+                        const cropRounds = (b.cropIds || []).join(', ') || '-';
                         return `
                           <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap text-slate-600">
-                              ${formatThaiDate(c.harvestDateActual || c.harvestDateEst)}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                              <div class="text-slate-900 font-bold text-base">${c.id}</div>
-                              <div class="text-sm text-slate-600 font-semibold mt-0.5">${plot ? plot.name : '-'}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap font-bold text-slate-900">
-                              ${owner ? owner.name : '-'}
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-slate-900 font-bold">
-                              ${yieldNum.toFixed(1)} กก.
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-emerald-800 font-bold">
-                              ${freshBuyingPrice} บ./กก.
-                            </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-emerald-900 font-extrabold text-base">
-                              ${formatBaht(totalPayout)}
-                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-600">${formatThaiDate(b.processedDate)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap font-mono font-bold text-slate-900">${b.id || '-'}</td>
+                            <td class="px-6 py-4 text-sm text-slate-700 max-w-[260px]">${cropRounds}</td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-emerald-800 font-bold">${freshUsed.toFixed(1)}</td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-amber-900 font-bold">${dryYield.toFixed(1)}</td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
-                              ${c.isProcessed ? `
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium bg-slate-100 text-slate-600">
-                                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                  อบแล้ว
-                                </span>
-                              ` : `
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium bg-amber-100 text-amber-900 font-bold">
-                                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                  รออบ
-                                </span>
-                              `}
+                              <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">${ratioStr} : 1</span>
                             </td>
+                            <td class="px-6 py-4 text-slate-600">${b.note || '-'}</td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
-                              <button class="edit-fresh-harvest-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
-                                data-crop-id="${c.id}" title="แก้ไขปริมาณสดและราคารับซื้อของแปลงนี้">
-                                <i class="fas fa-edit text-xs"></i>
-                                <span>แก้ไข</span>
+                              <button class="delete-dry-batch-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                                data-batch-id="${b.id}" title="ลบประวัติการอบแห้งล็อตนี้">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                                <span>ลบ</span>
                               </button>
                             </td>
                           </tr>
@@ -354,6 +369,67 @@ export const FreshProduceComponent = {
               
               <!-- Clean Process Pipeline Card -->
               ${this.renderCanningProcessCard(selectedPool)}
+
+              <!-- ประวัติบรรจุกระป๋อง -->
+              <div class="bg-white rounded-3xl border-2 border-teal-100 shadow-md overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-teal-800 to-emerald-800 text-white flex items-center justify-between flex-wrap gap-4">
+                  <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-base">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+                    <div>
+                      <h3 class="text-base font-bold">ประวัติบรรจุกระป๋อง</h3>
+                      <p class="text-xs text-teal-100 mt-0.5">รวม ${canHistoryBatches.length} ล็อต · ใช้ดอกแห้ง ${canHistoryKg.toFixed(1)} กิโลกรัม · ได้ ${canHistoryJars} กระป๋อง</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2.5 flex-wrap">
+                    <select id="can-history-year-filter" class="px-3 py-1.5 rounded-xl border border-white/30 text-xs font-bold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-teal-300 cursor-pointer">
+                      <option value="all" ${this.canYearFilter === 'all' ? 'selected' : ''}>ทุกปี</option>
+                      ${canYearOptions.map(y => `<option value="${y}" ${this.canYearFilter === y ? 'selected' : ''}>ปี ${y}</option>`).join('')}
+                    </select>
+                    <select id="can-history-cycle-filter" class="px-3 py-1.5 rounded-xl border border-white/30 text-xs font-bold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-teal-300 cursor-pointer">
+                      <option value="all" ${this.canCycleFilter === 'all' ? 'selected' : ''}>ทุกรอบ</option>
+                      ${canCycleOptions.map(r => `<option value="${r}" ${this.canCycleFilter === r ? 'selected' : ''}>รอบ ${r}</option>`).join('')}
+                    </select>
+                  </div>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="bg-teal-50/80 border-b-2 border-teal-200 text-sm font-bold text-teal-950 tracking-wider">
+                      <tr>
+                        <th class="px-6 py-4 whitespace-nowrap">วันที่บรรจุ</th>
+                        <th class="px-6 py-4 whitespace-nowrap">รหัสล็อต</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-right">ดอกแห้งใช้ไป (กิโลกรัม)</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-right">ได้กระป๋อง</th>
+                        <th class="px-6 py-4 whitespace-nowrap">หมายเหตุ</th>
+                        <th class="px-6 py-4 whitespace-nowrap text-center">จัดการ</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-base font-medium text-slate-800">
+                      ${canHistoryBatches.length === 0 ? `
+                        <tr>
+                          <td colspan="6" class="px-6 py-12 text-center text-slate-400 font-medium">ไม่มีประวัติบรรจุกระป๋อง</td>
+                        </tr>
+                      ` : canHistoryBatches.map(b => `
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                          <td class="px-6 py-4 whitespace-nowrap text-slate-600">${formatThaiDate(b.processedDate)}</td>
+                          <td class="px-6 py-4 whitespace-nowrap font-mono font-bold text-slate-900">${b.id || '-'}</td>
+                          <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-amber-900 font-bold">${(parseFloat(b.dryUsedKg) || 0).toFixed(1)}</td>
+                          <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-teal-900 font-extrabold">${b.jarsProduced} กระป๋อง</td>
+                          <td class="px-6 py-4 text-slate-600">${b.note || '-'}</td>
+                          <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <button class="delete-pack-batch-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                              data-batch-id="${b.id}" title="ลบประวัติบรรจุกระป๋องล็อตนี้">
+                              <i class="fas fa-trash-alt text-xs"></i>
+                              <span>ลบ</span>
+                            </button>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           ` : `
             <!-- ===== TAB 3: ประวัติย้อนหลัง ===== -->
@@ -396,7 +472,7 @@ export const FreshProduceComponent = {
                         ` : filteredBatches.map(b => {
                           const freshUsed = parseFloat(b.freshWeightKg) || 0;
                           const dryYield = parseFloat(b.dryWeightKg) || 0;
-                          const ratioStr = b.ratioActual || (freshUsed / (dryYield || 1)).toFixed(2);
+                          const ratioStr = String(parseFloat(b.ratioActual || (freshUsed / (dryYield || 1)).toFixed(2)) || 0); // ตัด .00 ออก เช่น 8.00 → 8
                           return `
                             <tr class="hover:bg-amber-50/40 transition-colors">
                               <td class="px-6 py-4 whitespace-nowrap text-gray-700 font-medium">${formatThaiDate(b.processedDate)}</td>
@@ -566,7 +642,7 @@ export const FreshProduceComponent = {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         const tab = btn.getAttribute('data-tab');
-        if (tab && tab !== this.activeTab) {
+        if (tab && tab !== 'history' && tab !== this.activeTab) {
           this.activeTab = tab;
           this.refreshView();
         }
@@ -582,6 +658,72 @@ export const FreshProduceComponent = {
         if (subtab && subtab !== this.historySubTab) {
           this.historySubTab = subtab;
           this.refreshView();
+        }
+      });
+    });
+
+    // 3.5 ตัวกรองปี / รอบ ของประวัติการอบแห้ง
+    const dryYearSel = document.getElementById('dry-history-year-filter');
+    if (dryYearSel) {
+      dryYearSel.addEventListener('change', (e) => {
+        this.dryYearFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+    const dryCycleSel = document.getElementById('dry-history-cycle-filter');
+    if (dryCycleSel) {
+      dryCycleSel.addEventListener('change', (e) => {
+        this.dryCycleFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+
+    // 3.55 ตัวกรอง + ปุ่มลบ ของประวัติบรรจุกระป๋อง
+    const canYearSel = document.getElementById('can-history-year-filter');
+    if (canYearSel) {
+      canYearSel.addEventListener('change', (e) => {
+        this.canYearFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+    const canCycleSel = document.getElementById('can-history-cycle-filter');
+    if (canCycleSel) {
+      canCycleSel.addEventListener('change', (e) => {
+        this.canCycleFilter = e.target.value;
+        this.refreshView();
+      });
+    }
+    document.querySelectorAll('.delete-pack-batch-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const batchId = btn.getAttribute('data-batch-id');
+        if (!batchId) return;
+        if (!confirm(`ลบประวัติบรรจุกระป๋องล็อต ${batchId} ใช่หรือไม่?\n\nดอกแห้งที่ใช้บรรจุจะถูกคืนเข้าคลัง และจำนวนกระป๋องของล็อตนี้จะถูกหักออกจากสต็อก`)) return;
+        try {
+          appState.deletePackagingBatch(batchId);
+          showToast(`ลบประวัติบรรจุกระป๋องล็อต ${batchId} เรียบร้อยแล้ว`, 'success');
+          this.refreshView();
+        } catch (err) {
+          showToast(err.message || 'ลบประวัติบรรจุกระป๋องไม่สำเร็จ', 'error');
+        }
+      });
+    });
+
+    // 3.6 ปุ่มลบประวัติการอบแห้ง
+    document.querySelectorAll('.delete-dry-batch-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const batchId = btn.getAttribute('data-batch-id');
+        if (!batchId) return;
+        if (!confirm(`ลบประวัติการอบแห้งล็อต ${batchId} ใช่หรือไม่?\n\nรอบเพาะปลูกที่อยู่ในล็อตนี้จะกลับไปเป็น "รออบ" และดอกแห้งของล็อตนี้จะถูกหักออกจากคลัง`)) return;
+        try {
+          appState.deleteDryingBatch(batchId);
+          showToast(`ลบประวัติการอบแห้งล็อต ${batchId} เรียบร้อยแล้ว`, 'success');
+          this.refreshView();
+        } catch (err) {
+          showToast(err.message || 'ลบประวัติการอบแห้งไม่สำเร็จ', 'error');
         }
       });
     });
@@ -1053,7 +1195,7 @@ export const FreshProduceComponent = {
     const pendingCrops = allCrops.filter(c => {
       if (c.status !== 'harvested' || c.isProcessed) return false;
       const plot = appState.getPlotById(c.plotId);
-      const cHerb = c.seedlingSource || (plot ? plot.plantType : '') || '';
+      const cHerb = c.seedlingSource || (plot ? plot.plantType : '') || 'เก๊กฮวย';
       return cHerb.includes(herb);
     });
 
@@ -1069,144 +1211,69 @@ export const FreshProduceComponent = {
     const pricePerJar = appState.getProductPrice(herb, 'กระป๋อง');
 
     const contentHtml = `
-      <form id="pool-drying-form" class="p-5 sm:p-6 space-y-4 bg-white text-gray-800 text-sm">
-        
-        <!-- แถวที่ 1: ข้อมูลทั่วไป (วันที่อบ + พืชอะไร + สูตร) -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 rounded-2xl border border-emerald-200">
-          <!-- วันที่อบ -->
-          <div class="flex items-center gap-2">
-            <label for="dry-input-date" class="text-sm font-bold text-gray-800 whitespace-nowrap">
-              <i class="far fa-calendar-alt text-emerald-700 mr-1"></i> วันที่อบ:
-            </label>
-            <input type="text" id="dry-input-date" value="${today}" required
-              class="w-36 px-3 py-1.5 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs">
-          </div>
+      <form id="pool-drying-form" class="p-5 sm:p-6 space-y-5 bg-white text-gray-800 text-sm">
 
-          <!-- พืชอะไร & สูตรอบแห้ง -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="px-3 py-1 rounded-xl text-sm font-bold text-emerald-950 bg-white border border-emerald-300 shadow-2xs">
-              🌿 ${producePrefix}
-            </span>
-            <span class="px-2.5 py-1 rounded-xl text-sm font-bold text-amber-900 bg-amber-100 border border-amber-300 shadow-2xs">
-              สูตรอบแห้ง ${ratio} : 1
-            </span>
-          </div>
+        <!-- วันที่อบ -->
+        <div class="flex items-center gap-3">
+          <label for="dry-input-date" class="text-sm font-bold text-gray-800 whitespace-nowrap w-28">วันที่อบ</label>
+          <input type="text" id="dry-input-date" value="${today}" required
+            class="w-40 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
-        <!-- แถบอธิบายสูตรมาตรฐานตามเกณฑ์อาจารย์ 10:1 -->
-        <div class="p-3 bg-amber-50/90 border border-amber-300 rounded-xl text-sm text-amber-950 flex items-start gap-2">
-          <i class="fas fa-lightbulb text-amber-600 text-sm mt-0.5 shrink-0"></i>
+        <!-- ผลผลิตสดที่มีทั้งหมด (การ์ดเด่น) -->
+        <div class="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 flex items-center justify-between gap-4">
           <div>
-            <b class="font-bold">สูตรแปลงน้ำหนัก สด ➔ แห้ง มาตรฐานวิสาหกิจ (อัตราส่วน 10:1):</b>
-            <span class="block text-gray-700 mt-0.5">
-              รับสมุนไพรสด <b>150 kg</b> เมื่อนำไปอบ/ตากแห้ง จะได้สมุนไพรแห้ง <b>15 kg</b> (Yield 10% ตามที่อาจารย์ระบุ)
-            </span>
+            <div class="text-sm font-bold text-amber-900">ผลผลิตสดที่มีทั้งหมด</div>
+            <div class="text-xs text-amber-700 mt-0.5">รอเข้าเตาอบ</div>
+          </div>
+          <div class="text-right">
+            <span class="text-4xl font-black text-amber-950 font-mono tracking-tight">${pendingFreshWeight.toFixed(2)}</span>
+            <span class="text-base font-bold text-amber-800 ml-1">กิโลกรัม</span>
           </div>
         </div>
 
-        <!-- แถวที่ 2: ตัวเลขการอบ (3 ช่องในแถวเดียว) -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          
-          <!-- ช่องที่ 1: ผลผลิตสดที่มีทั้งหมด (จากกี่ กก.) -->
-          <div class="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200 flex flex-col justify-between">
-            <div>
-              <span class="text-sm font-bold text-amber-900 uppercase block">1. ผลผลิตสดที่มีทั้งหมด</span>
-              <span class="text-sm text-amber-700">จากแปลงสมาชิกทุกแปลง</span>
-            </div>
-            <div class="mt-2 text-xl sm:text-2xl font-bold text-amber-950 font-mono">
-              ${pendingFreshWeight.toFixed(2)} <span class="text-sm font-semibold text-amber-800">กก.</span>
-            </div>
+        <!-- ใช้ผลผลิตสดเท่าไหร่ -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="dry-input-fresh-weight" class="text-sm font-bold text-gray-800">ผลผลิตสดที่นำเข้าอบ *</label>
           </div>
-
-          <!-- ช่องที่ 2: ใช้ผลผลิตสดเท่าไหร่ (กก.) -->
-          <div class="p-3.5 bg-white rounded-2xl border-2 border-emerald-400 shadow-2xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <label for="dry-input-fresh-weight" class="text-sm font-bold text-gray-800 uppercase">
-                2. ใช้ผลผลิตสดเท่าไหร่ *
-              </label>
-              <button type="button" id="use-all-fresh-btn" class="text-sm font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2 py-0.5 rounded-lg cursor-pointer transition-colors">
-                ใช้อบทั้งหมด
-              </button>
-            </div>
-            <div class="mt-2 relative">
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
               <input type="number" step="any" min="0.01" max="${pendingFreshWeight}" id="dry-input-fresh-weight" value="${pendingFreshWeight.toFixed(2)}" required
-                class="w-full pl-3 pr-10 py-1.5 rounded-xl border border-gray-300 text-lg font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
-              <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-bold text-gray-500 pointer-events-none">
-                กก.
-              </span>
+                class="w-full pl-3 pr-20 py-2.5 rounded-xl border border-gray-300 text-lg font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+              <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-bold text-gray-500 pointer-events-none">กิโลกรัม</span>
             </div>
-            <span class="text-sm text-gray-500 mt-1 block">
-              จากทั้งหมด ${pendingFreshWeight.toFixed(2)} กก.
-            </span>
-          </div>
-
-          <!-- ช่องที่ 3: ได้กี่กิโลกรัมหลังอบเสร็จ -->
-          <div class="p-3.5 bg-white rounded-2xl border-2 border-emerald-600 shadow-2xs flex flex-col justify-between">
-            <label for="dry-input-dry-weight" class="text-sm font-bold text-gray-800 uppercase">
-              3. ได้หลังอบเสร็จกี่ กก. *
-            </label>
-            <div class="mt-2 relative">
-              <input type="number" step="any" min="0.01" id="dry-input-dry-weight" value="${defaultDryWeight}" required
-                class="w-full pl-3 pr-10 py-1.5 rounded-xl border border-gray-300 text-lg font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
-              <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-bold text-emerald-700 pointer-events-none">
-                กก.
-              </span>
-            </div>
-            <span class="text-sm text-emerald-700 font-medium mt-1 block">
-              น้ำหนักผลผลิตแห้งจริงหลังอบเสร็จ
-            </span>
-          </div>
-
-        </div>
-
-        <!-- แถวที่ 2.5: กระป๋อง Live Summary สรุปผลการอบและมูลค่าเศรษฐกิจ -->
-        <div id="dry-live-summary-box" class="p-3.5 bg-gradient-to-r from-emerald-100/70 via-teal-50 to-amber-50 rounded-2xl border border-emerald-300 shadow-2xs space-y-1">
-          <div class="flex items-center justify-between text-sm font-bold text-emerald-950">
-            <span class="flex items-center gap-1.5">
-              <i class="fas fa-clipboard-check text-emerald-700 text-sm"></i>
-              <span>สรุปข้อมูลการอบแห้งและประมาณการมูลค่า:</span>
-            </span>
-            <span id="dry-live-ratio-badge" class="px-2 py-0.5 rounded-md text-sm font-bold bg-white text-emerald-900 border border-emerald-200">
-              อัตราส่วนจริง: ${ratio.toFixed(2)} : 1
-            </span>
-          </div>
-          <div id="dry-live-summary-text" class="text-sm font-medium text-gray-800 leading-relaxed pt-0.5">
-            <div>
-              วันที่ <b>${formatThaiDate(today)}</b>: ใช้<b>${producePrefix}สด</b> <b class="text-amber-950 font-bold font-mono">${pendingFreshWeight.toFixed(2)}</b> กก. (จากทั้งหมด <b>${pendingFreshWeight.toFixed(2)}</b> กก.) ➔ ได้หลังอบเสร็จ <b class="text-emerald-900 font-bold font-mono text-base">${defaultDryWeight}</b> กก.
-            </div>
-            <div class="mt-2 pt-2 border-t border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-sm text-emerald-950">
-              <span class="flex items-center gap-1 font-bold">
-                <i class="fas fa-coins text-amber-600"></i>
-                <span>ประเมินมูลค่าผลผลิตหลังอบแห้ง:</span>
-              </span>
-              <div class="flex items-baseline gap-2 font-mono flex-wrap">
-                <span class="text-gray-700">ขายแบบแห้ง (${pricePerKg} บ./กก.):</span>
-                <b class="text-emerald-800 text-sm font-bold">${formatBaht(parseFloat(defaultDryWeight) * pricePerKg)}</b>
-                <span class="text-gray-400">|</span>
-                <span class="text-gray-700">บรรจุกระป๋อง 50 G (~${Math.floor(parseFloat(defaultDryWeight) * 20)} กป.):</span>
-                <b class="text-amber-800 text-sm font-bold">${formatBaht(Math.floor(parseFloat(defaultDryWeight) * 20) * pricePerJar)}</b>
-              </div>
-            </div>
+            <button type="button" id="use-all-fresh-btn" class="shrink-0 text-sm font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-3 py-2.5 rounded-xl cursor-pointer transition-colors">
+              ใช้ทั้งหมด
+            </button>
           </div>
         </div>
 
-        <!-- แถวที่ 3: เตาอบ / หมายเหตุ -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
-          <label for="dry-input-note" class="text-sm font-bold text-gray-700 sm:w-28 shrink-0">
-            เตาอบ / หมายเหตุ
-          </label>
-          <input type="text" id="dry-input-note" placeholder="ระบุเตาอบ (เช่น ตู้อบ 1 พลังงานแสงอาทิตย์) หรือรอบการอบ"
-            class="flex-1 px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
+        <!-- ได้แห้งเท่าไหร่ -->
+        <div>
+          <label for="dry-input-dry-weight" class="block text-sm font-bold text-gray-800 mb-1.5">ได้ดอกแห้งหลังอบเสร็จ *</label>
+          <div class="relative">
+            <input type="number" step="any" min="0.01" id="dry-input-dry-weight" value="${defaultDryWeight}" required
+              class="w-full pl-3 pr-20 py-2.5 rounded-xl border border-gray-300 text-lg font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-bold text-emerald-700 pointer-events-none">กิโลกรัม</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">ระบบคำนวณให้ตามสูตร ${ratio} : 1 ถ้าชั่งจริงได้ไม่เท่านี้ แก้ตัวเลขได้เลย</p>
         </div>
 
-        <!-- ปุ่มดำเนินการด้านล่างสุด (Modal Footer) -->
+        <!-- หมายเหตุ -->
+        <div>
+          <label for="dry-input-note" class="block text-sm font-bold text-gray-800 mb-1.5">หมายเหตุ (ไม่ใส่ก็ได้)</label>
+          <input type="text" id="dry-input-note" placeholder="เช่น ตู้อบ 1"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
         <div class="pt-3 flex items-center justify-end gap-3 border-t border-gray-200">
           <button type="button" id="cancel-pool-dry-btn" class="px-4 py-2.5 rounded-xl border border-gray-300 text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
             ยกเลิก
           </button>
           <button type="submit" id="submit-pool-dry-btn" class="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5">
             <i class="fas fa-fire-alt"></i>
-            <span>ยืนยันบันทึกการอบแห้งเข้าคลัง</span>
+            <span>ยืนยันบันทึกการอบแห้ง</span>
           </button>
         </div>
 
@@ -1216,7 +1283,7 @@ export const FreshProduceComponent = {
     openGlobalModal({
       title: `♨️ บันทึกนำเข้าเตาอบแห้ง (${producePrefix})`,
       icon: '',
-      size: 'max-w-2xl',
+      size: 'max-w-lg',
       headerColor: 'bg-[#1e4620]',
       content: contentHtml,
       onRender: (dialog) => {
@@ -1447,8 +1514,8 @@ export const FreshProduceComponent = {
               <span class="text-xs text-teal-700 block mb-1">จำนวนกระป๋องสำเร็จรูป</span>
             </div>
             <div class="relative">
-              <input type="number" step="1" min="1" id="canning-input-jars-count" value="${initialJars}" required
-                class="w-full pl-3 pr-16 py-1.5 rounded-xl border border-gray-300 text-lg font-bold text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono">
+              <input type="number" step="1" min="1" id="canning-input-jars-count" value="${initialJars}" required readonly
+                class="w-full pl-3 pr-16 py-1.5 rounded-xl border border-gray-200 bg-gray-100 cursor-not-allowed text-lg font-bold text-teal-900 focus:outline-none font-mono">
               <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-bold text-teal-700 pointer-events-none">
                 กระป๋อง
               </span>
@@ -1457,22 +1524,8 @@ export const FreshProduceComponent = {
 
         </div>
 
-        <!-- แถวที่ 3: ผู้รับผิดชอบ & หมายเหตุ / เลขล็อต -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
-          <div>
-            <label for="canning-input-operator" class="text-sm font-bold text-gray-700 block mb-1">
-              ผู้รับผิดชอบการบรรจุ
-            </label>
-            <select id="canning-input-operator" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-2xs">
-              ${members.map(m => `
-                <option value="${m.name}" ${m.role === 'ประธานกลุ่ม' || m.role.includes('ประธาน') ? 'selected' : ''}>
-                  ${m.name} (${m.role})
-                </option>
-              `).join('')}
-              <option value="สมาชิกกลุ่มแปรรูป">สมาชิกกลุ่มแปรรูป</option>
-            </select>
-          </div>
-
+        <!-- แถวที่ 3: หมายเหตุ / เลขล็อต -->
+        <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
           <div>
             <label for="canning-input-note" class="text-sm font-bold text-gray-700 block mb-1">
               หมายเหตุ / รายละเอียดล็อตบรรจุ

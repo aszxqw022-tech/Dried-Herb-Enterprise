@@ -784,48 +784,19 @@ export const PlantingRoadmapComponent = {
       <form id="add-herb-form" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-6 md:p-8 overflow-y-auto flex-1 space-y-6 text-sm">
           
-          <!-- 1. Herb Name & Live Auto Matching Icon -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-            <div class="md:col-span-3">
-              <label class="block text-sm font-bold text-gray-800 mb-1.5">ชื่อพืชสมุนไพร *</label>
-              <div class="relative">
-                <input type="text" id="modal-herb-name" required placeholder="เช่น อัญชัน, ฟ้าทะลายโจร, ขมิ้นชัน, มะกรูด"
-                  class="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-base text-gray-900 shadow-2xs">
-                <div class="absolute right-3 top-2.5">
-                  <span id="modal-herb-icon-mini" class="text-2xl select-none">🌿</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Auto Icon Display -->
-            <div class="md:col-span-1">
-              <label class="block text-sm font-bold text-gray-800 mb-1.5 text-center">ไอคอนประจำพืช</label>
-              <div class="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-50 border border-gray-200">
-                <div id="modal-herb-icon-preview" class="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-2xs flex items-center justify-center text-3xl select-none transition-transform hover:scale-110">
-                  🌿
-                </div>
-                <input type="hidden" id="modal-herb-icon-val" value="🌿">
-                <span class="text-[11px] text-emerald-700 font-bold mt-1">ออโต้ตามชื่อพืช</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. Total Duration -->
+          <!-- 1. Herb Name -->
           <div>
-            <label class="block text-sm font-bold text-gray-800 mb-1.5">ระยะเวลาเพาะปลูกรวม (วัน) *</label>
+            <label class="block text-sm font-bold text-gray-800 mb-1.5">ชื่อพืชสมุนไพร *</label>
             <div class="relative">
-              <input type="number" id="modal-herb-duration" min="1" max="365" value="90" required
-                class="w-full pl-4 pr-16 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-lg text-emerald-900 shadow-2xs">
-              <span class="absolute right-4 top-3 text-gray-500 text-base font-bold">วัน</span>
+              <input type="text" id="modal-herb-name" required placeholder="เช่น อัญชัน, ฟ้าทะลายโจร, ขมิ้นชัน, มะกรูด"
+                class="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-base text-gray-900 shadow-2xs">
+              <div class="absolute right-3 top-2.5">
+                <span id="modal-herb-icon-mini" class="text-2xl select-none">🌿</span>
+              </div>
             </div>
-          </div>
-
-          <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2.5">
-            <i class="fas fa-circle-info text-blue-600 mt-0.5 text-sm"></i>
-            <div>
-              <span class="font-bold">ระบบกำหนดการอิสระ:</span>
-              <span> เมื่อบันทึกชนิดพืชแล้ว ท่านสามารถกดปุ่ม <b class="text-blue-950 font-bold">"+ เพิ่มขั้นตอนแรก"</b> เพื่อกำหนดขั้นตอนและรอบวันเพาะปลูกได้ด้วยตนเองอย่างอิสระ</span>
-            </div>
+            <!-- ค่าที่ระบบกำหนดให้อัตโนมัติ (ซ่อนจากหน้าจอ) -->
+            <input type="hidden" id="modal-herb-icon-val" value="🌿">
+            <input type="hidden" id="modal-herb-duration" value="90">
           </div>
 
         </div>

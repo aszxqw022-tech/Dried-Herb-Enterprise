@@ -249,7 +249,7 @@ export const CropsComponent = {
               <!-- Top Batch Action Buttons with Step Names -->
               <div class="flex items-center gap-1.5 flex-wrap">
                 ${roadmapSteps.length > 0 ? `
-                  <button class="row-start-step1-btn px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer" title="บันทึกขั้นตอนที่ 1: ${roadmapSteps[0].title} แบบกลุ่ม">
+                  <button class="row-start-step1-btn ${isAllHerbs ? 'opacity-50 cursor-not-allowed' : ''} px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer" title="บันทึกขั้นตอนที่ 1: ${roadmapSteps[0].title} แบบกลุ่ม">
                     <i class="fas fa-plus text-xs"></i>
                     <span class="w-4 h-4 rounded-full bg-white text-emerald-800 text-xs flex items-center justify-center font-bold">1</span>
                     <span>ขั้น 1: ${roadmapSteps[0].title}</span>
@@ -694,7 +694,7 @@ export const CropsComponent = {
               <div class="space-y-1">
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-bold bg-emerald-50 text-emerald-900 border border-emerald-200/80">
                   <i class="fas fa-leaf text-emerald-600 text-sm"></i>
-                  <span>${crop.seedlingSource || this.selectedHerb}</span>
+                  <span>${crop.seedlingSource || (plot && plot.plantType) || (this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb)}</span>
                 </span>
                 <div class="text-sm text-gray-600">
                   เริ่ม: <b class="text-gray-800">${formatThaiDate(crop.plantDate)}</b>
@@ -1275,7 +1275,21 @@ export const CropsComponent = {
   // -------------------------------------------------------------
   // 3. หน้าต่างป๊อปอัปเมื่อกดปุ่ม [+] ในขั้นตอนที่ 1 (Modal ขั้นตอนที่ 1 - เริ่มลงต้นกล้า)
   // -------------------------------------------------------------
+  // แปลงที่เจ้าของทุกคนออกจากสมาชิกแล้ว: ห้ามบันทึกการปลูกใหม่ (ข้อมูลเดิมยังอยู่ครบ)
+  isPlotLocked(plot) {
+    if (!plot) return false;
+    const ids = (plot.memberIds && plot.memberIds.length) ? plot.memberIds : (plot.memberId ? [plot.memberId] : []);
+    if (ids.length === 0) return false;
+    const members = appState.getMembers();
+    const owners = ids.map(id => members.find(m => m.id === id)).filter(Boolean);
+    return owners.length > 0 && owners.every(m => m.status === 'inactive');
+  },
+
   openStep1Modal(preSelectedPlotId = null) {
+    if (this.selectedHerb === 'ทั้งหมด') {
+      showToast('กรุณาเลือกชนิดพืชสมุนไพรก่อน จึงจะบันทึกการปลูกได้', 'warning');
+      return;
+    }
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
@@ -1290,8 +1304,12 @@ export const CropsComponent = {
     };
     const steps = currentRoadmap.steps || [];
 
-    // Plots list
-    const plots = appState.getPlots();
+    // Plots list (ตัดแปลงของสมาชิกที่ออกจากสมาชิกแล้วออก)
+    if (preSelectedPlotId && this.isPlotLocked(appState.getPlotById(preSelectedPlotId))) {
+      showToast('เจ้าของแปลงนี้ออกจากสมาชิกแล้ว ไม่สามารถบันทึกการปลูกได้ (ข้อมูลเดิมยังอยู่ครบ)', 'warning');
+      return;
+    }
+    const plots = appState.getPlots().filter(p => !this.isPlotLocked(p));
     const members = appState.getMembers();
     const allCrops = appState.getCrops();
 
@@ -1910,6 +1928,10 @@ export const CropsComponent = {
   // 4. Modal บันทึกขั้นตอนที่ 2, 3, 4 แบบกลุ่ม (Batch Modal)
   // -------------------------------------------------------------
   openSubsequentStepBatchModal(targetStepNo) {
+    if (this.selectedHerb === 'ทั้งหมด') {
+      showToast('กรุณาเลือกชนิดพืชสมุนไพรก่อน จึงจะบันทึกการปลูกได้', 'warning');
+      return;
+    }
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
@@ -1934,6 +1956,7 @@ export const CropsComponent = {
     // Eligible plots: plots that have completed previous step AND have not completed this step
     const eligibleList = [];
     plots.forEach(p => {
+      if (this.isPlotLocked(p)) return;
       const crop = matrixCrops.find(c => c.plotId === p.id);
       if (crop) {
         const stepIdx = steps.findIndex(s => s.stepNo === targetStepNo);
@@ -1991,7 +2014,7 @@ export const CropsComponent = {
       const initAmountNum = 0;
       const initCost = 0;
       const initYield = 0;
-      const produceNameDefault = item.crop.produceName || (item.crop.seedlingSource ? (item.crop.seedlingSource.includes('ชา') ? `ใบ${item.crop.seedlingSource}สด` : `ดอก${item.crop.seedlingSource}สด`) : (this.selectedHerb.includes('ชา') ? `ใบ${this.selectedHerb}สด` : `ดอก${this.selectedHerb}สด`));
+      const produceNameDefault = item.crop.produceName || (item.crop.seedlingSource ? (item.crop.seedlingSource.includes('ชา') ? `ใบ${item.crop.seedlingSource}สด` : `ดอก${item.crop.seedlingSource}สด`) : ((this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb).includes('ชา') ? `ใบ${this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb}สด` : `ดอก${this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb}สด`));
 
       const coordsStr = (item.plot.lat && item.plot.lng) ? `${parseFloat(item.plot.lat).toFixed(4)}, ${parseFloat(item.plot.lng).toFixed(4)}` : '-';
       const searchData = `${item.plot.id} ${item.plot.name} ${item.ownerName} ${item.plot.sizeRai || ''}`.toLowerCase();
@@ -2493,10 +2516,19 @@ export const CropsComponent = {
   // 5. Modal บันทึกเดี่ยวสำหรับแปลงใดแปลงหนึ่ง
   // -------------------------------------------------------------
   openSingleStepActionModal(plotId, stepNo, cropId) {
+    if (this.selectedHerb === 'ทั้งหมด') {
+      showToast('กรุณาเลือกชนิดพืชสมุนไพรก่อน จึงจะบันทึกการปลูกได้', 'warning');
+      return;
+    }
     const todayStr = new Date().toISOString().split('T')[0];
     const crop = cropId ? appState.getCropById(cropId) : null;
     const plot = appState.getPlotById(plotId);
     if (!plot) return;
+
+    if (this.isPlotLocked(plot)) {
+      showToast('เจ้าของแปลงนี้ออกจากสมาชิกแล้ว ไม่สามารถบันทึกการปลูกได้ (ข้อมูลเดิมยังอยู่ครบ)', 'warning');
+      return;
+    }
 
     if (!crop) {
       showToast('ไม่พบข้อมูลรอบการปลูกของแปลงนี้ กรุณาเริ่มขั้นตอนที่ 1 ก่อน', 'warning');
@@ -2516,9 +2548,9 @@ export const CropsComponent = {
 
     // Calculate smart initial default based on plot area
     const totalSqWah = (parseFloat(plot.sizeRai || 0) * 400) + (parseFloat(plot.sizeNgan || 0) * 100) + parseFloat(plot.sizeSqWah || 0);
-    const singleDefaultCost = totalSqWah > 0 ? Math.max(100, Math.round((totalSqWah / 400) * 300)) : 300;
-    const singleDefaultAmount = totalSqWah > 0 ? `${Math.max(5, Math.round((totalSqWah / 400) * 25))} กิโลกรัม` : '25 กิโลกรัม';
-    const singleDefaultYield = totalSqWah > 0 ? (Math.round((totalSqWah / 400) * 120 * 10) / 10).toFixed(1) : '120.0';
+    const singleDefaultCost = 0;
+    const singleDefaultAmount = '0 กิโลกรัม';
+    const singleDefaultYield = '0';
 
     let herbRatio = 7;
     const herbSource = (crop.seedlingSource || (plot ? plot.plantType : '') || this.selectedHerb || '').toLowerCase();
@@ -2538,12 +2570,6 @@ export const CropsComponent = {
             <h4 class="text-base font-bold text-gray-900">
               ขั้นตอนที่ ${step.stepNo}: ${step.title}
             </h4>
-            <p class="text-xs text-emerald-800 font-semibold mt-0.5">
-              ขนาดแปลง: <b>${formatThaiArea(plot.sizeRai, plot.sizeNgan, plot.sizeSqWah)}</b> (คำนวณปริมาณและต้นทุนตามขนาดพื้นที่ให้อัตโนมัติ)
-            </p>
-            <p class="text-sm text-gray-500">
-              ${step.detail || 'บันทึกข้อมูลการปฏิบัติงานเพื่อติดตามประวัติ'}
-            </p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -2571,7 +2597,7 @@ export const CropsComponent = {
                   <i class="fas fa-tag text-amber-600 mr-1"></i> ชื่อผลผลิตที่เก็บเกี่ยว *
                 </label>
                 <input type="text" id="single-step-produce-name" name="produceName" required 
-                  value="${crop.produceName || (crop.seedlingSource ? (crop.seedlingSource.includes('ชา') ? `ใบ${crop.seedlingSource}สด` : `ดอก${crop.seedlingSource}สด`) : (this.selectedHerb.includes('ชา') ? `ใบ${this.selectedHerb}สด` : `ดอก${this.selectedHerb}สด`))}" 
+                  value="${crop.produceName || (crop.seedlingSource ? (crop.seedlingSource.includes('ชา') ? `ใบ${crop.seedlingSource}สด` : `ดอก${crop.seedlingSource}สด`) : ((this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb).includes('ชา') ? `ใบ${this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb}สด` : `ดอก${this.selectedHerb === 'ทั้งหมด' ? 'เก๊กฮวย' : this.selectedHerb}สด`))}" 
                   placeholder="เช่น ดอกเก๊กฮวยสด, ใบชาอัสสัมสด"
                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500">
               </div>
@@ -2580,7 +2606,7 @@ export const CropsComponent = {
                 <label for="single-step-yield" class="block text-sm font-bold text-gray-700 uppercase mb-1">
                   <i class="fas fa-weight-hanging text-amber-600 mr-1"></i> ปริมาณผลผลิตสดที่เก็บเกี่ยวได้ (กก.) *
                 </label>
-                <input type="number" step="any" min="0.1" id="single-step-yield" name="yieldAmount" required value="${singleDefaultYield}" placeholder="เช่น 120.00"
+                <input type="number" step="any" min="0" id="single-step-yield" name="yieldAmount" required value="${singleDefaultYield}" placeholder="เช่น 120.00"
                   class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
               </div>
 
@@ -2592,8 +2618,15 @@ export const CropsComponent = {
             ` : `
               <div>
                 <label for="single-step-amount" class="block text-sm font-bold text-gray-700 uppercase mb-1">ปริมาณที่ใช้</label>
-                <input type="text" id="single-step-amount" name="amount" placeholder="เช่น 20 กก." value="${singleDefaultAmount}"
-                  class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="flex gap-2">
+                  <input type="number" step="any" min="0" id="single-step-amount" name="amountNum" placeholder="0" value="0"
+                    class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <select id="single-step-amount-unit" name="amountUnit"
+                    class="px-3 py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                    <option value="กิโลกรัม">กิโลกรัม</option>
+                    <option value="ลิตร">ลิตร</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -2681,7 +2714,8 @@ export const CropsComponent = {
               updatePayload.harvestNote = `${produceNameVal} ${yieldVal} กก.` + (correctionVal ? ` [แก้ไข: ${correctionVal}]` : '') + (noteVal ? ` - ${noteVal}` : '');
               updatePayload.isProcessed = false;
             } else {
-              const amountVal = formData.get('amount') || '';
+              const amountNum = parseFloat(formData.get('amountNum')) || 0;
+              const amountVal = `${amountNum} ${formData.get('amountUnit') || 'กิโลกรัม'}`;
               const costVal = parseFloat(formData.get('cost')) || 0;
               const fertilizingLog = crop.fertilizingLog || [];
               fertilizingLog.push({

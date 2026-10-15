@@ -2,19 +2,19 @@
 import { appState } from './state.js';
 import { showToast } from './helpers.js';
 import { DashboardComponent } from './components/dashboard.js?v=21';
-import { MembersComponent } from './components/members.js?v=10';
+import { MembersComponent } from './components/members.js?v=15';
 import { PlotsComponent } from './components/plots.js?v=5';
-import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=19';
-import { CropsComponent } from './components/crops.js?v=43';
+import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=20';
+import { CropsComponent } from './components/crops.js?v=48';
 import { CropHistoryComponent } from './components/cropHistory.js?v=10';
-import { FreshBuyingComponent } from './components/freshBuying.js?v=2';
-import { FreshProduceComponent } from './components/freshProduce.js?v=36';
-import { SettingsComponent } from './components/settings.js?v=8';
-import { CustomersComponent } from './components/customers.js?v=5';
-import { InventoryComponent } from './components/inventory.js?v=29'; // Phase 2
-import { FinanceComponent } from './components/finance.js?v=3';
-import { CostRevenueComponent } from './components/costRevenue.js?v=16';
-import { SalesComponent } from './components/sales.js?v=16';
+import { FreshBuyingComponent } from './components/freshBuying.js?v=14';
+import { FreshProduceComponent } from './components/freshProduce.js?v=45';
+import { SettingsComponent } from './components/settings.js?v=9';
+import { CustomersComponent } from './components/customers.js?v=7';
+import { InventoryComponent } from './components/inventory.js?v=36'; // Phase 2
+import { FinanceComponent } from './components/finance.js?v=4';
+import { CostRevenueComponent } from './components/costRevenue.js?v=18';
+import { SalesComponent } from './components/sales.js?v=20';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 import { LoginComponent } from './components/login.js';
 

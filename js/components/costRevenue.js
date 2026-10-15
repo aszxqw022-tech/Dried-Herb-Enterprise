@@ -260,7 +260,9 @@ export const CostRevenueComponent = {
         } else {
           const crop = s.cropId ? appState.getCropById(s.cropId) : null;
           const plot = crop ? plots.find(p => p.id === crop.plotId) : null;
-          const pt = crop?.seedlingSource || (plot ? plot.plantType : '') || s.productName || '';
+          // รายการขายจากหน้าคลังสินค้า เก็บรหัสสินค้า (PRD-xxx) ไว้ใน cropId
+          const soldProd = (!crop && s.cropId && appState.getProductById) ? appState.getProductById(s.cropId) : null;
+          const pt = crop?.seedlingSource || (plot ? plot.plantType : '') || (soldProd ? `${soldProd.category || ''} ${soldProd.name || ''}` : '') || s.productName || '';
           if (pt.includes(herb) || (s.herbType && s.herbType.includes(herb)) || (s.category && s.category.includes(herb))) {
             herbSalesCount++;
             rev += (parseFloat(s.totalPrice) || 0);
@@ -271,6 +273,10 @@ export const CostRevenueComponent = {
       const profit = rev - cost;
       const freshKg = herbCrops.reduce((s, c) => s + (parseFloat(c.harvestWeight) || parseFloat(c.yield) || 0), 0);
       const dryKg = getHerbDryKg(herb);
+      // จำนวนกระป๋องที่บรรจุจริง (จากบันทึกการบรรจุ) ไม่ใช่ค่าประมาณจากน้ำหนักแห้ง
+      const jarCount = (appState.getPackagingBatches ? appState.getPackagingBatches() : [])
+        .filter(b => b.herbType && b.herbType.includes(herb))
+        .reduce((sum, b) => sum + (parseInt(b.jarsProduced) || 0), 0);
       const margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : '0.0';
 
       return {
@@ -282,6 +288,7 @@ export const CostRevenueComponent = {
         margin,
         freshKg,
         dryKg,
+        jarCount,
         crops: herbCrops.length,
         sales: herbSalesCount
       };
@@ -300,7 +307,7 @@ export const CostRevenueComponent = {
         </td>
         <td class="py-4 px-4 sm:px-5 text-right font-bold text-gray-800 font-mono">${r.freshKg.toFixed(1)} กก.</td>
         <td class="py-4 px-4 sm:px-5 text-right font-bold text-indigo-800 font-mono">${r.dryKg.toFixed(1)} กก.</td>
-        <td class="py-4 px-4 sm:px-5 text-right font-bold text-teal-800 font-mono">${Math.round(r.dryKg * 20).toLocaleString()} กระป๋อง</td>
+        <td class="py-4 px-4 sm:px-5 text-right font-bold text-teal-800 font-mono">${r.jarCount.toLocaleString()} กระป๋อง</td>
         <td class="py-4 px-5 text-right font-bold text-amber-800 font-mono">${formatBaht(r.cost)}</td>
         <td class="py-4 px-5 text-right font-bold text-emerald-800 font-mono">${formatBaht(r.rev)}</td>
         <td class="py-4 px-5 text-right font-bold text-base sm:text-lg font-mono ${r.profit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
@@ -573,21 +580,12 @@ export const CostRevenueComponent = {
           </button>
 
           <button type="button" class="cost-rev-tab-btn px-4 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
-            this.activeTab === 'inventory-yield'
-              ? 'bg-emerald-800 text-white shadow-sm'
-              : 'bg-white hover:bg-gray-100 text-gray-700 border border-gray-200'
-          }" data-tab="inventory-yield">
-            <i class="fas fa-boxes-stacked"></i>
-            <span>2. มูลค่าคลังสินค้าและผลผลิต</span>
-          </button>
-
-          <button type="button" class="cost-rev-tab-btn px-4 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
             this.activeTab === 'members-calc'
               ? 'bg-emerald-800 text-white shadow-sm'
               : 'bg-white hover:bg-gray-100 text-gray-700 border border-gray-200'
           }" data-tab="members-calc">
             <i class="fas fa-users"></i>
-            <span>3. ข้อมูลสมาชิกและคำอธิบายสูตร</span>
+            <span>2. ข้อมูลสมาชิก</span>
           </button>
 
         </div>
@@ -637,7 +635,7 @@ export const CostRevenueComponent = {
                       <td class="py-4 px-4 sm:px-5 text-emerald-950 font-bold">รวมทุกชนิดพืช (${herbRows.length} พืช)</td>
                       <td class="py-4 px-4 text-right text-gray-800 font-mono">${totalFreshKg.toFixed(1)} กก.</td>
                       <td class="py-4 px-4 text-right text-indigo-900 font-mono">${totalDryKg.toFixed(1)} กก.</td>
-                      <td class="py-4 px-4 text-right text-teal-900 font-mono">${Math.round(totalDryKg * 20).toLocaleString()} กระป๋อง</td>
+                      <td class="py-4 px-4 text-right text-teal-900 font-mono">${herbRows.reduce((sum, r) => sum + r.jarCount, 0).toLocaleString()} กระป๋อง</td>
                       <td class="py-4 px-4 text-right text-amber-900 font-mono">${formatBaht(totalCost)}</td>
                       <td class="py-4 px-4 text-right text-emerald-900 font-mono">${formatBaht(totalRevenue)}</td>
                       <td class="py-4 px-4 text-right font-mono ${totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
@@ -709,79 +707,7 @@ export const CostRevenueComponent = {
           </div>
         ` : ''}
 
-        <!-- ================= TAB 2: มูลค่าคลังสินค้าและผลผลิต ================= -->
-        ${this.activeTab === 'inventory-yield' ? `
-          <div class="space-y-6 fade-in">
-            
-            <!-- มูลค่าสินค้าคงคลังแยกตามรายการ -->
-            <div class="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden p-5 sm:p-6 space-y-4">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200/80 gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-indigo-700 text-white flex items-center justify-center text-lg shadow-xs">
-                    <i class="fas fa-boxes-stacked"></i>
-                  </div>
-                  <div>
-                    <h2 class="text-base sm:text-lg font-bold text-gray-900">มูลค่าสินค้าคงคลังปัจจุบัน (Inventory Valuation)</h2>
-                    <p class="text-xs sm:text-sm text-gray-500">คำนวณจาก [ ราคาขายต่อหน่วย × ปริมาณคงเหลือพร้อมจำหน่ายในคลัง ]</p>
-                  </div>
-                </div>
-                <div class="px-4 py-2 rounded-2xl bg-indigo-50 border border-indigo-200/80 text-right self-start sm:self-auto">
-                  <span class="text-xs text-indigo-700 font-bold block uppercase">มูลค่าสินค้าคงคลังรวมทั้งหมด</span>
-                  <span class="text-xl sm:text-2xl font-bold text-indigo-950 font-mono">${formatBaht(totalInventoryValue)}</span>
-                </div>
-              </div>
-
-              <!-- รายการสินค้าคงคลัง -->
-              <div class="space-y-2.5 pt-1">
-                ${productHtml || '<p class="text-sm text-gray-400 text-center py-8">ไม่พบข้อมูลสินค้าในคลัง</p>'}
-              </div>
-            </div>
-
-            <!-- สรุปการเก็บเกี่ยวรายบุคคลและรายแปลง -->
-            <div class="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden">
-              <div class="p-5 bg-gradient-to-r from-amber-50 via-gray-50 to-white border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center text-lg shadow-xs">
-                    <i class="fas fa-seedling"></i>
-                  </div>
-                  <div>
-                    <h2 class="text-base sm:text-lg font-bold text-gray-900">ตารางสรุปการเก็บเกี่ยวผลผลิตสด (รายบุคคล / รายแปลง)</h2>
-                    <p class="text-xs sm:text-sm text-gray-500">บันทึกน้ำหนักดอกสดตอนเก็บเกี่ยวจริง ก่อนนำส่งโรงอบแห้งกลาง</p>
-                  </div>
-                </div>
-                <div class="px-3.5 py-1.5 rounded-xl bg-white border border-amber-200 text-right shadow-2xs self-start sm:self-auto">
-                  <span class="text-xs text-amber-700 font-bold block uppercase">ดอกสดเก็บเกี่ยวรวม</span>
-                  <span class="text-base font-bold text-amber-900 font-mono">${totalHarvestFresh.toFixed(1)} กก.</span>
-                </div>
-              </div>
-
-              <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                  <thead class="bg-gray-100/90 text-gray-700 font-bold text-sm sm:text-base border-b border-gray-200 uppercase tracking-wide">
-                    <tr>
-                      <th class="py-3.5 px-5">ชื่อเกษตรกร / แปลงปลูก</th>
-                      <th class="py-3.5 px-5">รหัสรอบเพาะปลูก</th>
-                      <th class="py-3.5 px-5">ชนิดพืช</th>
-                      <th class="py-3.5 px-5 text-right">น้ำหนักดอกสดเก็บเกี่ยว (กก.)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${harvestRowsHtml}
-                  </tbody>
-                  <tfoot>
-                    <tr class="bg-amber-50 border-t-2 border-amber-600 font-bold text-sm sm:text-base">
-                      <td colspan="3" class="py-3.5 px-5 text-amber-950 text-right font-bold">รวมผลผลิตดอกสดทั้งหมด:</td>
-                      <td class="py-3.5 px-5 text-right text-amber-900 font-mono text-base sm:text-lg font-bold">${totalHarvestFresh.toFixed(1)} กก.</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-
-          </div>
-        ` : ''}
-
-        <!-- ================= TAB 3: ข้อมูลสมาชิกและคำอธิบายสูตร ================= -->
+        <!-- ================= TAB 2: ข้อมูลสมาชิก ================= -->
         ${this.activeTab === 'members-calc' ? `
           <div class="space-y-6 fade-in">
             
@@ -822,46 +748,6 @@ export const CostRevenueComponent = {
                 </div>
               </div>
             ` : ''}
-
-            <!-- กล่องหมายเหตุและคำอธิบายสูตรการคำนวณ -->
-            <div class="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-2xs space-y-4">
-              <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-2xl bg-emerald-700 text-white flex items-center justify-center text-lg shrink-0 shadow-xs mt-0.5">
-                  <i class="fas fa-circle-info"></i>
-                </div>
-                <div class="space-y-3 flex-1 text-emerald-950 text-sm sm:text-base">
-                  <div>
-                    <h3 class="font-bold text-lg text-emerald-950">เกณฑ์และสูตรการคำนวณทางการเงินของวิสาหกิจชุมชน</h3>
-                    <p class="text-xs sm:text-sm text-emerald-800/90 mt-0.5">หลักเกณฑ์มาตรฐานที่ใช้ในการประมวลผลข้อมูลในระบบสารสนเทศวิสาหกิจ</p>
-                  </div>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1 text-sm">
-                    <div class="p-3.5 rounded-xl bg-white/90 border border-emerald-200 shadow-2xs">
-                      <b class="text-emerald-900 block font-bold mb-1">💰 รายได้จากการจำหน่าย (Revenue):</b>
-                      ยอดขายรวมจริงจากทุกรายการที่บันทึกการขายผ่านระบบ
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white/90 border border-emerald-200 shadow-2xs">
-                      <b class="text-amber-900 block font-bold mb-1">🌱 ต้นทุนการผลิต (Cost):</b>
-                      ต้นทุนสะสมในการปลูกของแต่ละรอบ เช่น ค่าต้นกล้า ค่าปุ๋ยอินทรีย์ ค่าเตรียมแปลง
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white/90 border border-emerald-200 shadow-2xs">
-                      <b class="text-emerald-900 block font-bold mb-1">📈 กำไรสุทธิ (Net Profit):</b>
-                      คำนวณจาก [ รายได้รวม − ต้นทุนสะสมรวม ]
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white/90 border border-emerald-200 shadow-2xs">
-                      <b class="text-indigo-900 block font-bold mb-1">☀️ อัตราส่วนอบแห้งมาตรฐาน (Drying Ratio):</b>
-                      ${herbTypes.map(h => `• <b>${h.name}:</b> อัตราส่วน <b>${h.name === 'คาโมมายล์' ? '6 : 1' : '8 : 1'}</b> (บรรจุได้ ~20 กระป๋อง ขนาด 50 กรัม)`).join('<br>')}
-                    </div>
-                  </div>
-                  <div class="pt-2 flex items-center justify-between flex-wrap gap-2 text-xs sm:text-sm text-emerald-800 font-medium">
-                    <span>* สินค้าคงคลังประเมินมูลค่าตามราคาจำหน่ายปัจจุบัน</span>
-                    <a href="#inventory" class="font-bold text-emerald-900 hover:underline flex items-center gap-1">
-                      <span>ตรวจสอบคลังสินค้า</span>
-                      <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
 
           </div>
         ` : ''}

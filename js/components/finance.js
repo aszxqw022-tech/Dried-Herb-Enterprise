@@ -306,23 +306,16 @@ export const FinanceComponent = {
             }">
               <i class="fas fa-calculator mr-1.5"></i> สรุปต้นทุน-กำไรรายสมาชิก (${filteredReport.length})
             </button>
-
-            <button id="tab-sales-btn" class="px-5 py-3 text-sm font-semibold border-b-2 transition-all focus:outline-none whitespace-nowrap ${
-              this.activeTab === 'sales' 
-                ? 'border-emerald-700 text-emerald-700 font-bold' 
-                : 'border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300'
-            }">
-              <i class="fas fa-clipboard-list mr-1.5"></i> ประวัติการจำหน่ายและใบเสร็จ (${sales.length})
-            </button>
           </div>
         </div>
 
-        ${this.activeTab === 'ledger' ? ledgerTabHtml : salesTabHtml}
+        ${ledgerTabHtml}
       </div>
     `;
   },
 
   init() {
+    this.activeTab = 'ledger';
     this.bindTabEvents();
     if (this.activeTab === 'ledger') {
       this.bindLedgerEvents();

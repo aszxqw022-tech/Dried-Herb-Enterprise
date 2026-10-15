@@ -350,7 +350,7 @@ export const CustomersComponent = {
         </div>
 
         <!-- Metrics Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div class="p-4 bg-white rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
             <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-xl shrink-0">
               <i class="fa-solid fa-users"></i>
@@ -358,36 +358,6 @@ export const CustomersComponent = {
             <div>
               <span class="text-sm font-bold text-gray-400 block uppercase">ลูกค้าทั้งหมด</span>
               <span class="text-lg sm:text-xl font-bold text-gray-800">${totalCustomers} <span class="text-sm font-semibold text-gray-500">ราย</span></span>
-            </div>
-          </div>
-
-          <div class="p-4 bg-white rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center text-xl shrink-0">
-              <i class="fa-solid fa-mug-saucer"></i>
-            </div>
-            <div>
-              <span class="text-sm font-bold text-gray-400 block uppercase">ร้านคาเฟ่ / ของฝาก</span>
-              <span class="text-lg sm:text-xl font-bold text-amber-800">${cafeCount} <span class="text-sm font-semibold text-gray-500">ราย</span></span>
-            </div>
-          </div>
-
-          <div class="p-4 bg-white rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-800 flex items-center justify-center text-xl shrink-0">
-              <i class="fa-solid fa-store"></i>
-            </div>
-            <div>
-              <span class="text-sm font-bold text-gray-400 block uppercase">ตัวแทนจำหน่าย</span>
-              <span class="text-lg sm:text-xl font-bold text-blue-800">${distributorCount} <span class="text-sm font-semibold text-gray-500">ราย</span></span>
-            </div>
-          </div>
-
-          <div class="p-4 bg-white rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-purple-50 text-purple-800 flex items-center justify-center text-xl shrink-0">
-              <i class="fa-solid fa-industry"></i>
-            </div>
-            <div>
-              <span class="text-sm font-bold text-gray-400 block uppercase">โรงงาน / อื่นๆ</span>
-              <span class="text-lg sm:text-xl font-bold text-purple-800">${factoryCount + generalCount} <span class="text-sm font-semibold text-gray-500">ราย</span></span>
             </div>
           </div>
         </div>
@@ -418,22 +388,6 @@ export const CustomersComponent = {
                 <option value="ตัวแทนจำหน่าย" ${this.selectedTypeFilter === 'ตัวแทนจำหน่าย' ? 'selected' : ''}>ตัวแทนจำหน่าย (${distributorCount})</option>
                 <option value="ซื้อส่งโรงงาน" ${this.selectedTypeFilter === 'ซื้อส่งโรงงาน' ? 'selected' : ''}>ซื้อส่งโรงงาน (${factoryCount})</option>
               </select>
-            </div>
-
-            <!-- View Switcher (Table vs Cards) -->
-            <div class="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
-              <button id="view-mode-table-btn" class="px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                this.viewMode === 'table' ? 'bg-white text-emerald-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-              }" title="มุมมองตารางมาตรฐาน (Table View)">
-                <i class="fa-solid fa-table-list"></i>
-                <span class="hidden sm:inline">ตาราง</span>
-              </button>
-              <button id="view-mode-cards-btn" class="px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                this.viewMode === 'cards' ? 'bg-white text-emerald-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-              }" title="มุมมองการ์ดนามบัตร (Cards View)">
-                <i class="fa-solid fa-address-card"></i>
-                <span class="hidden sm:inline">นามบัตร</span>
-              </button>
             </div>
 
           </div>
@@ -587,7 +541,7 @@ export const CustomersComponent = {
               <span class="text-sm font-bold text-gray-600 uppercase tracking-wider">1. ข้อมูลทั่วไปและประเภทลูกค้า</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 gap-4">
               <div>
                 <label for="cust-name" class="block text-sm font-bold text-gray-700 mb-1">ชื่อลูกค้า / ชื่อร้านค้าหรือองค์กร *</label>
                 <div class="relative">
@@ -598,22 +552,6 @@ export const CustomersComponent = {
                     placeholder="เช่น ร้านชาสมุนไพรม่อนแจ่ม, คุณสมหญิง อารีย์พร"
                     class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50/50 hover:bg-white transition"
                   />
-                </div>
-              </div>
-
-              <div>
-                <label for="cust-type" class="block text-sm font-bold text-gray-700 mb-1">กลุ่มประเภทลูกค้า *</label>
-                <div class="relative">
-                  <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-                    <i class="fa-solid fa-tag text-sm"></i>
-                  </span>
-                  <select id="cust-type" name="customerType" required
-                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50/50 hover:bg-white transition">
-                    <option value="ลูกค้าทั่วไป" ${cust && cust.customerType === 'ลูกค้าทั่วไป' ? 'selected' : ''}>ลูกค้าทั่วไป (Retail Consumer)</option>
-                    <option value="ร้านคาเฟ่/ร้านขายของฝาก" ${cust && cust.customerType === 'ร้านคาเฟ่/ร้านขายของฝาก' ? 'selected' : ''}>ร้านคาเฟ่/ร้านขายของฝาก (Cafe & Souvenir)</option>
-                    <option value="ตัวแทนจำหน่าย" ${cust && cust.customerType === 'ตัวแทนจำหน่าย' ? 'selected' : ''}>ตัวแทนจำหน่าย (Distributor / Agent)</option>
-                    <option value="ซื้อส่งโรงงาน" ${cust && cust.customerType === 'ซื้อส่งโรงงาน' ? 'selected' : ''}>ซื้อส่งโรงงาน (Factory / Industrial)</option>
-                  </select>
                 </div>
               </div>
             </div>
@@ -673,7 +611,7 @@ export const CustomersComponent = {
 
             <div>
               <label for="cust-address" class="block text-sm font-bold text-gray-700 mb-1">
-                <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> ที่อยู่จัดส่งสินค้า / สถานประกอบการ
+                <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> ที่อยู่จัดส่งสินค้า / สถานประกอบการ (ถ้ามี)
               </label>
               <textarea id="cust-address" name="address" rows="3" 
                 placeholder="ระบุบ้านเลขที่, หมู่, ถนน, ตำบล, อำเภอ, จังหวัด และรหัสไปรษณีย์ สำหรับพิมพ์แปะกล่องพัสดุจัดส่ง..."
@@ -711,7 +649,6 @@ export const CustomersComponent = {
 
             const payload = {
               name: formData.get('name'),
-              customerType: formData.get('customerType'),
               phone: formData.get('phone'),
               lineId: formData.get('lineId'),
               facebook: formData.get('facebook'),
