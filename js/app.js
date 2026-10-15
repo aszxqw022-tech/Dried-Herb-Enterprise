@@ -1,7 +1,7 @@
 // Main App Controller and Router for Single Page Application
 import { appState } from './state.js';
 import { showToast } from './helpers.js';
-import { DashboardComponent } from './components/dashboard.js?v=35';
+import { DashboardComponent } from './components/dashboard.js?v=36';
 import { MembersComponent } from './components/members.js?v=17';
 import { PlotsComponent } from './components/plots.js?v=6';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=20';
@@ -14,7 +14,7 @@ import { CustomersComponent } from './components/customers.js?v=11';
 import { InventoryComponent } from './components/inventory.js?v=54'; // Phase 2
 import { FinanceComponent } from './components/finance.js?v=5';
 import { CostRevenueComponent } from './components/costRevenue.js?v=20';
-import { SalesComponent } from './components/sales.js?v=34';
+import { SalesComponent } from './components/sales.js?v=35';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
 import { LoginComponent } from './components/login.js?v=3';
 

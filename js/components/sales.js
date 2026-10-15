@@ -1231,9 +1231,6 @@ export const SalesComponent = {
             <div class="text-sm text-gray-600 pt-0.5">
               <span class="text-gray-500">วันที่ออกใบเสร็จ:</span> <span class="font-bold text-gray-800">${saleDate}</span>
             </div>
-            <div class="text-sm text-gray-600">
-              <span class="text-gray-500">ผู้รับเงิน / ผู้บันทึก:</span> <span class="font-semibold text-gray-800">${s.sellerName || '-'}</span>
-            </div>
           </div>
         </div>
 
@@ -1259,17 +1256,9 @@ export const SalesComponent = {
         <!-- Totals Summary Grid (Always 2 Columns) -->
         <div class="grid grid-cols-2 gap-4 pt-3 pb-3">
           <!-- Left: Receipt Notice & Signatures -->
-          <div class="flex flex-col justify-between space-y-4">
-            <div class="text-xs text-gray-500 leading-relaxed border-l-2 border-emerald-400 pl-2.5">
-              • สินค้าซื้อแล้วไม่รับเปลี่ยนหรือคืน<br>
-              • ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์เมื่อได้รับเงินครบถ้วน<br>
-              • ขอบคุณที่อุดหนุนผลิตภัณฑ์วิสาหกิจชุมชนศรีดอนมูล
-            </div>
+          <div class="flex flex-col justify-end">
             <div class="grid grid-cols-2 gap-3 text-center pt-1">
-              <div>
-                <div class="border-b border-dashed border-gray-300 pb-5 mb-1"></div>
-                <div class="text-xs text-gray-500">ผู้จ่ายเงิน</div>
-              </div>
+              <div></div>
               <div>
                 <div class="border-b border-dashed border-gray-300 pb-1 mb-1 text-xs font-bold text-emerald-800 truncate" title="${s.sellerName || ''}">
                   ${s.sellerName || ''}

@@ -301,7 +301,16 @@ export const DashboardComponent = {
 
     // การ์ดดอกแห้งแยกตามสมุนไพร + ต้นทุนรับซื้อดอกสด
     const dryCardsData = activeHerbsList.map(h => {
-      const kg = allProducts.filter(pr => pr.unit === 'กก.' && (pr.name || '').includes(h)).reduce((t, pr) => t + (parseFloat(pr.stock) || 0), 0);
+      // ปริมาณดอกแห้งที่ขายออก (เฉพาะสินค้าขายเป็นกิโลกรัม) ตามช่วงเวลาที่กรอง
+      let kg = 0;
+      directSales.forEach(sale => {
+        const items = (Array.isArray(sale.items) && sale.items.length) ? sale.items : [{ productName: sale.productName, unit: sale.unit, quantity: sale.quantity }];
+        items.forEach(it => {
+          const u = String(it.unit || '').trim();
+          const isKg = u === 'กก.' || u === 'กิโลกรัม' || u.toLowerCase() === 'kg';
+          if (isKg && String(it.productName || '').includes(h)) kg += parseFloat(it.quantity) || 0;
+        });
+      });
       const th = HERB_THEMES[h] || {};
       const palette = { 'เก๊กฮวย': ['#fff7ed', '#fed7aa'], 'คาโมมายล์': ['#fefce8', '#fde68a'] }[h] || ['#ecfdf5', '#a7f3d0'];
       return { herb: h, kg, icon: th.icon || '🌿', bg: palette[0], border: palette[1] };
