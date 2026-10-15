@@ -18,6 +18,27 @@ const STORAGE_KEYS = {
   ACTIVITY_LOGS: 'herb_enterprise_activity_logs' // Tier 3: Activity Logs
 };
 
+// ---- สำรองข้อมูลคลังสินค้า/ล็อตอบ/ล็อตแปรรูป/รายการขายขึ้น Supabase (ตาราง app_store: id, data jsonb, updated_at) ----
+// ทุกครั้งที่ข้อมูลเหล่านี้ถูกบันทึกในเครื่อง จะส่งขึ้นออนไลน์อัตโนมัติ และตอนเปิดเว็บจะดึงฉบับล่าสุดลงมา
+const MIRROR_KEYS = new Set([
+  STORAGE_KEYS.PRODUCTS, STORAGE_KEYS.INVENTORY, STORAGE_KEYS.DRYING_BATCHES,
+  STORAGE_KEYS.PACKAGING_BATCHES, STORAGE_KEYS.SALES
+]);
+let mirrorSilent = false;
+const mirrorTimers = {};
+let mirrorPushFn = null; // ตั้งค่าเมื่อเชื่อม Supabase แล้ว
+try {
+  const _origSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (k, v) {
+    _origSetItem.call(this, k, v);
+    if (this === window.localStorage && MIRROR_KEYS.has(k) && !mirrorSilent) {
+      _origSetItem.call(this, '__mirror_ts_' + k, String(Date.now()));
+      clearTimeout(mirrorTimers[k]);
+      mirrorTimers[k] = setTimeout(() => { if (mirrorPushFn) mirrorPushFn(k); }, 800);
+    }
+  };
+} catch (e) { /* ignore */ }
+
 export const MOCK_HERBS_CATALOG = [
   {
     herbId: 'HRB-001',
@@ -212,6 +233,7 @@ export class AppState {
     if (url && key && typeof supabase !== 'undefined') {
       try {
         supabaseClient = supabase.createClient(url, key);
+        mirrorPushFn = (k) => this._mirrorPush(k);
         console.log("Supabase Client connected successfully to:", url);
       } catch (e) {
         console.error("Failed to initialize Supabase client:", e);
@@ -225,6 +247,7 @@ export class AppState {
   async syncFromSupabase() {
     if (!supabaseClient) return;
 
+    mirrorSilent = true; // ข้อมูลที่ดึงจากตารางเดิมไม่ถือเป็นการแก้ไขในเครื่อง
     try {
       console.log("Syncing from Supabase...");
 
@@ -418,8 +441,7 @@ export class AppState {
         }));
         localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(this.inventoryCache));
       } else if (invData && invData.length === 0) {
-        this.inventoryCache = [];
-        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify([]));
+        // ออนไลน์ยังว่าง: ห้ามล้างข้อมูลในเครื่อง (ข้อมูลส่วนนี้สำรองผ่านตาราง app_store)
       } else if (invError) {
         console.warn("Supabase inventory sync skipped:", invError.message);
         if (!this.inventoryCache) {
@@ -452,8 +474,7 @@ export class AppState {
         }));
         localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(this.salesCache));
       } else if (salesData && salesData.length === 0) {
-        this.salesCache = [];
-        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
+        // ออนไลน์ยังว่าง: ห้ามล้างข้อมูลในเครื่อง (ข้อมูลส่วนนี้สำรองผ่านตาราง app_store)
       } else if (salesError) {
         console.warn("Supabase sales sync skipped:", salesError.message);
         if (!this.salesCache) {
@@ -523,7 +544,7 @@ export class AppState {
         }));
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(prdMapped));
       } else if (!prdError && prdData && prdData.length === 0) {
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
+        // ออนไลน์ยังว่าง: ห้ามล้างข้อมูลในเครื่อง (ข้อมูลส่วนนี้สำรองผ่านตาราง app_store)
       }
 
       // 10. Sync drying_batches
@@ -545,7 +566,7 @@ export class AppState {
         }));
         localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify(dryingMapped));
       } else if (!dryingError && dryingData && dryingData.length === 0) {
-        localStorage.setItem(STORAGE_KEYS.DRYING_BATCHES, JSON.stringify([]));
+        // ออนไลน์ยังว่าง: ห้ามล้างข้อมูลในเครื่อง (ข้อมูลส่วนนี้สำรองผ่านตาราง app_store)
       }
 
       // 11. Sync packaging_batches
@@ -568,10 +589,14 @@ export class AppState {
         }));
         localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(packMapped));
       } else if (!packError && packData && packData.length === 0) {
-        localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify([]));
+        // ออนไลน์ยังว่าง: ห้ามล้างข้อมูลในเครื่อง (ข้อมูลส่วนนี้สำรองผ่านตาราง app_store)
       }
 
-      // 12. รับซื้อดอกสด และ บิลขาย (เก็บเป็น JSON)
+      // 12. คลังสินค้า / ล็อตอบ / ล็อตแปรรูป / รายการขาย (สำรองใน app_store)
+      mirrorSilent = false;
+      try { await this.pullMirror(); } catch (e) { console.warn('pull app_store failed', e); }
+
+      // 13. รับซื้อดอกสด และ บิลขาย (เก็บเป็น JSON)
       try { await this.pullJsonList('fresh_purchases', 'herb_enterprise_fresh_purchases', false); } catch (e) { console.warn('pull fresh_purchases failed', e); }
       try { await this.pullJsonList('direct_sales', 'herb_enterprise_direct_sales_v1', true); } catch (e) { console.warn('pull direct_sales failed', e); }
 
@@ -594,6 +619,8 @@ export class AppState {
     } catch (e) {
       console.error("Sync error:", e);
       throw e;
+    } finally {
+      mirrorSilent = false;
     }
   }
 
@@ -1275,6 +1302,45 @@ export class AppState {
   }
   _saveSyncedIds(storageKey, set) {
     try { localStorage.setItem(storageKey + '__synced', JSON.stringify([...set])); } catch (e) { /* ignore */ }
+  }
+
+  _mirrorPush(key) {
+    if (!supabaseClient) return;
+    let data;
+    try { data = JSON.parse(localStorage.getItem(key)); } catch (e) { return; }
+    if (!Array.isArray(data)) return;
+    const ts = parseInt(localStorage.getItem('__mirror_ts_' + key)) || Date.now();
+    supabaseClient.from('app_store').upsert([{ id: key, data, updated_at: new Date(ts).toISOString() }]).then(({ error }) => {
+      if (error) console.error('Supabase app_store push error:', key, error.message);
+    });
+  }
+
+  async pullMirror() {
+    if (!supabaseClient) return;
+    const { data, error } = await supabaseClient.from('app_store').select('id,data,updated_at');
+    if (error || !Array.isArray(data)) { if (error) console.warn('Supabase app_store pull error:', error.message); return; }
+    const cloud = new Map(data.map(r => [r.id, r]));
+    MIRROR_KEYS.forEach(key => {
+      const row = cloud.get(key);
+      const localTs = parseInt(localStorage.getItem('__mirror_ts_' + key)) || 0;
+      const localRaw = localStorage.getItem(key);
+      let localList = [];
+      try { localList = JSON.parse(localRaw) || []; } catch (e) { localList = []; }
+      const cloudTs = row && row.updated_at ? Date.parse(row.updated_at) : 0;
+      if (row && Array.isArray(row.data) && (cloudTs > localTs || (localList.length === 0 && row.data.length > 0))) {
+        mirrorSilent = true;
+        try {
+          localStorage.setItem(key, JSON.stringify(row.data));
+          localStorage.setItem('__mirror_ts_' + key, String(cloudTs || Date.now()));
+        } finally { mirrorSilent = false; }
+      } else if (Array.isArray(localList) && localList.length > 0 && (!row || localTs > cloudTs)) {
+        if (!localTs) localStorage.setItem('__mirror_ts_' + key, String(Date.now()));
+        this._mirrorPush(key);
+      }
+    });
+    // ล้างแคชในหน่วยความจำให้อ่านค่าใหม่
+    this.inventoryCache = null;
+    this.salesCache = null;
   }
 
   syncJsonList(table, storageKey, newList, prevList) {
