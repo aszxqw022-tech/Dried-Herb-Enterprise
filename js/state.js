@@ -25,6 +25,8 @@ const MIRROR_KEYS = new Set([
   STORAGE_KEYS.PACKAGING_BATCHES, STORAGE_KEYS.SALES
 ]);
 let mirrorSilent = false;
+// ตารางเดิม (inventory/sales/products/drying_batches/packaging_batches) ไม่ใช้เป็นแหล่งข้อมูลแล้ว ใช้ app_store แทน
+const LEGACY_TABLES_MIRRORED = true;
 const mirrorTimers = {};
 let mirrorPushFn = null; // ตั้งค่าเมื่อเชื่อม Supabase แล้ว
 try {
@@ -429,7 +431,7 @@ export class AppState {
         .select('*')
         .order('id', { ascending: true });
       
-      if (!invError && invData && invData.length > 0) {
+      if (!LEGACY_TABLES_MIRRORED && !invError && invData && invData.length > 0) {
         this.inventoryCache = invData.map(i => ({
           ...i,
           cropId: i.crop_id || i.cropId,
@@ -456,7 +458,7 @@ export class AppState {
         .select('*')
         .order('id', { ascending: true });
       
-      if (!salesError && salesData && salesData.length > 0) {
+      if (!LEGACY_TABLES_MIRRORED && !salesError && salesData && salesData.length > 0) {
         this.salesCache = salesData.map(s => ({
           ...s,
           inventoryId: s.inventory_id || s.inventoryId,
@@ -537,7 +539,7 @@ export class AppState {
         .from('products')
         .select('*')
         .order('id', { ascending: true });
-      if (!prdError && prdData && prdData.length > 0) {
+      if (!LEGACY_TABLES_MIRRORED && !prdError && prdData && prdData.length > 0) {
         const prdMapped = prdData.map(p => ({
           ...p,
           updatedDate: p.updated_date || p.updatedDate
@@ -552,7 +554,7 @@ export class AppState {
         .from('drying_batches')
         .select('*')
         .order('id', { ascending: true });
-      if (!dryingError && dryingData && dryingData.length > 0) {
+      if (!LEGACY_TABLES_MIRRORED && !dryingError && dryingData && dryingData.length > 0) {
         const dryingMapped = dryingData.map(d => ({
           id: d.id,
           herbType: d.herb_type,
@@ -574,7 +576,7 @@ export class AppState {
         .from('packaging_batches')
         .select('*')
         .order('id', { ascending: true });
-      if (!packError && packData && packData.length > 0) {
+      if (!LEGACY_TABLES_MIRRORED && !packError && packData && packData.length > 0) {
         const packMapped = packData.map(p => ({
           id: p.id,
           herbType: p.herb_type,
@@ -736,6 +738,15 @@ export class AppState {
   }
 
   init() {
+    // การจัดเตรียม/ปรับรูปแบบข้อมูลตอนเปิดเว็บ ไม่นับเป็นการแก้ไขที่ต้องส่งขึ้นออนไลน์
+    mirrorSilent = true;
+    try { this._initLocal(); } finally { mirrorSilent = false; }
+    if (supabaseClient) {
+      this.syncFromSupabase().catch(e => console.error("Initial Supabase sync failed:", e));
+    }
+  }
+
+  _initLocal() {
     this.initSupabase();
 
     const SIMULATION_RESET_KEY = 'herb_enterprise_sim_ver_v22';
@@ -743,9 +754,6 @@ export class AppState {
       this.resetAllSimulationData();
       localStorage.setItem('herb_enterprise_sim_ver', SIMULATION_RESET_KEY);
       localStorage.setItem('herb_enterprise_products_price_v6', 'done');
-      if (supabaseClient) {
-        this.syncFromSupabase().catch(e => console.error("Initial Supabase sync failed:", e));
-      }
       return;
     }
     
@@ -850,10 +858,11 @@ export class AppState {
 
         const storedInv = localStorage.getItem(STORAGE_KEYS.INVENTORY);
         if (storedInv) {
+          // ปรับรูปแบบรหัสรอบเท่านั้น ห้ามทิ้งรายการ (ล็อตรวม DRY-xxx ไม่มี "/" ในรหัส)
           const validInv = JSON.parse(storedInv).map(i => ({
             ...i,
-            cropId: formatCropSeasonId(i.cropId)
-          })).filter(i => String(i.cropId).includes('/'));
+            cropId: String(i.cropId || '').includes('/') ? formatCropSeasonId(i.cropId) : i.cropId
+          }));
           localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(validInv));
         }
 
@@ -861,8 +870,8 @@ export class AppState {
         if (storedSales) {
           const validSales = JSON.parse(storedSales).map(s => ({
             ...s,
-            cropId: formatCropSeasonId(s.cropId)
-          })).filter(s => String(s.cropId).includes('/'));
+            cropId: String(s.cropId || '').includes('/') ? formatCropSeasonId(s.cropId) : s.cropId
+          }));
           localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(validSales));
         }
       } catch (err) {
@@ -870,8 +879,10 @@ export class AppState {
       }
     }
 
-    // 5. Inventory (Phase 2)
-    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
+    // 5. Inventory (Phase 2) — สร้างค่าเริ่มต้นเฉพาะเมื่อยังไม่มีข้อมูล
+    if (!localStorage.getItem(STORAGE_KEYS.INVENTORY)) {
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(MOCK_INVENTORY));
+    }
 
     // 6. Sales (Phase 2)
     if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
@@ -930,12 +941,6 @@ export class AppState {
       localStorage.setItem(STORAGE_KEYS.PACKAGING_BATCHES, JSON.stringify(MOCK_PACKAGING_BATCHES));
     }
 
-    // Trigger asynchronous Supabase synchronization if connected
-    if (supabaseClient) {
-      this.syncFromSupabase().catch(e => {
-        console.error("Initial Supabase sync failed:", e);
-      });
-    }
   }
 
   // --- Enterprise Profile Methods ---
@@ -1770,9 +1775,8 @@ export class AppState {
         });
       }
     }
-    if (!supabaseClient) {
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-    }
+    // เก็บในเครื่องเสมอ (สำรองขึ้นออนไลน์ผ่าน app_store)
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 
     // 2. Mark Crop as processed and save yield, drying date, and dry weight
     this.updateCrop(cropId, { 
@@ -1896,9 +1900,8 @@ export class AppState {
     // 3. หักดอกแห้งออกจากคลัง
     if (invItem && dryKg > 0) {
       invItem.dryStockKg = Math.max(0, parseFloat(((parseFloat(invItem.dryStockKg) || 0) - dryKg).toFixed(2)));
-      if (!supabaseClient) {
-        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-      }
+      // เก็บในเครื่องเสมอ (สำรองขึ้นออนไลน์ผ่าน app_store)
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
     }
 
     // 4. หักสต็อกสินค้าดอกแห้ง (กก.) ในรายการสินค้า
@@ -2033,9 +2036,8 @@ export class AppState {
       });
     }
 
-    if (!supabaseClient) {
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-    }
+    // เก็บในเครื่องเสมอ (สำรองขึ้นออนไลน์ผ่าน app_store)
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 
     // Also sync to products catalog (PRD-XXX)
     try {
@@ -2151,9 +2153,8 @@ export class AppState {
         || inventory.find(i => i.herbType && i.herbType.includes(herb));
       if (invItem) {
         invItem.dryStockKg = parseFloat(((parseFloat(invItem.dryStockKg) || 0) + usedKg).toFixed(2));
-        if (!supabaseClient) {
-          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-        }
+        // เก็บในเครื่องเสมอ (สำรองขึ้นออนไลน์ผ่าน app_store)
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
       }
     }
 
