@@ -1228,6 +1228,11 @@ export class AppState {
     const byId = new Map();
     const out = [];
     (list || []).forEach(c => {
+      // รหัสรอบปลูก (YYYY/Pnnn-Rn) คือข้อมูลหลัก: ปี/รอบต้องตรงกับรหัสเสมอ ป้องกันรอบ 2 ไปโผล่ในรอบ 1
+      if (c && typeof c.id === 'string') {
+        const mm = c.id.trim().match(/^(\d{4})\/P\s*-?\s*\d+\s*[-\/]\s*R?(\d+)$/i);
+        if (mm) { c.cropYear = parseInt(mm[1], 10); c.cropCycle = parseInt(mm[2], 10); }
+      }
       if (!c || c.id === undefined || c.id === null) { out.push(c); return; }
       const prev = byId.get(c.id);
       if (!prev) { byId.set(c.id, c); out.push(c); return; }
