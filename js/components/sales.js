@@ -1348,7 +1348,7 @@ export const SalesComponent = {
               <div></div>
               <div>
                 <div class="border-b border-dashed border-gray-300 pb-5 mb-1"></div>
-                <div class="text-xs text-gray-500">ผู้รับเงิน</div>
+                <div class="text-xs text-gray-500">ผู้ออกใบเสร็จ</div>
               </div>
             </div>
           </div>
