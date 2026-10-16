@@ -2,7 +2,7 @@
 import { appState } from './state.js';
 import { showToast } from './helpers.js';
 import { DashboardComponent } from './components/dashboard.js?v=36';
-import { MembersComponent } from './components/members.js?v=17';
+import { MembersComponent } from './components/members.js?v=18';
 import { PlotsComponent } from './components/plots.js?v=6';
 import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=20';
 import { CropsComponent } from './components/crops.js?v=53';

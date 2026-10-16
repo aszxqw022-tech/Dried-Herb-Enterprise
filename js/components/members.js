@@ -616,20 +616,39 @@ export const MembersComponent = {
             <!-- Right Column: Stats & Plots lists (8 cols) -->
             <div class="lg:col-span-8 space-y-6 flex flex-col justify-between">
               
-              <!-- Statistics Cards Grid (6 cards: Agricultural + Financial) -->
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">ต้นทุนสะสม</span>
-                  <span class="text-xl font-bold text-amber-700">${totalCost.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
-                </div>
-                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">รายได้สะสม</span>
-                  <span class="text-xl font-bold text-emerald-700">${totalRevenue.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
-                </div>
-                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">กำไรสุทธิสะสม</span>
-                  <span class="text-xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
-                </div>
+              <!-- Plot Details List -->
+              <div class="bg-white px-4 py-3 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
+                <h5 class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fas fa-map-marked-alt text-emerald-700"></i> ชื่อแปลงที่ปลูก (${mPlots.length})
+                </h5>
+                
+                ${mPlots.length === 0 
+                  ? `<p class="text-sm text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
+                  : `
+                    <div class="divide-y divide-gray-100 max-h-28 overflow-y-auto pr-1">
+                      ${mPlots.map(p => {
+                        const activeCrop = mCrops.find(c => c.plotId === p.id);
+                        const herbBadge = p.plantType || (activeCrop ? (activeCrop.seedlingSource || activeCrop.produceName || 'เก๊กฮวย') : 'พร้อมปลูก');
+                        return `
+                        <div class="py-1.5 flex justify-between items-center text-xs">
+                          <div>
+                            <span class="font-bold text-gray-800">${p.name}</span>
+                            <span class="text-gray-400 text-xs block">รหัสแปลง: ${p.id}</span>
+                          </div>
+                          <div class="text-right">
+                            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                              herbBadge === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 
+                              herbBadge === 'คาโมมายล์' ? 'bg-blue-50 text-blue-800 border border-blue-200' : 
+                              herbBadge === 'พร้อมปลูก' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                              'bg-gray-100 text-gray-700 border border-gray-200'
+                            }">${herbBadge}</span>
+                            <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
+                          </div>
+                        </div>
+                      `;}).join('')}
+                    </div>
+                  `
+                }
               </div>
 
               <!-- Planting History Section (ประวัติการปลูกที่เคยเก็บเกี่ยวแล้ว) -->
@@ -703,39 +722,20 @@ export const MembersComponent = {
                 `}
               </div>
 
-              <!-- Plot Details List -->
-              <div class="bg-white px-4 py-3 rounded-2xl border border-gray-150 shadow-sm space-y-2 text-left">
-                <h5 class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <i class="fas fa-map-marked-alt text-emerald-700"></i> ชื่อแปลงที่ปลูก (${mPlots.length})
-                </h5>
-                
-                ${mPlots.length === 0 
-                  ? `<p class="text-sm text-gray-400 text-center py-3">ยังไม่มีแปลงปลูกลงทะเบียนในระบบ</p>` 
-                  : `
-                    <div class="divide-y divide-gray-100 max-h-28 overflow-y-auto pr-1">
-                      ${mPlots.map(p => {
-                        const activeCrop = mCrops.find(c => c.plotId === p.id);
-                        const herbBadge = p.plantType || (activeCrop ? (activeCrop.seedlingSource || activeCrop.produceName || 'เก๊กฮวย') : 'พร้อมปลูก');
-                        return `
-                        <div class="py-1.5 flex justify-between items-center text-xs">
-                          <div>
-                            <span class="font-bold text-gray-800">${p.name}</span>
-                            <span class="text-gray-400 text-xs block">รหัสแปลง: ${p.id}</span>
-                          </div>
-                          <div class="text-right">
-                            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full ${
-                              herbBadge === 'เก๊กฮวย' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 
-                              herbBadge === 'คาโมมายล์' ? 'bg-blue-50 text-blue-800 border border-blue-200' : 
-                              herbBadge === 'พร้อมปลูก' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                              'bg-gray-100 text-gray-700 border border-gray-200'
-                            }">${herbBadge}</span>
-                            <span class="text-gray-500 block mt-0.5 font-medium">${p.sizeRai ? `${p.sizeRai} ไร่ ` : ''}${p.sizeNgan ? `${p.sizeNgan} งาน ` : ''}${p.sizeSqWah ? `${p.sizeSqWah} ตร.ว.` : ''}</span>
-                          </div>
-                        </div>
-                      `;}).join('')}
-                    </div>
-                  `
-                }
+              <!-- Statistics Cards Grid (6 cards: Agricultural + Financial) -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">ต้นทุนสะสม</span>
+                  <span class="text-xl font-bold text-amber-700">${totalCost.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+                </div>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">รายได้สะสม</span>
+                  <span class="text-xl font-bold text-emerald-700">${totalRevenue.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+                </div>
+                <div class="p-3.5 bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <span class="text-xs text-gray-400 font-bold block uppercase mb-1">กำไรสุทธิสะสม</span>
+                  <span class="text-xl font-bold ${netProfit >= 0 ? 'text-green-700' : 'text-red-600'}">${netProfit.toLocaleString()} <span class="text-xs text-gray-550 font-semibold">บาท</span></span>
+                </div>
               </div>
             </div>
             
