@@ -280,7 +280,6 @@ export const FreshProduceComponent = {
                       <tr>
                         <th class="px-6 py-4 whitespace-nowrap">วันที่อบ</th>
                         <th class="px-6 py-4 whitespace-nowrap">รหัสล็อต</th>
-                        <th class="px-6 py-4 whitespace-nowrap">รอบเพาะปลูก</th>
                         <th class="px-6 py-4 whitespace-nowrap text-right">สด (กิโลกรัม)</th>
                         <th class="px-6 py-4 whitespace-nowrap text-right">แห้ง (กิโลกรัม)</th>
                         <th class="px-6 py-4 whitespace-nowrap">หมายเหตุ</th>
@@ -290,7 +289,7 @@ export const FreshProduceComponent = {
                     <tbody class="divide-y divide-slate-100 text-base font-medium text-slate-800">
                       ${dryHistoryBatches.length === 0 ? `
                         <tr>
-                          <td colspan="7" class="px-6 py-12 text-center text-slate-400 font-medium">
+                          <td colspan="6" class="px-6 py-12 text-center text-slate-400 font-medium">
                             ไม่มีประวัติการอบแห้ง
                           </td>
                         </tr>
@@ -303,7 +302,6 @@ export const FreshProduceComponent = {
                           <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-slate-600">${formatThaiDate(b.processedDate)}</td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono font-bold text-slate-900">${b.id || '-'}</td>
-                            <td class="px-6 py-4 text-sm text-slate-700 max-w-[260px]">${cropRounds}</td>
                             <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-emerald-800 font-bold">${freshUsed.toFixed(1)}</td>
                             <td class="px-6 py-4 text-right whitespace-nowrap font-mono text-amber-900 font-bold">${dryYield.toFixed(1)}</td>
                             <td class="px-6 py-4 text-slate-600">${b.note || '-'}</td>
