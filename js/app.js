@@ -8,7 +8,7 @@ import { PlantingRoadmapComponent } from './components/plantingRoadmap.js?v=20';
 import { CropsComponent } from './components/crops.js?v=53';
 import { CropHistoryComponent } from './components/cropHistory.js?v=12';
 import { FreshBuyingComponent } from './components/freshBuying.js?v=17';
-import { FreshProduceComponent } from './components/freshProduce.js?v=56';
+import { FreshProduceComponent } from './components/freshProduce.js?v=57';
 import { SettingsComponent } from './components/settings.js?v=10';
 import { CustomersComponent } from './components/customers.js?v=11';
 import { InventoryComponent } from './components/inventory.js?v=54'; // Phase 2
@@ -16,7 +16,7 @@ import { FinanceComponent } from './components/finance.js?v=5';
 import { CostRevenueComponent } from './components/costRevenue.js?v=20';
 import { SalesComponent } from './components/sales.js?v=36';
 import { TraceabilityComponent } from './components/traceability.js?v=2'; // Phase 2
-import { LoginComponent } from './components/login.js?v=3';
+import { LoginComponent } from './components/login.js?v=4';
 
 class AppController {
   constructor() {

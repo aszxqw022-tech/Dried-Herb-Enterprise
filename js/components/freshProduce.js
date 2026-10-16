@@ -16,6 +16,7 @@ export const FreshProduceComponent = {
   canCycleFilter: '2',
 
   render() {
+    if (appState.reconcileDryInventory) appState.reconcileDryInventory();
     this.activeTab = this.mode === 'canning' ? 'canning' : 'drying';
     const allCrops = appState.getCrops();
     const plots = appState.getPlots();
@@ -1450,7 +1451,7 @@ export const FreshProduceComponent = {
           </div>
 
           <div class="p-3.5 bg-white rounded-2xl border-2 border-emerald-500 shadow-2xs">
-            <label for="canning-input-qty" class="text-sm font-bold text-gray-800 block">จำนวนที่จะแปรรูป *</label>
+            <label for="canning-input-qty" class="text-sm font-bold text-gray-800 block">จำนวนที่จะแปรรูป (ทำกี่ชิ้น) *</label>
             <div class="relative mt-1.5">
               <input type="number" step="1" min="0" id="canning-input-qty" value="0" required
                 class="w-full pl-3 pr-16 py-1.5 rounded-xl border border-gray-300 text-lg font-bold text-teal-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono">

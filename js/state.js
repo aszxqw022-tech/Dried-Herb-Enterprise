@@ -215,6 +215,10 @@ export class AppState {
       this.customersCache = JSON.parse(JSON.stringify(MOCK_CUSTOMERS));
     }
     this.init();
+    // เปิดเว็บใหม่ (แท็บ/หน้าต่างใหม่) ต้องเข้าสู่ระบบก่อนเสมอ — รีเฟรชในแท็บเดิมยังอยู่ในระบบ
+    try {
+      if (!sessionStorage.getItem('herb_tab_session')) localStorage.removeItem(STORAGE_KEYS.AUTH);
+    } catch (e) { /* ignore */ }
   }
 
   initSupabase() {
@@ -685,12 +689,14 @@ export class AppState {
     };
 
     localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(sessionData));
+    try { sessionStorage.setItem('herb_tab_session', '1'); } catch (e) { /* ignore */ }
     if (this.onAuthChange) this.onAuthChange(sessionData);
     return sessionData;
   }
 
   logout() {
     localStorage.removeItem(STORAGE_KEYS.AUTH);
+    try { sessionStorage.removeItem('herb_tab_session'); } catch (e) { /* ignore */ }
     if (this.onAuthChange) this.onAuthChange(null);
   }
 
@@ -1665,6 +1671,50 @@ export class AppState {
   }
 
   // --- Inventory Methods (Phase 2) ---
+  // ให้ดอกแห้งในคลัง (inventory) ตรงกับสต็อกสินค้าดอกแห้งขายเป็นกิโลกรัม (สินค้า PRD ที่หน่วย กก.) เสมอ
+  // เพราะการขาย/แก้สต็อกสินค้า ตัดที่สินค้าโดยตรง — สต็อกสินค้าคือค่าจริง
+  reconcileDryInventory() {
+    try {
+      const products = this.getProducts();
+      const inv = this.getInventory();
+      let changed = false;
+      const herbs = new Set(inv.map(i => i.herbType).filter(Boolean));
+      products.forEach(p => { if ((p.unit === 'กก.' || p.unit === 'kg') && p.category && (parseFloat(p.stock) || 0) > 0) herbs.add(p.category); });
+      herbs.forEach(herb => {
+        const kgProducts = products.filter(p => (p.unit === 'กก.' || p.unit === 'kg') && (String(p.name || '').includes(herb) || p.category === herb));
+        if (!kgProducts.length) return;
+        const target = parseFloat(kgProducts.reduce((t, p) => t + (parseFloat(p.stock) || 0), 0).toFixed(2));
+        let items = inv.filter(i => i.herbType === herb);
+        if (!items.length) {
+          if (target <= 0) return;
+          const it = { cropId: 'STOCK-' + herb, herbType: herb, dryStockKg: 0, isPooledBatch: true, note: 'ปรับตามสต็อกสินค้าในคลัง' };
+          inv.push(it); items = [it];
+        }
+        const current = parseFloat(items.reduce((t, i) => t + (parseFloat(i.dryStockKg) || 0), 0).toFixed(2));
+        if (Math.abs(current - target) < 0.005) return;
+        let diff = parseFloat((current - target).toFixed(2));
+        if (diff > 0) {
+          // ลดออกจากล็อตที่มีมากสุดก่อน
+          items.sort((a, b) => (parseFloat(b.dryStockKg) || 0) - (parseFloat(a.dryStockKg) || 0)).forEach(i => {
+            if (diff <= 0) return;
+            const have = parseFloat(i.dryStockKg) || 0;
+            const take = Math.min(have, diff);
+            i.dryStockKg = parseFloat((have - take).toFixed(2));
+            diff = parseFloat((diff - take).toFixed(2));
+          });
+        } else {
+          const first = items.find(i => i.isPooledBatch) || items[0];
+          first.dryStockKg = parseFloat(((parseFloat(first.dryStockKg) || 0) - diff).toFixed(2));
+        }
+        changed = true;
+      });
+      if (changed) {
+        this.inventoryCache = inv;
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inv));
+      }
+    } catch (e) { console.warn('reconcileDryInventory failed', e); }
+  }
+
   getInventory() {
     if (Array.isArray(this.inventoryCache)) {
       return this.inventoryCache;

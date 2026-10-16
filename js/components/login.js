@@ -21,7 +21,7 @@ export const LoginComponent = {
             </div>
             <div>
               <span class="text-sm font-bold text-emerald-700 tracking-wider uppercase block">ระบบบริหารจัดการและบัญชี</span>
-              <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">${enterprise.name}</h1>
+              <h1 class="text-xl md:text-2xl font-bold text-gray-900 mt-1 leading-snug" style="text-wrap: balance;">การพัฒนาระบบสารสนเทศเพื่อการบริหารจัดการวิสาหกิจชุมชนสมุนไพรอบแห้งบ้านศรีดอนมูล</h1>
               <p class="text-sm text-gray-500 mt-1">กรุณาล็อกอินด้วยบัญชีผู้ใช้งานเพื่อเข้าถึงระบบจัดการวิสาหกิจ</p>
             </div>
           </div>
